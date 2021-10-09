@@ -4,9 +4,13 @@
 # Log file
 *.log
 
+# Env file
+*.env
+
 # builds, cache and idea
 .idea/
 .gradle/
+build/
 gradlew
 gradlew.bat
 

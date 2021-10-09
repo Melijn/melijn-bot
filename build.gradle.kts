@@ -5,16 +5,16 @@ plugins {
     id("application")
     id("com.apollographql.apollo") version "2.5.9"
     id("com.github.johnrengelman.shadow") version "7.0.0"
-    kotlin("jvm") version "1.5.30"
+    kotlin("jvm") version "1.5.31"
 }
 
-application.mainClass.set("me.melijn.melijnbot.MelijnBotKt")
-group = "me.melijn.melijnbot"
-version = "2.1.0"
+application.mainClass.set("me.melijn.bot.MelijnKt")
+group = "me.melijn.bot"
+version = "0.0.1-SNAPSHOT"
 
 configure<JavaPluginExtension> {
-    sourceCompatibility = JavaVersion.VERSION_15
-    targetCompatibility = JavaVersion.VERSION_15
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 configure<ApolloExtension> {
@@ -33,11 +33,9 @@ configure<ApolloExtension> {
 
 repositories {
     mavenCentral()
-    maven {
-        url = uri("https://m2.dv8tion.net/releases")
-        name = "m2-dv8tion"
-    }
-    maven("https://oss.sonatype.org/content/repositories/snapshots/")
+    maven("https://oss.sonatype.org/content/repositories/snapshots")
+
+    maven("https://maven.kotlindiscord.com/repository/maven-snapshots/")
     maven("https://nexus.melijn.com/repository/maven-public/")
     maven("https://nexus.melijn.com/repository/jcenter-mirror/")
     mavenLocal()
@@ -45,34 +43,27 @@ repositories {
     maven("https://nexus.melijn.com/repository/jitpack/") // pooppack mirror
 }
 
-val jackson = "2.12.5" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
-val ktor = "1.6.3"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
+val jackson = "2.13.0" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+val ktor = "1.6.4"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 val apollo = "2.5.9" // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
 val kotlinX = "1.5.2-native-mt" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
-val kotlin = "1.5.30"
+val kotlin = "1.5.31"
 val scrimage = "4.0.22"
 
 dependencies {
     // https://ci.dv8tion.net/job/JDA/
-    implementation("net.dv8tion:JDA:4.3.0_324") {
-        exclude("opus-java")
-    }
+    implementation("dev.kord:kord-core:0.8.0-M6")
+    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.1-SNAPSHOT")
 
-    implementation("io.sentry:sentry:5.1.2")
+    implementation("me.melijn.kordkommons:kord-kommons:1.0.5")
+
+    implementation("io.sentry:sentry:5.2.0")
 
     // https://mvnrepository.com/artifact/club.minnced/discord-webhooks
-    implementation("club.minnced:discord-webhooks:0.5.8")
+    implementation("club.minnced:discord-webhooks:0.7.2")
     // https://github.com/freya022/JEmojis
     implementation("com.github.ToxicMushroom:JEmojis:a8c82848f166893f67251c741579c74c80fbb2dd")
 
-    // https://github.com/sedmelluq/jda-nas
-    implementation("com.sedmelluq:jda-nas:1.1.0")
-
-    // https://github.com/sedmelluq/lavaplayer
-    implementation("com.sedmelluq:lavaplayer:1.3.78")
-
-    // https://nexus.melijn.com/#browse/browse:maven-public:me%2Fmelijn%2Fllklient%2FLavalink-Klient
-    implementation("me.melijn.llklient:Lavalink-Klient:2.2.3")
 
     api("org.jetbrains.kotlin:kotlin-script-util:$kotlin")
     api("org.jetbrains.kotlin:kotlin-compiler:$kotlin")
@@ -88,7 +79,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.0.0")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.2.23")
+    implementation("org.postgresql:postgresql:42.2.24")
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinX")
@@ -103,7 +94,7 @@ dependencies {
     implementation("se.michaelthelin.spotify:spotify-web-api-java:6.5.4")
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-    implementation("ch.qos.logback:logback-classic:1.2.5")
+    implementation("ch.qos.logback:logback-classic:1.2.6")
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
     implementation("com.fasterxml.jackson.core:jackson-core:$jackson")
@@ -135,7 +126,7 @@ dependencies {
     implementation("com.apollographql.apollo:apollo-coroutines-support:$apollo")
 
     // https://mvnrepository.com/artifact/io.lettuce/lettuce-core
-    implementation("io.lettuce:lettuce-core:6.1.4.RELEASE")
+    implementation("io.lettuce:lettuce-core:6.1.5.RELEASE")
 
     // https://github.com/cdimascio/dotenv-kotlin
     implementation("io.github.cdimascio:dotenv-kotlin:6.2.2")
@@ -147,7 +138,7 @@ tasks {
     }
     withType(KotlinCompile::class) {
         kotlinOptions {
-            jvmTarget = "15"
+            jvmTarget = "16"
         }
     }
 
