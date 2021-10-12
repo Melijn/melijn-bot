@@ -52,12 +52,12 @@ val scrimage = "4.0.22"
 
 dependencies {
     // https://ci.dv8tion.net/job/JDA/
-    implementation("dev.kord:kord-core:0.8.0-M6")
-    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.1-SNAPSHOT")
+    implementation("dev.kord:kord-core:0.8.0-M7")
+    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.1-RC")
 
     implementation("me.melijn.kordkommons:kord-kommons:1.0.5")
 
-    implementation("io.sentry:sentry:5.2.0")
+    implementation("io.sentry:sentry:5.2.1")
 
     // https://mvnrepository.com/artifact/club.minnced/discord-webhooks
     implementation("club.minnced:discord-webhooks:0.7.2")
@@ -76,8 +76,8 @@ dependencies {
     implementation("me.melijn.jagtag:JagTag-Kotlin:2.2.1")
 
     // Database
-    implementation("org.jetbrains.exposed:exposed-core:0.34.2")
-    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.34.1")
+    implementation("org.jetbrains.exposed:exposed-core:0.35.1")
+    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.35.1")
     // https://search.maven.org/artifact/com.zaxxer/HikariCP
     implementation("com.zaxxer:HikariCP:5.0.0")
 
