@@ -75,6 +75,9 @@ dependencies {
     // https://nexus.melijn.com/#browse/browse:maven-public:me%2Fmelijn%2Fjagtag
     implementation("me.melijn.jagtag:JagTag-Kotlin:2.2.1")
 
+    // Database
+    implementation("org.jetbrains.exposed:exposed-core:0.34.2")
+    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.34.1")
     // https://search.maven.org/artifact/com.zaxxer/HikariCP
     implementation("com.zaxxer:HikariCP:5.0.0")
 
