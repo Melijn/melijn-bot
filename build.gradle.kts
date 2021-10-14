@@ -36,6 +36,7 @@ repositories {
     maven("https://oss.sonatype.org/content/repositories/snapshots")
 
     maven("https://maven.kotlindiscord.com/repository/maven-snapshots/")
+    maven("https://maven.kotlindiscord.com/repository/maven-releases/")
     maven("https://nexus.melijn.com/repository/maven-public/")
     maven("https://nexus.melijn.com/repository/jcenter-mirror/")
     mavenLocal()
@@ -51,13 +52,12 @@ val kotlin = "1.5.31"
 val scrimage = "4.0.22"
 
 dependencies {
-    // https://ci.dv8tion.net/job/JDA/
     implementation("dev.kord:kord-core:0.8.0-M7")
-    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.1-RC")
+    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.1-RC1")
 
     implementation("me.melijn.kordkommons:kord-kommons:1.0.5")
 
-    implementation("io.sentry:sentry:5.2.1")
+    implementation("io.sentry:sentry:5.2.2")
 
     // https://mvnrepository.com/artifact/club.minnced/discord-webhooks
     implementation("club.minnced:discord-webhooks:0.7.2")

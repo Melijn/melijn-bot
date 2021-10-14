@@ -27,7 +27,7 @@ object Melijn {
                 enabled = true
 
                 if (settings.process.environment == Environment.Testing)
-                    defaultGuild(234277444708859904L)
+                    defaultGuild(234277444708859904L.toULong())
             }
         }
         botInstance.start()
