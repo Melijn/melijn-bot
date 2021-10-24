@@ -6,6 +6,7 @@ plugins {
     id("com.apollographql.apollo") version "2.5.9"
     id("com.github.johnrengelman.shadow") version "7.0.0"
     kotlin("jvm") version "1.5.31"
+    id("com.google.devtools.ksp") version "1.5.31-1.0.0"
 }
 
 application.mainClass.set("me.melijn.bot.MelijnKt")
@@ -13,8 +14,8 @@ group = "me.melijn.bot"
 version = "0.0.1-SNAPSHOT"
 
 configure<JavaPluginExtension> {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_16
+    targetCompatibility = JavaVersion.VERSION_16
 }
 
 configure<ApolloExtension> {
@@ -55,7 +56,7 @@ dependencies {
     implementation("dev.kord:kord-core:0.8.0-M7")
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.1-RC1")
 
-    implementation("me.melijn.kordkommons:kord-kommons:1.0.5")
+    implementation("me.melijn.kordkommons:kord-kommons:1.0.6")
 
     implementation("io.sentry:sentry:5.2.2")
 
@@ -63,6 +64,10 @@ dependencies {
     implementation("club.minnced:discord-webhooks:0.7.2")
     // https://github.com/freya022/JEmojis
     implementation("com.github.ToxicMushroom:JEmojis:a8c82848f166893f67251c741579c74c80fbb2dd")
+
+    // Annotation preprocessors
+    implementation(project(":annotation-processors"))
+    ksp(project(":annotation-processors"))
 
 
     api("org.jetbrains.kotlin:kotlin-script-util:$kotlin")
@@ -133,6 +138,20 @@ dependencies {
 
     // https://github.com/cdimascio/dotenv-kotlin
     implementation("io.github.cdimascio:dotenv-kotlin:6.2.2")
+}
+
+ksp {
+//    arg("option1", "value1")
+//    arg("option2", "value2")
+}
+
+kotlin {
+    sourceSets.main {
+        kotlin.srcDir("build/generated/ksp/main/kotlin")
+    }
+    sourceSets.test {
+        kotlin.srcDir("build/generated/ksp/test/kotlin")
+    }
 }
 
 tasks {
