@@ -15,11 +15,6 @@ class GuildSetting(id: EntityID<ULong>) : Entity<ULong>(id),CacheableTable {
     val allowNsfw by GuildSettings.allowNsfw
 
     override fun toData(): CacheableData = this.toCache()
-
-}
-
-fun s () {
-
 }
 
 @CreateTable

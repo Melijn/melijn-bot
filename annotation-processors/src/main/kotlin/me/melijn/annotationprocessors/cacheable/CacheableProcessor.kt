@@ -6,7 +6,6 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSVisitorVoid
 import com.google.devtools.ksp.validate
-import me.melijn.annotationprocessors.util.appendText
 
 class CacheableProcessor(
     codeGenerator: CodeGenerator,
@@ -26,6 +25,7 @@ class CacheableProcessor(
         val symbols = resolver.getSymbolsWithAnnotation("me.melijn.annotationprocessors.cacheable.Cacheable").toList()
         val ret = symbols.filter { !it.validate() }.toList()
 
+        // (classDeclaration.declarations.first() as KSClassDeclaration).getAllFunctions().iterator()
         symbols
             .filter { symbol -> symbol is KSClassDeclaration && symbol.validate() }
             .forEach { symbol ->
@@ -48,12 +48,11 @@ class CacheableProcessor(
         override fun visitFunctionDeclaration(function: KSFunctionDeclaration, data: Unit) {
             val parent = function.parentDeclaration as KSClassDeclaration
             val className = parent.qualifiedName?.asString() ?: throw IllegalStateException("Annotation not on class ?")
-            parent.
 
             sb.append("fun $className.toCache(): ${parent.simpleName}Data {")
             sb.append("    return ${parent.simpleName}Data()")
             sb.append("}")
-            injectKoinModuleFile.appendText("single { $className(${function.parameters.joinToString(", ") { "get()" }}) } bind $className::class\n")
+            //injectKoinModuleFile.appendText("single { $className(${function.parameters.joinToString(", ") { "get()" }}) } bind $className::class\n")
         }
     }
 }

@@ -3,10 +3,10 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("application")
-    id("com.apollographql.apollo") version "2.5.9"
-    id("com.github.johnrengelman.shadow") version "7.0.0"
-    kotlin("jvm") version "1.5.31"
-    id("com.google.devtools.ksp") version "1.5.31-1.0.0"
+    id("com.apollographql.apollo") version "2.5.10"
+    id("com.github.johnrengelman.shadow") version "7.1.0"
+    kotlin("jvm") version "1.6.0"
+    id("com.google.devtools.ksp") version "1.6.0-1.0.1"
 }
 
 application.mainClass.set("me.melijn.bot.MelijnKt")
@@ -47,9 +47,9 @@ repositories {
 
 val jackson = "2.13.0" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
 val ktor = "1.6.4"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
-val apollo = "2.5.9" // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
+val apollo = "2.5.10" // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
 val kotlinX = "1.5.2-native-mt" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
-val kotlin = "1.5.31"
+val kotlin = "1.6.0"
 val scrimage = "4.0.22"
 
 dependencies {
@@ -87,7 +87,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.0.0")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.2.24")
+    implementation("org.postgresql:postgresql:42.3.1")
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinX")
@@ -99,7 +99,7 @@ dependencies {
     implementation("me.duncte123:weebJava:3.0.1_4")
 
     // https://mvnrepository.com/artifact/se.michaelthelin.spotify/spotify-web-api-java
-    implementation("se.michaelthelin.spotify:spotify-web-api-java:6.5.4")
+    implementation("se.michaelthelin.spotify:spotify-web-api-java:7.0.0")
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
     implementation("ch.qos.logback:logback-classic:1.2.6")
