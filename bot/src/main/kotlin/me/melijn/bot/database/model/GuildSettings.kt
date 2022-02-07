@@ -1,18 +1,18 @@
 package me.melijn.bot.database.model
 
-import me.melijn.annotationprocessors.cacheable.Cacheable
 import me.melijn.annotationprocessors.createtable.CreateTable
 import org.jetbrains.exposed.dao.Entity
 import org.jetbrains.exposed.dao.EntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
 
-@Cacheable
+@Cacheable<GuildSettings>
 class GuildSetting(id: EntityID<ULong>) : Entity<ULong>(id),CacheableTable {
     companion object : EntityClass<ULong, GuildSetting>(GuildSettings)
 
     val prefixes by GuildSettings.prefixes
     val allowNsfw by GuildSettings.allowNsfw
+    val allowNsfw2 by GuildSettings.allowNsfw2
 
     override fun toData(): CacheableData = this.toCache()
 }
@@ -24,6 +24,7 @@ object GuildSettings : IdTable<ULong>("guild_settings") {
     override var id = ulong("guild_id").entityId()
     var prefixes = text("prefixes").default("")
     var allowNsfw = bool("allow_nsfw").default(false)
+    var allowNsfw2 = bool("allow_nsfw2").default(false)
 
     override val primaryKey: PrimaryKey = PrimaryKey(id)
 

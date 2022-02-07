@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.6.0"
+    kotlin("jvm") version "1.6.10"
 }
 
 group = "me.melijn.annotationprocessors"
@@ -11,5 +11,5 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib"))
-    implementation("com.google.devtools.ksp:symbol-processing-api:1.6.0-1.0.1")
+    implementation("com.google.devtools.ksp:symbol-processing-api:1.6.10-1.0.2")
 }

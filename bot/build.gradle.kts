@@ -3,10 +3,10 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("application")
-    id("com.apollographql.apollo") version "2.5.10"
-    id("com.github.johnrengelman.shadow") version "7.1.0"
-    kotlin("jvm") version "1.6.0"
-    id("com.google.devtools.ksp") version "1.6.0-1.0.1"
+    id("com.apollographql.apollo") version "2.5.11"
+    id("com.github.johnrengelman.shadow") version "7.1.2"
+    kotlin("jvm") version "1.6.10"
+    id("com.google.devtools.ksp") version "1.6.10-1.0.2"
 }
 
 application.mainClass.set("me.melijn.bot.MelijnKt")
@@ -42,14 +42,19 @@ repositories {
     maven("https://nexus.melijn.com/repository/jcenter-mirror/")
     mavenLocal()
     maven("https://duncte123.jfrog.io/artifactory/maven")
-    maven("https://nexus.melijn.com/repository/jitpack/") // pooppack mirror
+    maven("https://nexus.melijn.com/repository/jitpack/")
+    maven {
+        url = uri("https://maven.pkg.jetbrains.space/public/p/ktor/eap")
+        name = "ktor-eap"
+    }
+    // pooppack mirror
 }
 
-val jackson = "2.13.0" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
-val ktor = "1.6.4"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
-val apollo = "2.5.10" // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
-val kotlinX = "1.5.2-native-mt" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
-val kotlin = "1.6.0"
+val jackson = "2.13.1" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+val ktor = "1.6.7"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
+val apollo = "2.5.11" // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
+val kotlinX = "1.6.0" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
+val kotlin = "1.6.10"
 val scrimage = "4.0.22"
 
 dependencies {
@@ -61,7 +66,7 @@ dependencies {
     implementation("io.sentry:sentry:5.2.2")
 
     // https://mvnrepository.com/artifact/club.minnced/discord-webhooks
-    implementation("club.minnced:discord-webhooks:0.7.2")
+    implementation("club.minnced:discord-webhooks:0.7.5")
     // https://github.com/freya022/JEmojis
     implementation("com.github.ToxicMushroom:JEmojis:a8c82848f166893f67251c741579c74c80fbb2dd")
 
@@ -134,7 +139,7 @@ dependencies {
     implementation("com.apollographql.apollo:apollo-coroutines-support:$apollo")
 
     // https://mvnrepository.com/artifact/io.lettuce/lettuce-core
-    implementation("io.lettuce:lettuce-core:6.1.5.RELEASE")
+    implementation("io.lettuce:lettuce-core:6.1.6.RELEASE")
 
     // https://github.com/cdimascio/dotenv-kotlin
     implementation("io.github.cdimascio:dotenv-kotlin:6.2.2")
