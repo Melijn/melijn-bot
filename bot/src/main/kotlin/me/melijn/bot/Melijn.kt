@@ -6,6 +6,7 @@ import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
 import me.melijn.bot.commands.HelpCommand
 import me.melijn.bot.commands.SettingsCommand
+import me.melijn.bot.commands.SpotifyCommand
 import me.melijn.bot.model.Environment
 import me.melijn.kordkommons.logger.logger
 import org.koin.core.context.GlobalContext.loadKoinModules
@@ -28,6 +29,7 @@ object Melijn {
                 +Intent.GuildBans
                 +Intent.GuildEmojis
                 +Intent.GuildMessageReactions
+                +Intent.GuildPresences
             }
 
             extensions {
@@ -35,6 +37,7 @@ object Melijn {
                 add {
                     HelpCommand()
                     SettingsCommand()
+                    SpotifyCommand()
                 }
             }
 
@@ -45,11 +48,6 @@ object Melijn {
                     }
                     loadKoinModules(InjectionKoinModule.module)
                 }
-            }
-
-            this.chatCommands {
-                enabled = true
-                prefix { settings.bot.prefix }
             }
 
             this.applicationCommands {

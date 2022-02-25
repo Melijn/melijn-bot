@@ -7,14 +7,13 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
 
 @Cacheable<GuildSettings>
-class GuildSetting(id: EntityID<ULong>) : Entity<ULong>(id),CacheableTable {
+class GuildSetting(id: EntityID<ULong>) : Entity<ULong>(id) {
     companion object : EntityClass<ULong, GuildSetting>(GuildSettings)
 
     val prefixes by GuildSettings.prefixes
     val allowNsfw by GuildSettings.allowNsfw
     val allowNsfw2 by GuildSettings.allowNsfw2
 
-    override fun toData(): CacheableData = this.toCache()
 }
 
 @CreateTable
@@ -30,20 +29,20 @@ object GuildSettings : IdTable<ULong>("guild_settings") {
 
 }
 
-fun GuildSetting.toCache(): GuildSettingData {
-    return GuildSettingData(this.id.value, this.prefixes, this.allowNsfw)
-}
-
-class GuildSettingData(
-    private val _guildId: ULong,
-    private val _prefixes: String,
-    private val _allowNsfw: Boolean
-) : CacheableData {
-
-    var prefixes: String = _prefixes
-    var allowNsfw: Boolean = _allowNsfw
-
-    override fun getId(): String {
-        return _guildId.toString()
-    }
-}
+//fun GuildSetting.toCache(): GuildSettingData {
+//    return GuildSettingData(this.id.value, this.prefixes, this.allowNsfw)
+//}
+//
+//class GuildSettingData(
+//    private val _guildId: ULong,
+//    private val _prefixes: String,
+//    private val _allowNsfw: Boolean
+//) : CacheableData {
+//
+//    var prefixes: String = _prefixes
+//    var allowNsfw: Boolean = _allowNsfw
+//
+//    override fun getId(): String {
+//        return _guildId.toString()
+//    }
+//}

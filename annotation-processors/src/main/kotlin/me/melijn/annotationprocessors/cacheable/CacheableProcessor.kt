@@ -76,17 +76,28 @@ class CacheableProcessor(
             sb.appendLine("fun $daoName.toCache(): ${simpleName}Data {")
             sb.appendLine("    return ${simpleName}Data(${properties.joinToString { getParam(it) }})")
             sb.appendLine("}")
-            sb.appendLine(
-                "class ${simpleName}Data(" +
-                        "" + (
-                        properties.joinToString(",\n") {
-                            "val _" + it.simpleName.asString() + ": " + getType(it)
-                        }) +
-                        ") {"
-            )
-
-            sb.appendLine("    val s = 5")
-            sb.appendLine("}")
+            sb.appendLine("""
+                class ${simpleName}Data(${(
+                    properties.joinToString(",\n") {
+                        "val _" + it.simpleName.asString() + ": " + getType(it)
+                    })}
+                ) {
+                    companion object {
+                        fun from(oldData: ${simpleName}Data): ${simpleName}Data {
+                            return ${simpleName}Data(${
+                                properties.joinToString(", ") {
+                                    "oldData." + it.simpleName.asString()
+                                }
+                            })
+                        }
+                    }
+                    
+                    ${
+                        properties.joinToString("\n") {
+                            "    var " + it.simpleName.asString() + ": " + getType(it) + " = this._" + it.simpleName.asString()
+                    }}
+                }
+            """.trimIndent())
         }
 
         private fun getParam(pd: KSPropertyDeclaration): String {

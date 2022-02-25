@@ -58,8 +58,8 @@ val kotlin = "1.6.10"
 val scrimage = "4.0.22"
 
 dependencies {
-    implementation("dev.kord:kord-core:0.8.0-M7")
-    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.1-RC1")
+    implementation("dev.kord:kord-core:0.8.0-M9")
+    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.2-RC1")
 
     implementation("me.melijn.kordkommons:kord-kommons:1.0.6")
 
@@ -86,13 +86,13 @@ dependencies {
     implementation("me.melijn.jagtag:JagTag-Kotlin:2.2.1")
 
     // Database
-    implementation("org.jetbrains.exposed:exposed-core:0.35.1")
-    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.35.1")
+    implementation("org.jetbrains.exposed:exposed-core:0.37.3")
+    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.37.3")
     // https://search.maven.org/artifact/com.zaxxer/HikariCP
-    implementation("com.zaxxer:HikariCP:5.0.0")
+    implementation("com.zaxxer:HikariCP:5.0.1")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.3.1")
+    implementation("org.postgresql:postgresql:42.3.3")
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinX")
@@ -107,7 +107,7 @@ dependencies {
     implementation("se.michaelthelin.spotify:spotify-web-api-java:7.0.0")
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-    implementation("ch.qos.logback:logback-classic:1.2.6")
+    implementation("ch.qos.logback:logback-classic:1.2.10")
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
     implementation("com.fasterxml.jackson.core:jackson-core:$jackson")
