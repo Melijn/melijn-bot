@@ -9,41 +9,51 @@ import com.google.devtools.ksp.validate
 import me.melijn.annotationprocessors.util.appendText
 
 class InjectorProcessor(
-    codeGenerator: CodeGenerator,
+    val codeGenerator: CodeGenerator,
     val logger: KSPLogger
 ) : SymbolProcessor {
 
-    val injectKoinModuleFile =
-        codeGenerator.createNewFile(Dependencies(false), "me.melijn.bot", "InjectorKoinModule")
+    var count = 0
 
-    init {
-        injectKoinModuleFile.appendText("package me.melijn.bot\n\n")
-        injectKoinModuleFile.appendText(
-            """
-                import org.koin.dsl.bind
-                import org.koin.dsl.module
-               """.trimIndent())
-        injectKoinModuleFile.appendText("\nobject InjectionKoinModule {\n\n")
-        injectKoinModuleFile.appendText("    val module = module {\n")
-    }
+    var lines = mutableListOf<String>()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         val symbols = resolver.getSymbolsWithAnnotation("me.melijn.annotationprocessors.injector.Inject").toList()
         val ret = symbols.filter { !it.validate() }.toList()
-        symbols
-            .filter { it is KSClassDeclaration && it.validate() }
-            .forEach { it.accept(InjectorVisitor(), Unit) }
 
-        if (symbols.isNotEmpty()) {
+        val process = symbols
+            .filter { it is KSClassDeclaration && it.validate() }
+
+        if (process.isNotEmpty()) {
+            val injectKoinModuleFile =
+                codeGenerator.createNewFile(Dependencies(false), "me.melijn.bot", "InjectorKoinModule${count}")
+
+            injectKoinModuleFile.appendText("package me.melijn.bot\n\n")
+            injectKoinModuleFile.appendText(
+                """
+            import org.koin.dsl.bind
+            import org.koin.dsl.module
+           
+           """.trimIndent()
+            )
+            injectKoinModuleFile.appendText("\nclass InjectionKoinModule${count} : InjectorInterface() {\n\n")
+            injectKoinModuleFile.appendText("    override val module = module {\n")
+
+            process.forEach { it.accept(InjectorVisitor(lines), Unit) }
+            injectKoinModuleFile.appendText(lines.joinToString("\n"))
+
             injectKoinModuleFile.appendText("    }\n")
             injectKoinModuleFile.appendText("}\n")
             injectKoinModuleFile.close()
+            count++
         }
+
 
         return ret
     }
 
-    inner class InjectorVisitor : KSVisitorVoid() {
+
+    inner class InjectorVisitor(private val lines: MutableList<String>) : KSVisitorVoid() {
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit) {
             classDeclaration.primaryConstructor!!.accept(this, data)
         }
@@ -52,7 +62,7 @@ class InjectorProcessor(
             val parent = function.parentDeclaration as KSClassDeclaration
 
             val className = parent.qualifiedName?.asString() ?: throw IllegalStateException("Annotation not on class ?")
-            injectKoinModuleFile.appendText("         single { $className(${function.parameters.joinToString(", ") { "get()" }}) } bind $className::class\n")
+            lines.add("         single { $className(${function.parameters.joinToString(", ") { "get()" }}) } bind $className::class\n")
         }
     }
 }

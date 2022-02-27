@@ -8,11 +8,13 @@ import me.melijn.bot.commands.HelpCommand
 import me.melijn.bot.commands.SettingsCommand
 import me.melijn.bot.commands.SpotifyCommand
 import me.melijn.bot.model.Environment
+import me.melijn.bot.utils.ReflectUtil
 import me.melijn.kordkommons.logger.logger
 import org.koin.core.context.GlobalContext.loadKoinModules
 import org.koin.dsl.bind
 
 object Melijn {
+
     val logger = logger()
 
     suspend fun susInit() {
@@ -46,7 +48,14 @@ object Melijn {
                     loadModule {
                         single { settings } bind Settings::class
                     }
-                    loadKoinModules(InjectionKoinModule.module)
+
+                    val sexy = ReflectUtil.findAllClassesUsingClassLoader("me.melijn.bot")
+                        .filterNotNull()
+                        .filter { it.toString().contains("InjectionKoinModule", true) && !it.toString().contains("$") }
+                        .maxByOrNull { it.name.replace(".*InjectionKoinModule(\\d+)".toRegex()) { res -> res.groups[1]?.value ?: "" }.toInt() }
+                        ?.getConstructor() ?: return@beforeKoinSetup
+
+                    loadKoinModules((sexy.newInstance() as InjectorInterface).module)
                 }
             }
 
