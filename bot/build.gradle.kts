@@ -96,6 +96,7 @@ dependencies {
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinX")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:$kotlinX")
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-jdk8
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:$kotlinX")

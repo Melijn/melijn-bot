@@ -15,7 +15,10 @@ object Settings {
         val environment by enum<Environment>("environment", "")
         val shardCount by int("shardCount", 1)
         val podCount by int("podCount", 1)
-        val hostPattern by string("hostPattern", "http://localhost:8181") // This pattern will be used to extract te podId
+        val hostPattern by string(
+            "hostPattern",
+            "http://localhost:8181"
+        ) // This pattern will be used to extract te podId
         val testingServerId by long("testingServerId", 234277444708859904L)
     }
 
@@ -46,8 +49,14 @@ object Settings {
             val url by stringN("url")
         }
 
+        class Spotify : BotSettings("api_spotify") {
+            val clientId by string("clientId")
+            val password by string("password")
+        }
+
         val discord = Discord()
         val sentry = Sentry()
+        val spotify = Spotify()
     }
 
     /**
