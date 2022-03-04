@@ -1,17 +1,20 @@
 package me.melijn.bot.database.model
 
 import me.melijn.annotationprocessors.createtable.CreateTable
-import org.jetbrains.exposed.dao.id.IdTable
+import org.jetbrains.exposed.sql.Table
+
 
 @CreateTable
-@Cacheable<GuildSettings>
-object GuildSettings : IdTable<ULong>("guild_settings") {
+@Cacheable<GuildUserSettings>
+object GuildUserSettings : Table("guild_user_settings") {
 
     @OptIn(ExperimentalUnsignedTypes::class)
-    override var id = ulong("guild_id").entityId()
+    var guildId = ulong("guild_id")
+    @OptIn(ExperimentalUnsignedTypes::class)
+    var userId = ulong("user_id")
     var prefixes = text("prefixes").default("")
     var allowNsfw = bool("allow_nsfw").default(false)
     var allowNsfw2 = bool("allow_nsfw2").default(false)
 
-    override val primaryKey: PrimaryKey = PrimaryKey(id)
+    override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId)
 }

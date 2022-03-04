@@ -26,11 +26,12 @@ class InjectorProcessor(
 
         if (process.isNotEmpty()) {
             val injectKoinModuleFile =
-                codeGenerator.createNewFile(Dependencies(false), "me.melijn.bot", "InjectorKoinModule${count}")
+                codeGenerator.createNewFile(Dependencies(false), "me.melijn.gen", "InjectorKoinModule${count}")
 
-            injectKoinModuleFile.appendText("package me.melijn.bot\n\n")
+            injectKoinModuleFile.appendText("package me.melijn.gen\n\n")
             injectKoinModuleFile.appendText(
                 """
+            import me.melijn.bot.InjectorInterface
             import org.koin.dsl.bind
             import org.koin.dsl.module
            

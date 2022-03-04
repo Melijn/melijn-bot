@@ -171,6 +171,7 @@ tasks {
     }
 
     shadowJar {
+        isZip64 = true
         mergeServiceFiles()
         archiveFileName.set("melijn.jar")
     }

@@ -13,10 +13,10 @@ class TableProcessor(
 ) : SymbolProcessor{
 
     val createTablesModuleFile =
-        codeGenerator.createNewFile(Dependencies(false), "me.melijn.bot", "CreateTablesModule")
+        codeGenerator.createNewFile(Dependencies(false), "me.melijn.gen", "CreateTablesModule")
 
     init {
-        createTablesModuleFile.appendText("package me.melijn.bot\n\n")
+        createTablesModuleFile.appendText("package me.melijn.gen\n\n")
         createTablesModuleFile.appendText(
             """
                 import org.jetbrains.exposed.sql.SchemaUtils
