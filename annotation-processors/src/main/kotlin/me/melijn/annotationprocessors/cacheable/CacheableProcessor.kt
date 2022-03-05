@@ -23,14 +23,14 @@ class CacheableProcessor(
     }
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val symbols = resolver.getSymbolsWithAnnotation("me.melijn.gen.database.model.Cacheable").toList()
+        val symbols = resolver.getSymbolsWithAnnotation("me.melijn.bot.database.model.Cacheable").toList()
         val ret = symbols.filter { !it.validate() }.toList()
 
         // (classDeclaration.declarations.first() as KSClassDeclaration).getAllFunctions().iterator()
         symbols
             .filter { symbol -> symbol is KSClassDeclaration && symbol.validate() }
             .forEach { symbol ->
-                symbol.accept(InjectorVisitor(codeGenerator, resolver), Unit)
+                symbol.accept(InjectorVisitor(resolver), Unit)
             }
 
         if (symbols.isNotEmpty()) {
@@ -41,7 +41,7 @@ class CacheableProcessor(
         return ret
     }
 
-    inner class InjectorVisitor(val generator: CodeGenerator, private val resolver: Resolver) : KSVisitorVoid() {
+    inner class InjectorVisitor(private val resolver: Resolver) : KSVisitorVoid() {
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit) {
             val daoName = classDeclaration.packageName.asString() + "." + classDeclaration.simpleName.asString()
             val model = classDeclaration.annotations.first {
@@ -60,21 +60,21 @@ class CacheableProcessor(
 
             val properties = settings.getDeclaredProperties()
                 .filter { it.simpleName.asString() != "primaryKey" }
-
-            val pkeyProperty: KSPropertyDeclaration = settings.getDeclaredProperties().first {
-                it.type.resolve().toString() == "PrimaryKey"
-            }
-
-            val pkeyProperties = settings.getDeclaredProperties()
-                .filter { it.simpleName.asString() != "primaryKey" }
-                .filter { pkeyProperty.simpleName.asString() == "primaryKey" }
-                .firstOrNull()
-
-            val FIELD = pkeyProperty.javaClass.getDeclaredField("propertyDescriptor\$delegate")
-            FIELD.isAccessible = true
-            val fullPropertyDesciptor = FIELD.get(pkeyProperty)
-
-            sb.appendLine("//" + fullPropertyDesciptor)
+//
+//            val pkeyProperty: KSPropertyDeclaration = settings.getDeclaredProperties().first {
+//                it.type.resolve().toString() == "PrimaryKey"
+//            }
+//
+//            val pkeyProperties = settings.getDeclaredProperties()
+//                .filter { it.simpleName.asString() != "primaryKey" }
+//                .filter { pkeyProperty.simpleName.asString() == "primaryKey" }
+//                .firstOrNull()
+//
+//            val FIELD = pkeyProperty.javaClass.getDeclaredField("propertyDescriptor\$delegate")
+//            FIELD.isAccessible = true
+//            val fullPropertyDesciptor = FIELD.get(pkeyProperty)
+//
+//            sb.appendLine("//" + fullPropertyDesciptor)
 
 //            sb.appendLine("fun $daoName.toCache(): ${simpleName}Data {")
 //            sb.appendLine("    return ${simpleName}Data(${properties.joinToString { getParam(it) }})")
@@ -143,7 +143,7 @@ class CacheableProcessor(
             return base
         }
 
-        fun getType(pd: KSPropertyDeclaration): String {
+        private fun getType(pd: KSPropertyDeclaration): String {
             val innerColumnType = pd.type.resolve().innerArguments.firstOrNull()?.type
             if (innerColumnType?.resolve()?.declaration?.simpleName?.asString() == "EntityID") {
                 return innerColumnType.resolve().innerArguments.firstOrNull()?.type.toString()

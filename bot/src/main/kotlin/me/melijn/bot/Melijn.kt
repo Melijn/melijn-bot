@@ -60,7 +60,7 @@ object Melijn {
                         single { serviceManager } bind ServiceManager::class
                     }
 
-                    val sexy = ReflectUtil.findAllClassesUsingClassLoader("me.melijn.bot")
+                    val sexy = ReflectUtil.findAllClassesUsingClassLoader("me.melijn.gen")
                         .filterNotNull()
                         .filter { it.toString().contains("InjectionKoinModule", true) && !it.toString().contains("$") }
                         .maxByOrNull { it.name.replace(".*InjectionKoinModule(\\d+)".toRegex()) { res -> res.groups[1]?.value ?: "" }.toInt() }

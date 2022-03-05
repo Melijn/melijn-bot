@@ -26,7 +26,7 @@ class InjectorProcessor(
 
         if (process.isNotEmpty()) {
             val injectKoinModuleFile =
-                codeGenerator.createNewFile(Dependencies(false), "me.melijn.gen", "InjectorKoinModule${count}")
+                codeGenerator.createNewFile(Dependencies(false), "me.melijn.gen", "InjectionKoinModule${count}")
 
             injectKoinModuleFile.appendText("package me.melijn.gen\n\n")
             injectKoinModuleFile.appendText(

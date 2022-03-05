@@ -5,6 +5,8 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import dev.kord.common.entity.Snowflake
 import me.melijn.annotationprocessors.injector.Inject
 import me.melijn.bot.database.DriverManager
+import me.melijn.gen.GuildSettingsData
+import me.melijn.gen.database.manager.AbstractGuildSettingsManager
 
 val objectManager = jacksonObjectMapper()
 
