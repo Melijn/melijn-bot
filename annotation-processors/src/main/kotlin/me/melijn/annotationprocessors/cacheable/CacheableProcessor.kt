@@ -60,21 +60,24 @@ class CacheableProcessor(
 
             val properties = settings.getDeclaredProperties()
                 .filter { it.simpleName.asString() != "primaryKey" }
-//
-//            val pkeyProperty: KSPropertyDeclaration = settings.getDeclaredProperties().first {
-//                it.type.resolve().toString() == "PrimaryKey"
-//            }
-//
-//            val pkeyProperties = settings.getDeclaredProperties()
-//                .filter { it.simpleName.asString() != "primaryKey" }
-//                .filter { pkeyProperty.simpleName.asString() == "primaryKey" }
-//                .firstOrNull()
-//
-//            val FIELD = pkeyProperty.javaClass.getDeclaredField("propertyDescriptor\$delegate")
-//            FIELD.isAccessible = true
-//            val fullPropertyDesciptor = FIELD.get(pkeyProperty)
-//
-//            sb.appendLine("//" + fullPropertyDesciptor)
+
+            val pkeyProperty: KSPropertyDeclaration = settings.getDeclaredProperties().first {
+                it.type.resolve().toString() == "PrimaryKey"
+            }
+
+            val pkeyProperties = settings.getDeclaredProperties()
+                .filter { it.simpleName.asString() != "primaryKey" }
+                .filter { pkeyProperty.simpleName.asString() == "primaryKey" }
+                .firstOrNull()
+
+            val FIELD = pkeyProperty.javaClass.getDeclaredField("propertyDescriptor\$delegate")
+            FIELD.isAccessible = true
+            val lazyPropertyDesciptor = FIELD.get(pkeyProperty) // as kotlin.Lazy<org.jetbrains.kotlin.descriptors.impl.PropertyDescriptorImpl>
+            // lazyPropertyDesciptor::class.get.getField("value")
+            val valueField = lazyPropertyDesciptor.javaClass.getDeclaredField("value")
+            valueField.isAccessible = true
+            val propertyDescriptor = valueField.get(lazyPropertyDesciptor)
+            sb.appendLine("//${propertyDescriptor}")
 
 //            sb.appendLine("fun $daoName.toCache(): ${simpleName}Data {")
 //            sb.appendLine("    return ${simpleName}Data(${properties.joinToString { getParam(it) }})")
