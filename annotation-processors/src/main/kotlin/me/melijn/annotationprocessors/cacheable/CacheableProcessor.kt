@@ -65,11 +65,6 @@ class CacheableProcessor(
                 it.type.resolve().toString() == "PrimaryKey"
             }
 
-            val pkeyProperties = settings.getDeclaredProperties()
-                .filter { it.simpleName.asString() != "primaryKey" }
-                .filter { pkeyProperty.simpleName.asString() == "primaryKey" }
-                .firstOrNull()
-
             val FIELD = pkeyProperty.javaClass.getDeclaredField("propertyDescriptor\$delegate")
             FIELD.isAccessible = true
             val lazyPropertyDesciptor = FIELD.get(pkeyProperty) // as kotlin.Lazy<org.jetbrains.kotlin.descriptors.impl.PropertyDescriptorImpl>
@@ -98,6 +93,11 @@ class CacheableProcessor(
                 }
                 invokeEl = try { nextSiblingField.invoke(invokeEl) } catch (t: Throwable) { null }
             }
+            val pkeyProperties = settings.getDeclaredProperties()
+                .filter { it.simpleName.asString() != "primaryKey" }
+                .filter { fieldList.contains(it.simpleName.asString()) }
+
+
             sb.appendLine("// $fieldList")
             // last last first next first first
 //            sb.appendLine("fun $daoName.toCache(): ${simpleName}Data {")
@@ -153,7 +153,8 @@ class CacheableProcessor(
             """.trimIndent()
             )
             abstractManager.appendLine("open class Abstract${simpleName}Manager(override val driverManager: DriverManager) : DBTableManager<${simpleName}>(driverManager, ${simpleName}) {")
-            abstractManager.appendLine("    fun getById(): Unit { // ${simpleName}Data {")
+            abstractManager.appendLine("    fun getById(${pkeyProperties.joinToString(", ") { it.simpleName.asString() + ": " + getType(it) }}): me.melijn.gen.${simpleName}Data {")
+            abstractManager.appendLine("        return ")
             abstractManager.appendLine("    }")
             abstractManager.appendLine("}")
             abstractManager.close()
