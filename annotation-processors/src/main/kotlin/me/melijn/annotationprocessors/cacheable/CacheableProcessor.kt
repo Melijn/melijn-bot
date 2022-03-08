@@ -73,12 +73,33 @@ class CacheableProcessor(
             val FIELD = pkeyProperty.javaClass.getDeclaredField("propertyDescriptor\$delegate")
             FIELD.isAccessible = true
             val lazyPropertyDesciptor = FIELD.get(pkeyProperty) // as kotlin.Lazy<org.jetbrains.kotlin.descriptors.impl.PropertyDescriptorImpl>
-            // lazyPropertyDesciptor::class.get.getField("value")
-            val valueField = lazyPropertyDesciptor.javaClass.getDeclaredField("value")
-            valueField.isAccessible = true
-            val propertyDescriptor = valueField.get(lazyPropertyDesciptor)
-            sb.appendLine("//${propertyDescriptor}")
+            val lazyValueMethod = Lazy::class.java.getMethod("getValue")
 
+            val lazyValue = lazyValueMethod.invoke(lazyPropertyDesciptor)
+            // lazyPropertyDesciptor::class.get.getField("value")
+            val propertyDescriptor = lazyValue
+            val aaaa = lazyValue::class.java.getMethod("getSource").invoke(propertyDescriptor)
+            val fish = aaaa::class.java.getMethod("getPsi").invoke(aaaa)
+            val lastChildField = fish::class.java.getMethod("getLastChild")
+            val firstChildField = fish::class.java.getMethod("getFirstChild")
+            val last1 = lastChildField.invoke(fish)
+            val last2 = lastChildField.invoke(last1)
+            var invokeEl = firstChildField.invoke(last2)
+
+            val fieldList = mutableListOf<String>()
+            while (invokeEl != null) {
+                val nextSiblingField = invokeEl::class.java.getMethod("getNextSibling")
+                val type = invokeEl.toString()
+                if (type == "VALUE_ARGUMENT") {
+                    val first2 = firstChildField.invoke(invokeEl)
+                    val first3 = firstChildField.invoke(first2)
+                    val text = first3::class.java.getMethod("getText").invoke(first3)
+                    fieldList.add(text.toString())
+                }
+                invokeEl = try { nextSiblingField.invoke(invokeEl) } catch (t: Throwable) { null }
+            }
+            sb.appendLine("// $fieldList")
+            // last last first next first first
 //            sb.appendLine("fun $daoName.toCache(): ${simpleName}Data {")
 //            sb.appendLine("    return ${simpleName}Data(${properties.joinToString { getParam(it) }})")
 //            sb.appendLine("}")
