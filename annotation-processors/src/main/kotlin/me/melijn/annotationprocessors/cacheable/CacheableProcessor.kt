@@ -148,24 +148,34 @@ class CacheableProcessor(
                 import me.melijn.bot.database.DBTableManager
                 import me.melijn.bot.database.DriverManager
                 import me.melijn.gen.${simpleName}Data
+                import org.jetbrains.exposed.sql.select
+                import org.jetbrains.exposed.sql.and
                 import $daoName
                 
             """.trimIndent()
             )
             abstractManager.appendLine("open class Abstract${simpleName}Manager(override val driverManager: DriverManager) : DBTableManager<${simpleName}>(driverManager, ${simpleName}) {")
-            abstractManager.appendLine("    fun getById(${pkeyProperties.joinToString(", ") { it.simpleName.asString() + ": " + getType(it) }}): me.melijn.gen.${simpleName}Data {")
-            abstractManager.appendLine("        return ")
+            abstractManager.appendLine("    fun getById(${pkeyProperties.joinToString(", ") { it.simpleName.asString() + ": " + getType(it) }}): me.melijn.gen.${simpleName}Data? {")
+            abstractManager.appendLine("        return ${name}.select {")
+            abstractManager.appendLine("            ${pkeyProperties.joinToString(".and") { "(${name}.$it.eq($it))" }}")
+            abstractManager.appendLine("        }.firstOrNull()?.let {")
+            val paramList = properties.joinToString(",\n") {
+                "               it[${simpleName}.${it.simpleName.asString()}]${getValueGetter(it)}"
+            }
+            abstractManager.appendLine("            me.melijn.gen.${simpleName}Data(")
+            abstractManager.appendLine(paramList)
+            abstractManager.appendLine("            )")
+            abstractManager.appendLine("        }")
             abstractManager.appendLine("    }")
             abstractManager.appendLine("}")
             abstractManager.close()
         }
 
-        private fun getParam(pd: KSPropertyDeclaration): String {
-            var base = "this." + pd.simpleName.asString()
+        private fun getValueGetter(pd: KSPropertyDeclaration): String {
             if (pd.type.resolve().innerArguments.firstOrNull()?.type?.resolve()?.declaration?.simpleName?.asString() == "EntityID") {
-                base += ".value"
+                return ".value"
             }
-            return base
+            return ""
         }
 
         private fun getType(pd: KSPropertyDeclaration): String {
