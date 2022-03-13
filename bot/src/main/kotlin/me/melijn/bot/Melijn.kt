@@ -40,12 +40,14 @@ object Melijn {
 
             extensions {
                 helpExtensionBuilder.enableBundledExtension = false
-                add {
-                    HelpCommand()
-                    SettingsCommand()
-                    SpotifyCommand()
-//                    TestCommand()
-                }
+
+                ReflectUtil.findAllClassesUsingClassLoader("me.melijn.bot.commands")
+                    .filterNotNull()
+                    .filter { it.superclass.simpleName == "Extension" }
+
+                add { HelpCommand() }
+                add { SettingsCommand() }
+                add { SpotifyCommand() }
             }
 
             hooks {
@@ -63,7 +65,11 @@ object Melijn {
                     val sexy = ReflectUtil.findAllClassesUsingClassLoader("me.melijn.gen")
                         .filterNotNull()
                         .filter { it.toString().contains("InjectionKoinModule", true) && !it.toString().contains("$") }
-                        .maxByOrNull { it.name.replace(".*InjectionKoinModule(\\d+)".toRegex()) { res -> res.groups[1]?.value ?: "" }.toInt() }
+                        .maxByOrNull {
+                            it.name.replace(".*InjectionKoinModule(\\d+)".toRegex()) { res ->
+                                res.groups[1]?.value ?: ""
+                            }.toInt()
+                        }
                         ?.getConstructor() ?: return@beforeKoinSetup
 
                     loadKoinModules((sexy.newInstance() as InjectorInterface).module)

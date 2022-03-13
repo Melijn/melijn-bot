@@ -7,6 +7,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
     kotlin("jvm") version "1.6.10"
     id("com.google.devtools.ksp") version "1.6.10-1.0.2"
+    kotlin("plugin.serialization") version "1.6.10"
 }
 
 application.mainClass.set("me.melijn.bot.MelijnKt")
@@ -66,7 +67,7 @@ dependencies {
     implementation("io.sentry:sentry:5.2.2")
 
     // https://mvnrepository.com/artifact/club.minnced/discord-webhooks
-    implementation("club.minnced:discord-webhooks:0.7.5")
+    implementation("club.minnced:discord-webhooks:0.8.0")
     // https://github.com/freya022/JEmojis
     implementation("com.github.ToxicMushroom:JEmojis:a8c82848f166893f67251c741579c74c80fbb2dd")
 
@@ -114,6 +115,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-core:$jackson")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jackson")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$jackson")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
 
     // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
     implementation("io.ktor:ktor:$ktor")

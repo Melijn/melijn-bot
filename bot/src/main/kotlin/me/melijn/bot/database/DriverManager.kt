@@ -76,7 +76,7 @@ class DriverManager {
             .withPort(port)
 
         if (password.isNotBlank()) {
-            uriBuilder = if (user?.isBlank() != true) {
+            uriBuilder = if (user?.isBlank() == false) {
                 uriBuilder.withAuthentication(user, password)
             } else {
                 uriBuilder.withPassword(password.toCharArray())

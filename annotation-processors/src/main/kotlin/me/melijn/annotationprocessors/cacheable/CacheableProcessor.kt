@@ -7,6 +7,7 @@ import com.google.devtools.ksp.symbol.*
 import com.google.devtools.ksp.validate
 import me.melijn.annotationprocessors.util.appendLine
 import me.melijn.annotationprocessors.util.appendText
+import java.io.OutputStream
 
 class CacheableProcessor(
     val codeGenerator: CodeGenerator,
@@ -20,6 +21,10 @@ class CacheableProcessor(
 
     init {
         sb.append("package me.melijn.gen\n\n")
+        sb.appendLine("""
+                import kotlinx.serialization.*
+                import kotlinx.serialization.json.*
+            """.trimIndent())
     }
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
@@ -97,7 +102,6 @@ class CacheableProcessor(
                 .filter { it.simpleName.asString() != "primaryKey" }
                 .filter { fieldList.contains(it.simpleName.asString()) }
 
-
             sb.appendLine("// $fieldList")
             // last last first next first first
 //            sb.appendLine("fun $daoName.toCache(): ${simpleName}Data {")
@@ -105,32 +109,35 @@ class CacheableProcessor(
 //            sb.appendLine("}")
 
             /** Cache object class **/
-            sb.appendLine("class ${simpleName}Data(")
+            sb.appendLine("@Serializable")
+            sb.appendLine("data class ${simpleName}Data(")
             sb.appendLine(properties.joinToString(",\n") {
-                "    val _" + it.simpleName.asString() + ": " + getType(it)
+//                "    @JsonProperty(\"${it.simpleName.asString()}\")\n" +
+                "    var " + it.simpleName.asString() + ": " + getType(it)
             })
             sb.appendLine(") {")
-            sb.appendLine("    companion object {")
+//            sb.appendLine("    companion object {")
 
             /** from function **/
-            sb.appendLine("        fun from(oldData: ${simpleName}Data): ${simpleName}Data {")
-            sb.append("            return ${simpleName}Data(")
-            sb.append(properties.joinToString(", ") {
-                "oldData." + it.simpleName.asString()
-            })
-            sb.appendLine(")")
-            sb.appendLine("        }")
+//            sb.appendLine("        fun from(oldData: ${simpleName}Data): ${simpleName}Data {")
+//            sb.append("            return ${simpleName}Data(")
+//            sb.append(properties.joinToString(", ") {
+//                "oldData." + it.simpleName.asString()
+//            })
+//            sb.appendLine(")")
+//            sb.appendLine("        }")
 
 
-            sb.appendLine("    }")
+//            sb.appendLine("    }")
 
             /** spacer **/
             sb.appendLine()
 
             /** modifiable fields **/
-            sb.appendLine(properties.joinToString("\n") {
-                "    var " + it.simpleName.asString() + ": " + getType(it) + " = this._" + it.simpleName.asString()
-            })
+//            sb.appendLine(properties.joinToString("\n") {
+//                "    @JsonProperty(\"_${it.simpleName.asString()}\")\n" +
+//                "    var " + it.simpleName.asString() + ": " + getType(it) + " = this._" + it.simpleName.asString()
+//            })
 
             /** end of cache class **/
             sb.appendLine("}")
@@ -145,31 +152,109 @@ class CacheableProcessor(
                 """
                 package $abstractPkg
                 
+                import com.fasterxml.jackson.databind.ObjectMapper
+                import com.fasterxml.jackson.module.kotlin.readValue
                 import me.melijn.bot.database.DBTableManager
+                import me.melijn.bot.database.insertOrUpdate
                 import me.melijn.bot.database.DriverManager
                 import me.melijn.gen.${simpleName}Data
                 import org.jetbrains.exposed.sql.select
                 import org.jetbrains.exposed.sql.and
                 import $daoName
+                import org.koin.java.KoinJavaComponent.inject
+                import kotlinx.serialization.*
+                import kotlinx.serialization.json.*
                 
             """.trimIndent()
             )
             abstractManager.appendLine("open class Abstract${simpleName}Manager(override val driverManager: DriverManager) : DBTableManager<${simpleName}>(driverManager, ${simpleName}) {")
-            abstractManager.appendLine("    fun getById(${pkeyProperties.joinToString(", ") { it.simpleName.asString() + ": " + getType(it) }}): me.melijn.gen.${simpleName}Data? {")
-            abstractManager.appendLine("        return ${name}.select {")
-            abstractManager.appendLine("            ${pkeyProperties.joinToString(".and") { "(${name}.$it.eq($it))" }}")
-            abstractManager.appendLine("        }.firstOrNull()?.let {")
-            val paramList = properties.joinToString(",\n") {
-                "               it[${simpleName}.${it.simpleName.asString()}]${getValueGetter(it)}"
-            }
-            abstractManager.appendLine("            me.melijn.gen.${simpleName}Data(")
-            abstractManager.appendLine(paramList)
-            abstractManager.appendLine("            )")
-            abstractManager.appendLine("        }")
-            abstractManager.appendLine("    }")
+            abstractManager.appendLine("")
+            abstractManager.appendLine("    val objectMapper by inject<ObjectMapper>(ObjectMapper::class.java)")
+            abstractManager.appendLine("")
+            addGetByIdMethod(abstractManager, pkeyProperties, simpleName, name, properties)
+            addStoreMethod(abstractManager, pkeyProperties, simpleName, name, properties)
+            addGetCachedByIdMethod(abstractManager, pkeyProperties, simpleName)
             abstractManager.appendLine("}")
             abstractManager.close()
         }
+
+        private fun addStoreMethod(
+            abstractManager: OutputStream,
+            pkeyProperties: Sequence<KSPropertyDeclaration>,
+            simpleName: String,
+            name: String,
+            properties: Sequence<KSPropertyDeclaration>
+        ) {
+            abstractManager.appendLine("    fun store(data: ${simpleName}Data) {")
+
+            val propertyNames = properties.map { it.simpleName.asString() }
+            val pkeyNames = pkeyProperties.map { it.simpleName.asString() }
+            val propertyNoKeys = propertyNames.filterNot { pkeyNames.contains(it) }
+            val pkeyKeyPart = pkeyNames.joinToString(":") { "\${data.$it}" } // ${id1}:${id2}:...
+            abstractManager.appendLine("        val key = \"melijn:${simpleName.lowercase()}:${pkeyKeyPart}\"")
+            abstractManager.appendLine("        scopedTransaction {")
+            abstractManager.appendLine("            ${simpleName}.insertOrUpdate({")
+            abstractManager.appendLine(propertyNames.joinToString("\n") { "                it[${simpleName}.${it}] = data.${it}" })
+            abstractManager.appendLine("            }, {")
+            abstractManager.appendLine(propertyNoKeys.joinToString("\n") { "                it[${simpleName}.${it}] = data.${it}" })
+            abstractManager.appendLine("            })")
+            abstractManager.appendLine("        }")
+            abstractManager.appendLine("        val cachableStr = Json.encodeToString(data)")
+            abstractManager.appendLine("        driverManager.setCacheEntry(key, cachableStr, 5)")
+            abstractManager.appendLine("    }")
+        }
+
+        private fun addGetCachedByIdMethod(
+            abstractManager: OutputStream,
+            pkeyProperties: Sequence<KSPropertyDeclaration>,
+            simpleName: String
+        ) {
+            val pKeyParams = getPrimaryIdParameters(pkeyProperties)
+            abstractManager.appendLine("    suspend fun getCachedById($pKeyParams): me.melijn.gen.${simpleName}Data? {")
+            val pkeyNames = pkeyProperties.map { it.simpleName.asString() }
+
+            val pkeyKeyPart = pkeyNames.joinToString(":") { "\${$it}" } // ${id1}:${id2}:...
+            abstractManager.appendLine("        val key = \"melijn:${simpleName.lowercase()}:${pkeyKeyPart}\"")
+            abstractManager.appendLine("        driverManager.getCacheEntry(key)?.run {")
+            abstractManager.appendLine("            return  Json.decodeFromString<${simpleName}Data>(this)")
+            abstractManager.appendLine("        }")
+            abstractManager.appendLine("        val cachable = getById(${pkeyNames.joinToString(", ")})")
+            abstractManager.appendLine("        val cachableStr = Json.encodeToString(cachable)")
+            abstractManager.appendLine("        driverManager.setCacheEntry(key, cachableStr, 5)")
+            abstractManager.appendLine("        return cachable")
+            abstractManager.appendLine("    }")
+        }
+
+        private fun addGetByIdMethod(
+            abstractManager: OutputStream,
+            pkeyProperties: Sequence<KSPropertyDeclaration>,
+            simpleName: String,
+            name: String,
+            properties: Sequence<KSPropertyDeclaration>
+        ) {
+            val pKeyParams = getPrimaryIdParameters(pkeyProperties)
+            abstractManager.appendLine("    fun getById(${pKeyParams}): me.melijn.gen.${simpleName}Data? {")
+            abstractManager.appendLine("        return scopedTransaction {")
+            abstractManager.appendLine("             ${name}.select {")
+            abstractManager.appendLine("                 ${pkeyProperties.joinToString(".and") { "(${name}.$it.eq($it))" }}")
+            abstractManager.appendLine("             }.firstOrNull()?.let {")
+            abstractManager.appendLine("                 me.melijn.gen.${simpleName}Data(")
+            val paramList = properties.joinToString(",\n") {
+                "                    it[${simpleName}.${it.simpleName.asString()}]${getValueGetter(it)}"
+            }
+            abstractManager.appendLine(paramList)
+            abstractManager.appendLine("                 )")
+            abstractManager.appendLine("             }")
+            abstractManager.appendLine("         }")
+            abstractManager.appendLine("    }")
+        }
+
+        private fun getPrimaryIdParameters(pkeyProperties: Sequence<KSPropertyDeclaration>) =
+            pkeyProperties.joinToString(", ") {
+                it.simpleName.asString() + ": " + getType(
+                    it
+                )
+            }
 
         private fun getValueGetter(pd: KSPropertyDeclaration): String {
             if (pd.type.resolve().innerArguments.firstOrNull()?.type?.resolve()?.declaration?.simpleName?.asString() == "EntityID") {
