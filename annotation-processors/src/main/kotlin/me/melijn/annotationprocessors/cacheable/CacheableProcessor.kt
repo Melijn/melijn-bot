@@ -23,7 +23,6 @@ class CacheableProcessor(
         sb.append("package me.melijn.gen\n\n")
         sb.appendLine("""
                 import kotlinx.serialization.*
-                import kotlinx.serialization.json.*
             """.trimIndent())
     }
 
@@ -31,7 +30,6 @@ class CacheableProcessor(
         val symbols = resolver.getSymbolsWithAnnotation("me.melijn.bot.database.model.Cacheable").toList()
         val ret = symbols.filter { !it.validate() }.toList()
 
-        // (classDeclaration.declarations.first() as KSClassDeclaration).getAllFunctions().iterator()
         symbols
             .filter { symbol -> symbol is KSClassDeclaration && symbol.validate() }
             .forEach { symbol ->
@@ -70,13 +68,14 @@ class CacheableProcessor(
                 it.type.resolve().toString() == "PrimaryKey"
             }
 
+            /** janky hack part, don't touch unless it broke pls **/
             val FIELD = pkeyProperty.javaClass.getDeclaredField("propertyDescriptor\$delegate")
             FIELD.isAccessible = true
-            val lazyPropertyDesciptor = FIELD.get(pkeyProperty) // as kotlin.Lazy<org.jetbrains.kotlin.descriptors.impl.PropertyDescriptorImpl>
+            val lazyPropertyDesciptor = FIELD.get(pkeyProperty)
             val lazyValueMethod = Lazy::class.java.getMethod("getValue")
 
             val lazyValue = lazyValueMethod.invoke(lazyPropertyDesciptor)
-            // lazyPropertyDesciptor::class.get.getField("value")
+
             val propertyDescriptor = lazyValue
             val aaaa = lazyValue::class.java.getMethod("getSource").invoke(propertyDescriptor)
             val fish = aaaa::class.java.getMethod("getPsi").invoke(aaaa)
@@ -103,44 +102,14 @@ class CacheableProcessor(
                 .filter { fieldList.contains(it.simpleName.asString()) }
 
             sb.appendLine("// $fieldList")
-            // last last first next first first
-//            sb.appendLine("fun $daoName.toCache(): ${simpleName}Data {")
-//            sb.appendLine("    return ${simpleName}Data(${properties.joinToString { getParam(it) }})")
-//            sb.appendLine("}")
 
             /** Cache object class **/
             sb.appendLine("@Serializable")
             sb.appendLine("data class ${simpleName}Data(")
             sb.appendLine(properties.joinToString(",\n") {
-//                "    @JsonProperty(\"${it.simpleName.asString()}\")\n" +
                 "    var " + it.simpleName.asString() + ": " + getType(it)
             })
-            sb.appendLine(") {")
-//            sb.appendLine("    companion object {")
-
-            /** from function **/
-//            sb.appendLine("        fun from(oldData: ${simpleName}Data): ${simpleName}Data {")
-//            sb.append("            return ${simpleName}Data(")
-//            sb.append(properties.joinToString(", ") {
-//                "oldData." + it.simpleName.asString()
-//            })
-//            sb.appendLine(")")
-//            sb.appendLine("        }")
-
-
-//            sb.appendLine("    }")
-
-            /** spacer **/
-            sb.appendLine()
-
-            /** modifiable fields **/
-//            sb.appendLine(properties.joinToString("\n") {
-//                "    @JsonProperty(\"_${it.simpleName.asString()}\")\n" +
-//                "    var " + it.simpleName.asString() + ": " + getType(it) + " = this._" + it.simpleName.asString()
-//            })
-
-            /** end of cache class **/
-            sb.appendLine("}")
+            sb.appendLine(")\n")
 
             val abstractPkg = "me.melijn.gen.database.manager"
             val abstractMgrName = "Abstract${simpleName}Manager"
@@ -152,8 +121,6 @@ class CacheableProcessor(
                 """
                 package $abstractPkg
                 
-                import com.fasterxml.jackson.databind.ObjectMapper
-                import com.fasterxml.jackson.module.kotlin.readValue
                 import me.melijn.bot.database.DBTableManager
                 import me.melijn.bot.database.insertOrUpdate
                 import me.melijn.bot.database.DriverManager
@@ -161,7 +128,6 @@ class CacheableProcessor(
                 import org.jetbrains.exposed.sql.select
                 import org.jetbrains.exposed.sql.and
                 import $daoName
-                import org.koin.java.KoinJavaComponent.inject
                 import kotlinx.serialization.*
                 import kotlinx.serialization.json.*
                 
@@ -169,10 +135,10 @@ class CacheableProcessor(
             )
             abstractManager.appendLine("open class Abstract${simpleName}Manager(override val driverManager: DriverManager) : DBTableManager<${simpleName}>(driverManager, ${simpleName}) {")
             abstractManager.appendLine("")
-            abstractManager.appendLine("    val objectMapper by inject<ObjectMapper>(ObjectMapper::class.java)")
-            abstractManager.appendLine("")
             addGetByIdMethod(abstractManager, pkeyProperties, simpleName, name, properties)
-            addStoreMethod(abstractManager, pkeyProperties, simpleName, name, properties)
+            abstractManager.appendLine("")
+            addStoreMethod(abstractManager, pkeyProperties, simpleName, properties)
+            abstractManager.appendLine("")
             addGetCachedByIdMethod(abstractManager, pkeyProperties, simpleName)
             abstractManager.appendLine("}")
             abstractManager.close()
@@ -182,7 +148,6 @@ class CacheableProcessor(
             abstractManager: OutputStream,
             pkeyProperties: Sequence<KSPropertyDeclaration>,
             simpleName: String,
-            name: String,
             properties: Sequence<KSPropertyDeclaration>
         ) {
             abstractManager.appendLine("    fun store(data: ${simpleName}Data) {")
