@@ -43,6 +43,7 @@ object Melijn {
                     .filterNotNull()
                     .filter { it.superclass.simpleName == "Extension" }
 
+
                 add { HelpCommand() }
                 add { SettingsCommand() }
                 add { SpotifyCommand() }
