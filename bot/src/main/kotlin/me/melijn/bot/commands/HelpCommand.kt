@@ -2,6 +2,7 @@ package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.ApplicationCommandRegistry
+import com.kotlindiscord.kord.extensions.commands.application.DefaultApplicationCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalString
 import com.kotlindiscord.kord.extensions.extensions.Extension
@@ -15,8 +16,8 @@ class HelpCommand : Extension() {
 
     override val name: String = "yardim"
 
-    val messageCommandsRegistry: ChatCommandRegistry by inject()
-    val applicationCommands: ApplicationCommandRegistry by inject()
+    private val chatCommandsRegistry: ChatCommandRegistry by inject()
+    private val applicationCommands: ApplicationCommandRegistry by inject()
 
 
     override suspend fun setup() {
@@ -48,12 +49,32 @@ class HelpCommand : Extension() {
 
 
                 action {
-                    val commands = messageCommandsRegistry.commands.joinToString(", ") {
+                    val chatCommandsStr = chatCommandsRegistry.commands.joinToString(", ") {
                         "`${it.name}`"
                     }
+                    val applicationCommands = applicationCommands as DefaultApplicationCommandRegistry
+                    val slashCommandsStr = applicationCommands.slashCommands.entries.joinToString(", ") {
+                        "`${it.value.name}`"
+                    }
+                    val userCommandsStr = applicationCommands.userCommands.entries.joinToString(", ") {
+                        "`${it.value.name}`"
+                    }
+                    val messageCommandsStr = applicationCommands.messageCommands.entries.joinToString(", ") {
+                        "`${it.value.name}`"
+                    }
+
                     this.channel.createEmbed {
                         this.title = "help"
-                        this.description = commands
+                        this.description = """
+                            **Chat Commands**
+                            $chatCommandsStr
+                            **Slash Commands**
+                            $slashCommandsStr
+                            **User Commands**
+                            $userCommandsStr
+                            **Message Commands**
+                            $messageCommandsStr
+                        """.trimIndent()
                     }
                 }
             }
