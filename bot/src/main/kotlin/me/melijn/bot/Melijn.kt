@@ -7,9 +7,7 @@ import com.kotlindiscord.kord.extensions.ExtensibleBot
 import com.kotlindiscord.kord.extensions.utils.loadModule
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
-import me.melijn.bot.commands.HelpCommand
-import me.melijn.bot.commands.SettingsCommand
-import me.melijn.bot.commands.SpotifyCommand
+import me.melijn.bot.commands.*
 import me.melijn.bot.model.Environment
 import me.melijn.bot.services.ServiceManager
 import me.melijn.bot.utils.ReflectUtil
@@ -48,6 +46,8 @@ object Melijn {
                 add { HelpCommand() }
                 add { SettingsCommand() }
                 add { SpotifyCommand() }
+                add { MathExtension() }
+                add { EvalCommand() }
             }
 
             hooks {
@@ -81,6 +81,10 @@ object Melijn {
 
                 if (settings.process.environment == Environment.Testing)
                     defaultGuild(settings.process.testingServerId.toULong())
+            }
+            this.chatCommands {
+                enabled = true
+                this.defaultPrefix = settings.bot.prefix
             }
         }
         botInstance.start()
