@@ -14,7 +14,6 @@ object GuildUserSettings : Table("guild_user_settings") {
     var userId = ulong("user_id")
     var prefixes = text("prefixes").default("")
     var allowNsfw = bool("allow_nsfw").default(false)
-    var allowNsfw2 = bool("allow_nsfw2").default(false)
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId)
 }

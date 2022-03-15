@@ -18,6 +18,7 @@ class HelpCommand : Extension() {
             }
 
             action {
+                val cmdCtx = this
                 this.respond {
                     this.embed {
                         this.title = "help"

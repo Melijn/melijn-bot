@@ -2,9 +2,9 @@ package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.stringChoice
-import com.kotlindiscord.kord.extensions.commands.application.slash.ephemeralSubCommand
+import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.extensions.Extension
-import com.kotlindiscord.kord.extensions.extensions.ephemeralSlashCommand
+import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.common.entity.Permission
 import dev.kord.rest.builder.message.create.embed
@@ -18,7 +18,7 @@ class SettingsCommand : Extension() {
     val guildSettingsManager: GuildSettingsManager by inject()
 
     override suspend fun setup() {
-        ephemeralSlashCommand {
+        publicSlashCommand {
             val cmd = this
             name = "settings"
             description = "fish"
@@ -26,20 +26,20 @@ class SettingsCommand : Extension() {
                 requireBotPermissions(Permission.SendMessages, Permission.EmbedLinks)
             }
 
-            ephemeralSubCommand() {
+            publicSubCommand() {
                 name = "view"
                 description = "viewing"
                 action {
                     this.respond {
                         this.embed {
                             this.title = "settings"
-                            this.description = cmd.guildId?.let { guildSettingsManager.get(it)?.allowNsfw }.toString()
+                            this.description = cmd.guildId?.let { guildSettingsManager.get(it) }.toString()
                         }
                     }
                 }
             }
             description = "saving group"
-            ephemeralSubCommand(::SetArg) {
+            publicSubCommand(::SetArg) {
                 name = "set"
                 description = "sets setting"
                 action {

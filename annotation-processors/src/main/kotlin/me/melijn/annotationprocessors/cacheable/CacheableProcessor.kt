@@ -180,8 +180,9 @@ class CacheableProcessor(
 
             val pkeyKeyPart = pkeyNames.joinToString(":") { "\${$it}" } // ${id1}:${id2}:...
             abstractManager.appendLine("        val key = \"melijn:${simpleName.lowercase()}:${pkeyKeyPart}\"")
-            abstractManager.appendLine("        driverManager.getCacheEntry(key)?.run {")
-            abstractManager.appendLine("            return  Json.decodeFromString<${simpleName}Data>(this)")
+            abstractManager.appendLine("        driverManager.getCacheEntry(key, 5)?.run {")
+            abstractManager.appendLine("            if (this == \"null\") return null")
+            abstractManager.appendLine("            return Json.decodeFromString<${simpleName}Data>(this)")
             abstractManager.appendLine("        }")
             abstractManager.appendLine("        val cachable = getById(${pkeyNames.joinToString(", ")})")
             abstractManager.appendLine("        val cachableStr = Json.encodeToString(cachable)")

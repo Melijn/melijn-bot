@@ -75,7 +75,6 @@ dependencies {
     implementation(project(":annotation-processors"))
     ksp(project(":annotation-processors"))
 
-
     api("org.jetbrains.kotlin:kotlin-script-util:$kotlin")
     api("org.jetbrains.kotlin:kotlin-compiler:$kotlin")
     api("org.jetbrains.kotlin:kotlin-scripting-compiler:$kotlin")
@@ -89,6 +88,7 @@ dependencies {
     // Database
     implementation("org.jetbrains.exposed:exposed-core:0.37.3")
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.37.3")
+
     // https://search.maven.org/artifact/com.zaxxer/HikariCP
     implementation("com.zaxxer:HikariCP:5.0.1")
 

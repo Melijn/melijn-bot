@@ -12,15 +12,13 @@ import dev.kord.core.behavior.requestMembers
 import dev.kord.gateway.PrivilegedIntent
 import dev.kord.rest.builder.message.create.embed
 import kotlinx.coroutines.flow.firstOrNull
-import me.melijn.bot.database.manager.GuildSettingsManager
 import me.melijn.bot.model.WebManager
 import org.koin.core.component.inject
 
 class SpotifyCommand : Extension() {
 
     override val name: String = "spotify"
-    val guildSettingsManager: GuildSettingsManager by inject()
-    val webManager: WebManager by inject()
+    private val webManager: WebManager by inject()
 
     inner class SpotifyArguments : Arguments() {
         val target by optionalUser {

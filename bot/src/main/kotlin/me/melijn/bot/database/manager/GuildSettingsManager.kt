@@ -13,5 +13,4 @@ class GuildSettingsManager(override val driverManager: DriverManager) :
     suspend fun get(id: Snowflake): GuildSettingsData? {
         return getCachedById(id.value)
     }
-
 }
