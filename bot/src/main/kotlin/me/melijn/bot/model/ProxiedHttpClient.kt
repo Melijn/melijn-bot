@@ -8,6 +8,7 @@ import io.ktor.client.features.*
 import io.ktor.client.features.json.*
 import me.melijn.annotationprocessors.injector.Inject
 import me.melijn.bot.Settings
+import me.melijn.bot.web.api.AnimalImageApi
 import me.melijn.bot.web.api.MySpotifyApi
 import okhttp3.OkHttpClient
 import org.koin.java.KoinJavaComponent.inject
@@ -49,6 +50,7 @@ class WebManager {
         .build()
 
     var spotifyApi: MySpotifyApi? = null
+    val animalImageApi: AnimalImageApi = AnimalImageApi(httpClient)
 
     init {
         if (settings.api.spotify.clientId.isNotBlank() && settings.api.spotify.password.isNotBlank()) {

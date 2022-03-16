@@ -5,7 +5,7 @@ import dev.kord.core.event.message.MessageCreateEvent
 import me.melijn.bot.Settings
 import org.koin.core.component.inject
 
-object KordeUtils {
+object KordExUtils {
 
     suspend fun CheckContext<MessageCreateEvent>.userIsOwner() {
         val botSettings by inject<Settings>()

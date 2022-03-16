@@ -54,9 +54,19 @@ object Settings {
             val password by string("password")
         }
 
+        class ImgHoard : BotSettings("api_imghoard") {
+            val token by string("token")
+        }
+
+        class TheCatApi: BotSettings("api_thecatapi") {
+            val apiKey by string("apikey")
+        }
+
         val discord = Discord()
         val sentry = Sentry()
         val spotify = Spotify()
+        val imgHoard = ImgHoard()
+        val theCatApi = TheCatApi()
     }
 
     /**
