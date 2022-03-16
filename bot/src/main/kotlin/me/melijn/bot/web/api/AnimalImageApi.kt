@@ -6,13 +6,13 @@ import me.melijn.bot.Settings
 import me.melijn.bot.model.AnimalSource
 import me.melijn.bot.model.AnimalType
 import me.melijn.bot.utils.KtorUtils.parametersOf
-import mu.KotlinLogging
+import me.melijn.bot.utils.Log
 import org.koin.java.KoinJavaComponent.inject
 
 class AnimalImageApi(private val httpClient: HttpClient) {
 
     private val settings by inject<Settings>(Settings::class.java)
-    private val logger = KotlinLogging.logger { }
+    private val logger by Log
 
     suspend fun getRandomAnimalImage(animal: AnimalType): String? {
         val pairs = animal.pairs
