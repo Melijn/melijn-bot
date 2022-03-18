@@ -37,9 +37,9 @@ class SettingsCommand : Extension() {
                     description = "add a prefix for chatCommands"
 
                     action {
-                        val guild = this.guild!!
+                        val guild = guild!!
                         val existingPrefixes = prefixManager.getPrefixes(guild.id)
-                        val prefix = this.arguments.prefix
+                        val prefix = arguments.prefix
                         if (existingPrefixes.any { it.prefix.equals(prefix, true) }) {
                             this.channel.createMessage("You can't add prefixes twice")
                             return@action
@@ -59,7 +59,7 @@ class SettingsCommand : Extension() {
                     description = "lists prefixes"
 
                     action {
-                        val guild = this.guild!!
+                        val guild = guild!!
                         val prefixes = prefixManager.getPrefixes(guild.id).withIndex()
 
                         respond {
@@ -74,12 +74,7 @@ class SettingsCommand : Extension() {
                     description = "removes a prefix"
 
                     action {
-                        if (arguments.prefix == null && arguments.index == null) {
-                            respond { content = "You must supply a prefix or index" }
-                            return@action
-                        }
-
-                        val guild = this.guild!!
+                        val guild = guild!!
                         val prefixArg = prefixManager.getPrefixes(guild.id).withIndex()
                             .firstOrNull { it.value.prefix == arguments.prefix || it.index == arguments.index }
                         if (prefixArg == null) {
@@ -98,20 +93,22 @@ class SettingsCommand : Extension() {
         val prefix by optionalString {
             name = "prefix"
             description = "an existing prefix"
-            this.validate {
-                this.value ?: return@validate
+            validate {
+                failIf(index == null && value == null, "You must supply a prefix or index")
+
+                value ?: return@validate
                 stringLength(name, 1, 32)
-                val prefixes = prefixManager.getPrefixes(this.context.getGuild()!!.id)
-                val prefixNotExists = prefixes.none { it.prefix == this.value }
+                val prefixes = prefixManager.getPrefixes(context.getGuild()!!.id)
+                val prefixNotExists = prefixes.none { it.prefix == value }
                 failIf(prefixNotExists, "$value is a non existent prefix")
             }
         }
         val index by optionalInt {
             name = "prefixIndex"
             description = "index of an existing prefix"
-            this.validate {
-                this.value ?: return@validate
-                val prefixesAmount = prefixManager.getPrefixes(this.context.getGuild()!!.id).size
+            validate {
+                value ?: return@validate
+                val prefixesAmount = prefixManager.getPrefixes(context.getGuild()!!.id).size
                 intRange(name, 0, prefixesAmount - 1)
             }
         }
