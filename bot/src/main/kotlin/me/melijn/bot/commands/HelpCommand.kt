@@ -4,12 +4,13 @@ import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.ApplicationCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.application.DefaultApplicationCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandRegistry
+import com.kotlindiscord.kord.extensions.commands.converters.SingleToOptionalConverter
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalString
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatGroupCommand
 import dev.kord.common.entity.Permission
 import dev.kord.core.behavior.channel.createEmbed
-import dev.kord.core.behavior.channel.createMessage
+import me.melijn.bot.database.manager.PrefixManager
 import org.koin.core.component.inject
 
 class HelpCommand : Extension() {
@@ -18,7 +19,7 @@ class HelpCommand : Extension() {
 
     private val chatCommandsRegistry: ChatCommandRegistry by inject()
     private val applicationCommands: ApplicationCommandRegistry by inject()
-
+    private val prefixManager: PrefixManager by inject()
 
     override suspend fun setup() {
         chatGroupCommand(::HelpArgs) {
@@ -31,15 +32,29 @@ class HelpCommand : Extension() {
             action {
                 if (this.arguments.command.parseSuccess) {
                     val cmd = this.arguments.command.parsed!!
-                    this.channel.createMessage {
-                        content = "help about $cmd :troll"
+                    val command = getCommandHelp(this.argString)
+                    this.channel.createEmbed {
+                        title = cmd
+                        description = command
                     }
                     return@action
                 }
+                val bot = this@chatGroupCommand.kord.getSelf()
+
+                val prefix = prefixManager.getPrefixes(guild!!.id).minByOrNull { it.prefix.length }?.prefix ?: ">"
 
                 this.channel.createEmbed {
-                    this.title = "useful help menu"
-                    this.description = "waa waa"
+                    this.title = "Help Menu"
+                    this.description = """
+                        __**Prefix:**__ `${prefix}`
+                        __**Commands:**__ `${prefix}help list` or on the **[website](https://melijn.com)**
+                        __**Invite:**__ **[link](https://melijn.com/invite)**
+                        
+                        **Command Help:** `${prefix}help <command>` (ex. `${prefix}help play`)
+                        """.trimIndent()
+                    this.footer {
+                        this.text = "@${bot.tag} can always be used as prefix"
+                    }
                 }
             }
 
@@ -81,10 +96,91 @@ class HelpCommand : Extension() {
         }
     }
 
+    private fun getCommandHelp(argString: String): String? {
+        val applicationCommands = applicationCommands as DefaultApplicationCommandRegistry
+        val chatCommand = chatCommandsRegistry.commands.firstOrNull {
+            argString.startsWith(it.name)
+        }
+        val slashCommand by lazy {
+            applicationCommands.slashCommands.entries.map { it.value }.firstOrNull {
+                argString.startsWith(it.name)
+            }
+        }
+        val userCommand by lazy {
+            applicationCommands.userCommands.entries.map { it.value }.firstOrNull {
+                argString.startsWith(it.name)
+            }
+        }
+        val messageCommand by lazy {
+            applicationCommands.messageCommands.entries.map { it.value }.firstOrNull {
+                argString.startsWith(it.name)
+            }
+        }
+        val fullHelp = when {
+            chatCommand != null -> {
+                """
+                    Syntax: ${chatCommand.name} ${
+                    chatCommand.arguments?.let { it() }?.args?.joinToString(" ") {
+                        if (it.converter is SingleToOptionalConverter<*>) "[${it.displayName}]"
+                        else "<${it.displayName}>"
+                    }
+                }
+                    ${if (chatCommand.aliases.isNotEmpty()) "Aliases: ${chatCommand.aliases.joinToString(" ") { "`$it`" }}" else ""}
+                    Desc: ${chatCommand.description}
+                    **Args**
+                    ${chatCommand.arguments?.let { it() }?.args?.joinToString("\n") { "`${it.displayName}` ${it.description}" }}
+                """.trimIndent()
+            }
+            slashCommand != null -> {
+                val slashCommand = slashCommand!!
+                """
+                    Syntax: `${slashCommand.name} ${
+                    slashCommand.arguments?.let { it() }?.args?.joinToString(" ") {
+                        if (it.converter is SingleToOptionalConverter<*>) "[${it.displayName}]"
+                        else "<${it.displayName}>"
+                    }
+                }`
+                    Desc: ${slashCommand.description}
+                    **Args**
+                    ${slashCommand.arguments?.let { it() }?.args?.joinToString("\n") { "`${it.displayName}` ${it.description}" }}
+                """.trimIndent()
+            }
+            userCommand != null -> {
+                val userCommand = userCommand!!
+                """
+                    Syntax: ${userCommand.name}
+                """.trimIndent()
+            }
+            messageCommand != null -> {
+                val messageCommand = messageCommand!!
+                """
+                    Syntax: ${messageCommand.name}
+                """.trimIndent()
+            }
+            else -> {
+                "no command"
+            }
+        }
+
+        return fullHelp
+    }
+
     inner class HelpArgs : Arguments() {
         val command = optionalString {
             name = "commandName"
             description = "name of a command you want help about"
         }
     }
+
+//    override suspend fun formatCommandHelp(
+//        prefix: String,
+//        event: MessageCreateEvent,
+//        command: ChatCommand<out Arguments>,
+//        longDescription: Boolean
+//    ): Triple<String, String, String> {
+//        return Triple(
+//            command.name,
+//            prefix + command.name,
+//            command.arguments?.invoke()?.args?.joinToString(" ") { "<${it.displayName}>" } ?: "")
+//    }
 }
