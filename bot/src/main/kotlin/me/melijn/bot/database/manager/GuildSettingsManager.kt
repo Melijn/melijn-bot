@@ -10,7 +10,8 @@ import me.melijn.gen.database.manager.AbstractGuildSettingsManager
 class GuildSettingsManager(override val driverManager: DriverManager) :
     AbstractGuildSettingsManager(driverManager) {
 
-    suspend fun get(id: Snowflake): GuildSettingsData? {
-        return getCachedById(id.value)
+    suspend fun get(id: Snowflake): GuildSettingsData {
+        return getCachedById(id.value) ?: GuildSettingsData(id.value, allowSpacedPrefix = false, allowNsfw = false)
     }
 }
+

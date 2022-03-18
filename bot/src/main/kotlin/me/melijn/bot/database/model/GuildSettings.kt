@@ -9,9 +9,9 @@ object GuildSettings : IdTable<ULong>("guild_settings") {
 
     @OptIn(ExperimentalUnsignedTypes::class)
     override var id = ulong("guild_id").entityId()
-    var prefixes = text("prefixes").default("")
+
+    var allowSpacedPrefix = bool("allow_spaced_prefix").default(false)
     var allowNsfw = bool("allow_nsfw").default(false)
-    var allowNsfw2 = bool("allow_nsfw2").default(false)
 
     override val primaryKey: PrimaryKey = PrimaryKey(id)
 }
