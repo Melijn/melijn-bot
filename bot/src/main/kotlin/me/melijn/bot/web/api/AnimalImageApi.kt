@@ -34,14 +34,14 @@ class AnimalImageApi(private val httpClient: HttpClient) {
 
     private suspend fun getRandomTheCatApiUrl(): String? {
         return try {
-            httpClient.get<TheCatApiRandomImages>("https://api.thecatapi.com/v1/images/search") {
+            httpClient.get<List<TheCatApiRandomImages.TheCatApiRandomImage>>("https://api.thecatapi.com/v1/images/search") {
                 header("x-api-key", settings.api.theCatApi.apiKey)
                 parametersOf(
                     "limit" to "1",
                     "format" to "json",
                     "order" to "RANDOM"
                 )
-            }.images.first().url
+            }.first().url
         } catch (t: Throwable) {
             logger.warn(t) { "TheCatApi failed to respond properly" }
             null
