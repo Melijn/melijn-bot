@@ -1,6 +1,7 @@
 package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
+import com.kotlindiscord.kord.extensions.commands.Command
 import com.kotlindiscord.kord.extensions.commands.application.ApplicationCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.application.DefaultApplicationCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandRegistry
@@ -8,8 +9,13 @@ import com.kotlindiscord.kord.extensions.commands.converters.SingleToOptionalCon
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalString
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatGroupCommand
+import dev.kord.common.entity.ButtonStyle
 import dev.kord.common.entity.Permission
+import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.channel.createEmbed
+import dev.kord.core.behavior.channel.createMessage
+import dev.kord.rest.builder.message.create.actionRow
+import dev.kord.rest.builder.message.create.embed
 import me.melijn.bot.database.manager.PrefixManager
 import org.koin.core.component.inject
 
@@ -30,9 +36,9 @@ class HelpCommand : Extension() {
             }
 
             action {
-                if (this.arguments.command.parseSuccess) {
-                    val cmd = this.arguments.command.parsed!!
-                    val command = getCommandHelp(this.argString)
+                if (arguments.command.parseSuccess) {
+                    val cmd = arguments.command.parsed!!
+                    val command = getCommandHelp(argString)
                     this.channel.createEmbed {
                         title = cmd
                         description = command
@@ -43,17 +49,27 @@ class HelpCommand : Extension() {
 
                 val prefix = prefixManager.getPrefixes(guild!!.id).minByOrNull { it.prefix.length }?.prefix ?: ">"
 
-                this.channel.createEmbed {
-                    this.title = "Help Menu"
-                    this.description = """
+                channel.createMessage {
+                    embed {
+                        title = "Help Menu"
+                        description = """
                         __**Prefix:**__ `${prefix}`
                         __**Commands:**__ `${prefix}help list` or on the **[website](https://melijn.com)**
                         __**Invite:**__ **[link](https://melijn.com/invite)**
                         
                         **Command Help:** `${prefix}help <command>` (ex. `${prefix}help play`)
                         """.trimIndent()
-                    this.footer {
-                        this.text = "@${bot.tag} can always be used as prefix"
+                        footer {
+                            this.text = "@${bot.tag} can always be used as prefix"
+                        }
+                    }
+                    actionRow {
+                        interactionButton(ButtonStyle.Primary, "commands") {
+                            this.label = "Command List"
+                        }
+                        linkButton("https://melijn.com/legal") {
+                            this.label = "Privacy Policy"
+                        }
                     }
                 }
             }
@@ -62,21 +78,16 @@ class HelpCommand : Extension() {
                 name = "list"
                 description = "list all cmds"
 
-
+                val names: (List<Command>) -> String = { cmd -> cmd.joinToString(", ") { "`${it.name}`" }}
+                val mapNames: (Map<Snowflake, Command>) -> String = { cmd ->
+                    names(cmd.entries.map { it.value })
+                }
                 action {
-                    val chatCommandsStr = chatCommandsRegistry.commands.joinToString(", ") {
-                        "`${it.name}`"
-                    }
+                    val chatCommandsStr = names(chatCommandsRegistry.commands)
                     val applicationCommands = applicationCommands as DefaultApplicationCommandRegistry
-                    val slashCommandsStr = applicationCommands.slashCommands.entries.joinToString(", ") {
-                        "`${it.value.name}`"
-                    }
-                    val userCommandsStr = applicationCommands.userCommands.entries.joinToString(", ") {
-                        "`${it.value.name}`"
-                    }
-                    val messageCommandsStr = applicationCommands.messageCommands.entries.joinToString(", ") {
-                        "`${it.value.name}`"
-                    }
+                    val slashCommandsStr = mapNames(applicationCommands.slashCommands)
+                    val userCommandsStr = mapNames(applicationCommands.userCommands)
+                    val messageCommandsStr = mapNames(applicationCommands.messageCommands)
 
                     this.channel.createEmbed {
                         this.title = "help"
@@ -96,66 +107,42 @@ class HelpCommand : Extension() {
         }
     }
 
-    private fun getCommandHelp(argString: String): String? {
+    private fun <T : Command> Map<Snowflake, T>.firstMatch(argString: String): T? {
+        return this.entries.map { it.value }.firstOrNull { argString.startsWith(it.name) }
+    }
+
+    private fun getCommandHelp(argString: String): String {
         val applicationCommands = applicationCommands as DefaultApplicationCommandRegistry
         val chatCommand = chatCommandsRegistry.commands.firstOrNull {
             argString.startsWith(it.name)
         }
-        val slashCommand by lazy {
-            applicationCommands.slashCommands.entries.map { it.value }.firstOrNull {
-                argString.startsWith(it.name)
-            }
-        }
-        val userCommand by lazy {
-            applicationCommands.userCommands.entries.map { it.value }.firstOrNull {
-                argString.startsWith(it.name)
-            }
-        }
-        val messageCommand by lazy {
-            applicationCommands.messageCommands.entries.map { it.value }.firstOrNull {
-                argString.startsWith(it.name)
-            }
-        }
+        val slashCommand by lazy { applicationCommands.slashCommands.firstMatch(argString) }
+        val userCommand by lazy { applicationCommands.userCommands.firstMatch(argString) }
+        val messageCommand by lazy { applicationCommands.messageCommands.firstMatch(argString) }
         val fullHelp = when {
             chatCommand != null -> {
-                """
-                    Syntax: ${chatCommand.name} ${
-                    chatCommand.arguments?.let { it() }?.args?.joinToString(" ") {
-                        if (it.converter is SingleToOptionalConverter<*>) "[${it.displayName}]"
-                        else "<${it.displayName}>"
-                    }
-                }
-                    ${if (chatCommand.aliases.isNotEmpty()) "Aliases: ${chatCommand.aliases.joinToString(" ") { "`$it`" }}" else ""}
-                    Desc: ${chatCommand.description}
-                    **Args**
-                    ${chatCommand.arguments?.let { it() }?.args?.joinToString("\n") { "`${it.displayName}` ${it.description}" }}
-                """.trimIndent()
+                var sb = "Syntax: ${chatCommand.name} ${getSyntax(chatCommand.arguments)}"
+                sb += if (chatCommand.aliases.isNotEmpty()) {
+                    "\nAliases: ${chatCommand.aliases.joinToString(" ") { "`$it`" }}"
+                } else ""
+                sb += "\nDesc: ${chatCommand.description}"
+                sb += getArgHelp(chatCommand.arguments)
+                sb
             }
             slashCommand != null -> {
-                val slashCommand = slashCommand!!
-                """
-                    Syntax: `${slashCommand.name} ${
-                    slashCommand.arguments?.let { it() }?.args?.joinToString(" ") {
-                        if (it.converter is SingleToOptionalConverter<*>) "[${it.displayName}]"
-                        else "<${it.displayName}>"
-                    }
-                }`
-                    Desc: ${slashCommand.description}
-                    **Args**
-                    ${slashCommand.arguments?.let { it() }?.args?.joinToString("\n") { "`${it.displayName}` ${it.description}" }}
-                """.trimIndent()
+                val cmd = slashCommand!!
+                var sb = "Syntax: `${cmd.name} ${getSyntax(cmd.arguments)}`" +
+                        "\nDesc: ${cmd.description}"
+                sb += getArgHelp(cmd.arguments)
+                sb
             }
             userCommand != null -> {
-                val userCommand = userCommand!!
-                """
-                    Syntax: ${userCommand.name}
-                """.trimIndent()
+                val cmd = userCommand!!
+                "Syntax: ${cmd.name}".trimIndent()
             }
             messageCommand != null -> {
-                val messageCommand = messageCommand!!
-                """
-                    Syntax: ${messageCommand.name}
-                """.trimIndent()
+                val cmd = messageCommand!!
+                "Syntax: ${cmd.name}".trimIndent()
             }
             else -> {
                 "no command"
@@ -163,6 +150,22 @@ class HelpCommand : Extension() {
         }
 
         return fullHelp
+    }
+
+    private fun getArgHelp(arguments: (() -> Arguments)?): String {
+        val args = arguments?.let { it() }?.args ?: return ""
+        if (args.isEmpty()) return ""
+        val argHelp = args.joinToString("\n") {
+            "`${it.displayName}` ${it.description}"
+        }
+        return "\n**Args**\n$argHelp"
+    }
+
+    private fun getSyntax(arguments: (() -> Arguments)?): String {
+        return arguments?.let { it() }?.args?.joinToString(" ") {
+            if (it.converter is SingleToOptionalConverter<*>) "[${it.displayName}]"
+            else "<${it.displayName}>"
+        } ?: ""
     }
 
     inner class HelpArgs : Arguments() {

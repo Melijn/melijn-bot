@@ -79,7 +79,7 @@ class SpotifyCommand : Extension() {
                 }.joinToString(" ")
 
                 /** fetch extra info using the spotify api **/
-                val track = webManager.spotifyApi?.searchTrack(searchTerm)
+                val track = try { webManager.spotifyApi?.searchTrack(searchTerm) } catch (t: Throwable) { null }
                 val spotifyTrackLink = track?.externalUrls?.externalUrls?.get("spotify")
                 val spotifyAlbumLink = track?.album?.externalUrls?.externalUrls?.get("spotify")
                 val authorLink = { name: String ->
