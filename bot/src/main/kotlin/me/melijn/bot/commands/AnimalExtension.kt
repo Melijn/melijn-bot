@@ -1,6 +1,7 @@
 package me.melijn.bot.commands
 
-import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
+import com.kotlindiscord.kord.extensions.commands.Arguments
+import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.enumChoice
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
@@ -8,8 +9,8 @@ import dev.kord.common.Color
 import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
 import dev.kord.rest.builder.message.create.embed
 import me.melijn.bot.model.AnimalType
-import me.melijn.bot.model.WebManager
 import me.melijn.bot.utils.MISSING_IMAGE_URL
+import me.melijn.bot.web.WebManager
 import org.koin.core.component.inject
 
 class AnimalExtension : Extension() {
@@ -18,22 +19,24 @@ class AnimalExtension : Extension() {
     private val webManager by inject<WebManager>()
 
     override suspend fun setup() {
-        publicSlashCommand {
+        publicSlashCommand(::AnimalArg) {
             name = "animal"
             description = "shows many animals"
 
-            AnimalType.values().forEach { animal ->
-                publicSubCommand {
-                    name = animal.toString().lowercase()
-                    description = "shows $name"
-
-                    action {
-                        respond {
-                            animalEmbed(animal)
-                        }
-                    }
+            action {
+                val arg = this.arguments.animal.parsed
+                respond {
+                    animalEmbed(arg)
                 }
             }
+        }
+    }
+
+    inner class AnimalArg : Arguments() {
+        val animal = enumChoice<AnimalType> {
+            name = "animal"
+            description = "animal to view"
+            typeName = "animal"
         }
     }
 

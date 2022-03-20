@@ -1,8 +1,10 @@
 package me.melijn.bot.model
 
+import me.melijn.bot.utils.InferredChoiceEnum
+
 enum class AnimalType(
     vararg val pairs: Pair<AnimalSource, String>
-) {
+) : InferredChoiceEnum {
     Cat(AnimalSource.TheCatApi to "", AnimalSource.ImgHoard to "cat"),
     Dog(AnimalSource.ImgHoard to "dog"),
     Bird(AnimalSource.SomeRandomApi to "bird"),

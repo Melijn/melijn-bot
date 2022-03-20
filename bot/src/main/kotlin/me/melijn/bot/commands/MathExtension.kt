@@ -6,6 +6,7 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
 
 class MathExtension : Extension() {
+
     override val name: String = "math"
 
     override suspend fun setup() {

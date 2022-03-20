@@ -1,6 +1,7 @@
 package me.melijn.bot.utils
 
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext
+import com.kotlindiscord.kord.extensions.commands.application.slash.converters.ChoiceEnum
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandContext
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
 import com.kotlindiscord.kord.extensions.extensions.Extension
@@ -46,4 +47,9 @@ object KordExUtils {
         failIf(length < min, "$name length must be **>= $min** characters but was `$length`")
         failIf(length > max, "$name length must be **<= $max** characters but was `$length`")
     }
+}
+
+interface InferredChoiceEnum : ChoiceEnum {
+    override val readableName: String
+        get() = this.toString()
 }

@@ -1,3 +1,4 @@
 me.melijn.annotationprocessors.injector.InjectorProvider
 me.melijn.annotationprocessors.createtable.TableProvider
 me.melijn.annotationprocessors.cacheable.CacheableProvider
+me.melijn.annotationprocessors.settings.SettingsProvider

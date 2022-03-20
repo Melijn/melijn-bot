@@ -1,9 +1,10 @@
-package me.melijn.bot
+package me.melijn.bot.config
 
 import me.melijn.bot.model.Environment
 import me.melijn.kordkommons.environment.BotSettings
 
-object Settings {
+@SettingsTemplate
+private class Template {
 
     class Bot : BotSettings("bot") {
         val prefix by string("prefix", ">")
@@ -40,7 +41,8 @@ object Settings {
     }
 
     class Api : BotSettings("api") {
-        class Discord : BotSettings("api_discord") {
+
+        class Discord : BotSettings("discord") {
             val token by string("token")
             val gateway by string("gateway", "")
         }
@@ -49,24 +51,24 @@ object Settings {
             val url by stringN("url")
         }
 
-        class Spotify : BotSettings("api_spotify") {
+        class Spotify : BotSettings("spotify") {
             val clientId by string("clientId")
             val password by string("password")
         }
 
-        class ImgHoard : BotSettings("api_imghoard") {
+        class ImgHoard : BotSettings("imghoard") {
             val token by string("token")
         }
 
-        class TheCatApi: BotSettings("api_thecatapi") {
+        class TheCatApi: BotSettings("thecatapi") {
             val apiKey by string("apikey")
         }
-
-        val discord = Discord()
-        val sentry = Sentry()
-        val spotify = Spotify()
-        val imgHoard = ImgHoard()
-        val theCatApi = TheCatApi()
+//
+//        val discord = Discord()
+//        val sentry = Sentry()
+//        val spotify = Spotify()
+//        val imgHoard = ImgHoard()
+//        val theCatApi = TheCatApi()
     }
 
     /**
@@ -79,10 +81,10 @@ object Settings {
         val port by int("port", 443)
     }
 
-    val bot = Bot()
-    val process = Process()
-    val database = Database()
-    val redis = Redis()
-    val api = Api()
-    val httpProxy = HttpProxy()
+//    val bot = Bot()
+//    val process = Process()
+//    val database = Database()
+//    val redis = Redis()
+//    val api = Api()
+//    val httpProxy = HttpProxy()
 }

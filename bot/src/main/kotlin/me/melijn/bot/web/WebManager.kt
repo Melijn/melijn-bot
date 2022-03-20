@@ -1,4 +1,4 @@
-package me.melijn.bot.model
+package me.melijn.bot.web
 
 import com.apollographql.apollo.ApolloClient
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -20,7 +20,6 @@ class WebManager {
 
     val settings by inject<Settings>(Settings::class.java)
     val objectMapper by inject<ObjectMapper>(ObjectMapper::class.java)
-
 
     val commonClientConfig: HttpClientConfig<OkHttpConfig>.() -> Unit = {
         expectSuccess = false

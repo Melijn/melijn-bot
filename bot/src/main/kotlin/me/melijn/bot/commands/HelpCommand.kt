@@ -39,7 +39,8 @@ class HelpCommand : Extension() {
                 if (arguments.command.parseSuccess) {
                     val cmd = arguments.command.parsed!!
                     val command = getCommandHelp(argString)
-                    this.channel.createEmbed {
+
+                    channel.createEmbed {
                         title = cmd
                         description = command
                     }
@@ -65,10 +66,10 @@ class HelpCommand : Extension() {
                     }
                     actionRow {
                         interactionButton(ButtonStyle.Primary, "commands") {
-                            this.label = "Command List"
+                            label = "Command List"
                         }
                         linkButton("https://melijn.com/legal") {
-                            this.label = "Privacy Policy"
+                            label = "Privacy Policy"
                         }
                     }
                 }
@@ -89,9 +90,9 @@ class HelpCommand : Extension() {
                     val userCommandsStr = mapNames(applicationCommands.userCommands)
                     val messageCommandsStr = mapNames(applicationCommands.messageCommands)
 
-                    this.channel.createEmbed {
-                        this.title = "help"
-                        this.description = """
+                    channel.createEmbed {
+                        title = "help"
+                        description = """
                             **Chat Commands**
                             $chatCommandsStr
                             **Slash Commands**
@@ -108,7 +109,7 @@ class HelpCommand : Extension() {
     }
 
     private fun <T : Command> Map<Snowflake, T>.firstMatch(argString: String): T? {
-        return this.entries.map { it.value }.firstOrNull { argString.startsWith(it.name) }
+        return entries.map { it.value }.firstOrNull { argString.startsWith(it.name) }
     }
 
     private fun getCommandHelp(argString: String): String {
@@ -174,16 +175,4 @@ class HelpCommand : Extension() {
             description = "name of a command you want help about"
         }
     }
-
-//    override suspend fun formatCommandHelp(
-//        prefix: String,
-//        event: MessageCreateEvent,
-//        command: ChatCommand<out Arguments>,
-//        longDescription: Boolean
-//    ): Triple<String, String, String> {
-//        return Triple(
-//            command.name,
-//            prefix + command.name,
-//            command.arguments?.invoke()?.args?.joinToString(" ") { "<${it.displayName}>" } ?: "")
-//    }
 }

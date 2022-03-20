@@ -41,7 +41,7 @@ class SettingsCommand : Extension() {
                         val existingPrefixes = prefixManager.getPrefixes(guild.id)
                         val prefix = arguments.prefix
                         if (existingPrefixes.any { it.prefix.equals(prefix, true) }) {
-                            this.channel.createMessage("You can't add prefixes twice")
+                            respond { content = "You can't add prefixes twice" }
                             return@action
                         }
 
@@ -63,9 +63,9 @@ class SettingsCommand : Extension() {
                         val prefixes = prefixManager.getPrefixes(guild.id).withIndex()
 
                         respond {
-                            this.content = "```INI\n" +
-                                    prefixes.joinToString("\n") { "${it.index} - [${it.value.prefix}]" } +
-                                    "```"
+                            content = "```INI\n" +
+                                prefixes.joinToString("\n") { "${it.index} - [${it.value.prefix}]" } +
+                                "```"
                         }
                     }
                 }
@@ -118,7 +118,7 @@ class SettingsCommand : Extension() {
         val prefix by string {
             name = "prefix"
             description = "a prefix for the bot"
-            this.validate {
+            validate {
                 stringLength(name, 1, 32)
             }
         }
