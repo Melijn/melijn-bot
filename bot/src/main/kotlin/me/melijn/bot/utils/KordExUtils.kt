@@ -6,7 +6,7 @@ import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandContext
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import dev.kord.core.event.message.MessageCreateEvent
-import me.melijn.bot.Settings
+import me.melijn.gen.Settings
 import org.koin.core.component.inject
 
 object KordExUtils {

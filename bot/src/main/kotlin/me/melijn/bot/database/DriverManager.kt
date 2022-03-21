@@ -10,8 +10,8 @@ import io.lettuce.core.api.async.RedisAsyncCommands
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await
 import me.melijn.annotationprocessors.injector.Inject
-import me.melijn.bot.Settings
 import me.melijn.gen.CreateTablesModule
+import me.melijn.gen.Settings
 import me.melijn.kordkommons.async.TaskManager
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.transaction

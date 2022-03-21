@@ -11,6 +11,7 @@ import me.melijn.bot.commands.*
 import me.melijn.bot.model.Environment
 import me.melijn.bot.services.ServiceManager
 import me.melijn.bot.utils.ReflectUtil
+import me.melijn.gen.Settings
 import me.melijn.kordkommons.logger.logger
 import org.koin.core.context.GlobalContext.loadKoinModules
 import org.koin.dsl.bind

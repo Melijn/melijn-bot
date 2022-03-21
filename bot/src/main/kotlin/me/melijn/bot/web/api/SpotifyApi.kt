@@ -2,9 +2,9 @@ package me.melijn.bot.web.api
 
 import com.neovisionaries.i18n.CountryCode
 import kotlinx.coroutines.future.await
-import me.melijn.bot.Settings
 import me.melijn.bot.model.TrackSource
 import me.melijn.bot.music.Track
+import me.melijn.gen.Settings
 import se.michaelthelin.spotify.SpotifyApi
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified
 import kotlin.math.min

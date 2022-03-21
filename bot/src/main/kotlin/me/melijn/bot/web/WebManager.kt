@@ -7,9 +7,9 @@ import io.ktor.client.engine.okhttp.*
 import io.ktor.client.features.*
 import io.ktor.client.features.json.*
 import me.melijn.annotationprocessors.injector.Inject
-import me.melijn.bot.Settings
 import me.melijn.bot.web.api.AnimalImageApi
 import me.melijn.bot.web.api.MySpotifyApi
+import me.melijn.gen.Settings
 import okhttp3.OkHttpClient
 import org.koin.java.KoinJavaComponent.inject
 import java.net.InetSocketAddress

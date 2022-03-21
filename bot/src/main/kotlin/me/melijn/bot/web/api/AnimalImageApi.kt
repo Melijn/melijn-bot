@@ -2,11 +2,11 @@ package me.melijn.bot.web.api
 
 import io.ktor.client.*
 import io.ktor.client.request.*
-import me.melijn.bot.Settings
 import me.melijn.bot.model.AnimalSource
 import me.melijn.bot.model.AnimalType
 import me.melijn.bot.utils.KtorUtils.parametersOf
 import me.melijn.bot.utils.Log
+import me.melijn.gen.Settings
 import org.koin.java.KoinJavaComponent.inject
 
 class AnimalImageApi(private val httpClient: HttpClient) {
