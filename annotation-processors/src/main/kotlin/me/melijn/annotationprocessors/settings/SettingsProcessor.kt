@@ -77,15 +77,19 @@ class SettingsProcessor(
             }
             return if (classes.count() == 0) {
                 val code = Reflections.getCode(classDeclaration)
-                code.replace("Declarations for info for ", "\n")
+                code.replace("Declarations for info for ", "\n") +"\n"
             } else {
                 val variables = getFieldsString(classDeclaration)
+                val fullInnerCode = Reflections.getCode(classDeclaration)
+                val firstPathName = fullInnerCode.lines().first { it.contains("BotSettings") }
+                    .replace(".*BotSettings\\(\"(\\w+)\"\\).*".toRegex()) { res ->
+                        res.groups[1]!!.value
+                    }
                 val className = classDeclaration.simpleName.asString()
-                val configName = className.lowercase()
-                "class $className : BotSettings(\"$configName\") {\n" +
+                "    class $className : BotSettings(\"$firstPathName\") {\n" +
                     body.replace("BotSettings\\(\"(\\w+)\"\\)".toRegex()) { res ->
-                        "BotSettings(\"${configName}_${res.groups[1]!!.value}\")"
-                    } + variables + "\n}"
+                        "BotSettings(\"${firstPathName}_${res.groups[1]!!.value}\")"
+                    } + variables + "\n}\n"
 
             }
         }
