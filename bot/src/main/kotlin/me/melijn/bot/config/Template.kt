@@ -17,8 +17,7 @@ private class Template {
         val shardCount by int("shardCount", 1)
         val podCount by int("podCount", 1)
         val hostPattern by string(
-            "hostPattern",
-            "http://localhost:8181"
+            "hostPattern", "http://localhost:8181"
         ) // This pattern will be used to extract te podId
         val testingServerId by long("testingServerId", 234277444708859904L)
     }
@@ -60,15 +59,9 @@ private class Template {
             val token by string("token")
         }
 
-        class TheCatApi: BotSettings("thecatapi") {
+        class TheCatApi : BotSettings("thecatapi") {
             val apiKey by string("apikey")
         }
-//
-//        val discord = Discord()
-//        val sentry = Sentry()
-//        val spotify = Spotify()
-//        val imgHoard = ImgHoard()
-//        val theCatApi = TheCatApi()
     }
 
     /**
@@ -80,11 +73,4 @@ private class Template {
         val host by string("host", "1.1.1.1")
         val port by int("port", 443)
     }
-
-//    val bot = Bot()
-//    val process = Process()
-//    val database = Database()
-//    val redis = Redis()
-//    val api = Api()
-//    val httpProxy = HttpProxy()
 }
