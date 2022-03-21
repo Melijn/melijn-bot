@@ -1,13 +1,4 @@
-import com.google.devtools.ksp.processing.*
-import com.google.devtools.ksp.symbol.KSAnnotated
-import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.symbol.KSVisitorVoid
-import com.google.devtools.ksp.validate
-import me.melijn.annotationprocessors.util.appendLine
-import me.melijn.annotationprocessors.util.appendText
-import java.util.*
-
-fepackage me.melijn.annotationprocessors.settings
+package me.melijn.annotationprocessors.settings
 
 import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.KSAnnotated
@@ -15,7 +6,6 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSVisitorVoid
 import com.google.devtools.ksp.validate
 import me.melijn.annotationprocessors.util.Reflections
-import me.melijn.annotationprocessors.util.appendLine
 import me.melijn.annotationprocessors.util.appendText
 import java.util.*
 
@@ -26,33 +16,40 @@ class SettingsProcessor(
 
     private val settingsFile =
         codeGenerator.createNewFile(Dependencies(false), "me.melijn.gen", "Settings")
-
+    val settingsImports = StringBuilder()
+    val settings = StringBuilder()
 
     init {
-        settingsFile.appendText("package me.melijn.gen\n\n")
-        settingsFile.appendText(
-            """
-                
-            """.trimIndent()
-        )
-        settingsFile.appendText("\nobject Settings {\n\n")
+        settingsImports.appendLine("package me.melijn.gen\n")
     }
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         val symbols = resolver.getSymbolsWithAnnotation("me.melijn.bot.config.SettingsTemplate").toList()
+
+        settings.appendLine("object Settings {")
         symbols
             .filter { it is KSClassDeclaration && it.validate() }
-            .forEach { it.accept(CreateTableVisitor(), Unit) }
+            .forEach { ksAnnotated ->
+                settingsImports.appendLine(
+                    """
+                    import me.melijn.bot.model.Environment
+                    import me.melijn.kordkommons.environment.BotSettings
+                """.trimIndent()
+                )
+                ksAnnotated.accept(SettingVisitor(), Unit)
+            }
+
+
         val ret = symbols.filter { !it.validate() }.toList()
 
         if (symbols.isNotEmpty()) {
-            settingsFile.appendText("}\n")
-            settingsFile.close()
+            settings.appendLine("}")
+            settingsFile.appendText(settingsImports.toString() + "\n" + settings.toString())
         }
         return ret
     }
 
-    inner class CreateTableVisitor : KSVisitorVoid() {
+    inner class SettingVisitor : KSVisitorVoid() {
 
         @Suppress("UNCHECKED_CAST") // how does one check a cast then
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit) {
@@ -63,14 +60,10 @@ class SettingsProcessor(
                 body += visitChildClassDeclaration(child, data)
             }
 
-            val fields = classDeclaration.declarations.joinToString("\n") { clazz ->
-                val className = clazz.simpleName.asString()
-                val variableName = className.replaceFirstChar { it.lowercase(Locale.getDefault()) }
-                "val $variableName = $className()"
-            }
+            val fields = getFieldsString(classDeclaration)
 
-            settingsFile.appendLine(body)
-            settingsFile.appendLine(fields)
+            settings.appendLine(body)
+            settings.appendLine(fields)
         }
 
         @Suppress("UNCHECKED_CAST") // how does one check a cast then
@@ -79,21 +72,31 @@ class SettingsProcessor(
                 classDeclaration.declarations.filter { it is KSClassDeclaration } as Sequence<KSClassDeclaration>
             var body = ""
             for (child in classes) {
-                val childBody = visitChildClassDeclaration(child, data)
-                body += childBody
+                val innerBody = visitChildClassDeclaration(child, data)
+                body += innerBody
             }
-            if (classes.count() == 0) {
+            return if (classes.count() == 0) {
+                val code = Reflections.getCode(classDeclaration)
+                code.replace("Declarations for info for ", "\n")
+            } else {
+                val variables = getFieldsString(classDeclaration)
+                val className = classDeclaration.simpleName.asString()
+                val configName = className.lowercase()
+                "class $className : BotSettings(\"$configName\") {\n" +
+                    body.replace("BotSettings\\(\"(\\w+)\"\\)".toRegex()) { res ->
+                        "BotSettings(\"${configName}_${res.groups[1]!!.value}\")"
+                    } + variables + "\n}"
 
             }
+        }
 
-            classDeclaration.declarations.joinToString("\n") { clazz ->
+        private fun getFieldsString(classDeclaration: KSClassDeclaration): String {
+            return classDeclaration.declarations.joinToString("\n") { clazz ->
                 val className = clazz.simpleName.asString()
                 val variableName = className.replaceFirstChar { it.lowercase(Locale.getDefault()) }
-                "val $variableName = $className()"
+                if (variableName == "<init>") ""
+                else "val $variableName = $className()"
             }
-
-
-            settingsFile.appendLine("//" + classDeclaration.declarations.joinToString { it.simpleName.asString() })
         }
     }
 
