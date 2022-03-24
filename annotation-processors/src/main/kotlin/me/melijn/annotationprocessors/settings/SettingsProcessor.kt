@@ -10,13 +10,13 @@ import me.melijn.annotationprocessors.util.appendText
 import java.util.*
 
 class SettingsProcessor(
-    val codeGenerator: CodeGenerator,
+    codeGenerator: CodeGenerator,
     val logger: KSPLogger
 ) : SymbolProcessor {
 
     private val settingsFile =
         codeGenerator.createNewFile(Dependencies(false), "me.melijn.gen", "Settings")
-    val settingsImports = StringBuilder()
+    private val settingsImports = StringBuilder()
     val settings = StringBuilder()
 
     init {

@@ -7,11 +7,12 @@ import me.melijn.bot.model.AnimalType
 import me.melijn.bot.utils.KtorUtils.parametersOf
 import me.melijn.bot.utils.Log
 import me.melijn.gen.Settings
-import org.koin.java.KoinJavaComponent.inject
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class AnimalImageApi(private val httpClient: HttpClient) {
+class AnimalImageApi(private val httpClient: HttpClient) : KoinComponent {
 
-    private val settings by inject<Settings>(Settings::class.java)
+    private val settings by inject<Settings>()
     private val logger by Log
 
     suspend fun getRandomAnimalImage(animal: AnimalType): String? {

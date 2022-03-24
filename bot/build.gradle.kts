@@ -6,7 +6,7 @@ plugins {
     id("com.apollographql.apollo") version "2.5.11"
     id("com.github.johnrengelman.shadow") version "7.1.2"
     kotlin("jvm") version "1.6.10"
-    id("com.google.devtools.ksp") version "1.6.10-1.0.2"
+    id("com.google.devtools.ksp") version "1.6.10-1.0.4"
     kotlin("plugin.serialization") version "1.6.10"
 }
 
@@ -51,8 +51,8 @@ repositories {
     // pooppack mirror
 }
 
-val jackson = "2.13.1" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
-val ktor = "1.6.7"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
+val jackson = "2.13.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+val ktor = "1.6.8"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 val apollo = "2.5.11" // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
 val kotlinX = "1.6.0" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
 val kotlin = "1.6.10"
@@ -86,6 +86,7 @@ dependencies {
     implementation("me.melijn.jagtag:JagTag-Kotlin:2.2.1")
 
     // Database
+    // https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-core
     implementation("org.jetbrains.exposed:exposed-core:0.37.3")
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.37.3")
 
@@ -109,7 +110,7 @@ dependencies {
     implementation("se.michaelthelin.spotify:spotify-web-api-java:7.0.0")
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-    implementation("ch.qos.logback:logback-classic:1.2.10")
+    implementation("ch.qos.logback:logback-classic:1.2.11")
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
     implementation("com.fasterxml.jackson.core:jackson-core:$jackson")
@@ -142,7 +143,7 @@ dependencies {
     implementation("com.apollographql.apollo:apollo-coroutines-support:$apollo")
 
     // https://mvnrepository.com/artifact/io.lettuce/lettuce-core
-    implementation("io.lettuce:lettuce-core:6.1.6.RELEASE")
+    implementation("io.lettuce:lettuce-core:6.1.8.RELEASE")
 
     // https://github.com/cdimascio/dotenv-kotlin
     implementation("io.github.cdimascio:dotenv-kotlin:6.2.2")

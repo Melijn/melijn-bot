@@ -5,8 +5,10 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.converters.C
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandContext
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
 import com.kotlindiscord.kord.extensions.extensions.Extension
+import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
 import dev.kord.core.event.message.MessageCreateEvent
 import me.melijn.gen.Settings
+import org.jetbrains.annotations.PropertyKey
 import org.koin.core.component.inject
 
 object KordExUtils {
@@ -47,6 +49,9 @@ object KordExUtils {
         failIf(length < min, "$name length must be **>= $min** characters but was `$length`")
         failIf(length > max, "$name length must be **<= $max** characters but was `$length`")
     }
+
+    fun TranslationsProvider.getMelijn(@PropertyKey(resourceBundle = "translations.melijn.strings") key: String, vararg replacements: Any): String =
+        translate(key, "melijn.strings", replacements.asList().toTypedArray())
 }
 
 interface InferredChoiceEnum : ChoiceEnum {

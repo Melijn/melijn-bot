@@ -8,6 +8,7 @@ import com.kotlindiscord.kord.extensions.utils.loadModule
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
 import me.melijn.bot.commands.*
+import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.model.Environment
 import me.melijn.bot.services.ServiceManager
 import me.melijn.bot.utils.ReflectUtil
@@ -15,6 +16,7 @@ import me.melijn.gen.Settings
 import me.melijn.kordkommons.logger.logger
 import org.koin.core.context.GlobalContext.loadKoinModules
 import org.koin.dsl.bind
+import org.koin.java.KoinJavaComponent.inject
 
 object Melijn {
 
@@ -50,6 +52,7 @@ object Melijn {
                 add { MathExtension() }
                 add { EvalCommand() }
                 add { AnimalExtension() }
+                add { EconomyExtension() }
             }
 
             hooks {
@@ -78,15 +81,24 @@ object Melijn {
                 }
             }
 
-            this.applicationCommands {
+            applicationCommands {
                 enabled = true
 
                 if (settings.process.environment == Environment.Testing)
                     defaultGuild(settings.process.testingServerId.toULong())
             }
-            this.chatCommands {
+            chatCommands {
                 enabled = true
-                this.defaultPrefix = settings.bot.prefix
+                prefix callback@{ _ ->
+                    val event = this
+                    val prefixManager by inject<PrefixManager>(PrefixManager::class.java)
+                    val prefixes = (event.guildId?.let { prefixManager.getPrefixes(it) } ?: emptyList()) +
+                        (event.message.author?.let { prefixManager.getPrefixes(it.id) } ?: emptyList())
+                    prefixes.sortedByDescending { it.prefix.length }.forEach {
+                        if (message.content.startsWith(it.prefix)) return@callback it.prefix
+                    }
+                    return@callback settings.bot.prefix
+                }
             }
         }
         botInstance.start()
