@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kotlindiscord.kord.extensions.ExtensibleBot
+import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.utils.loadModule
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
-import me.melijn.bot.commands.*
 import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.model.Environment
 import me.melijn.bot.services.ServiceManager
@@ -42,17 +42,17 @@ object Melijn {
             extensions {
                 helpExtensionBuilder.enableBundledExtension = false
 
-                ReflectUtil.findAllClassesUsingClassLoader("me.melijn.bot.commands")
+                val sexy = ReflectUtil.findAllClassesUsingClassLoader("me.melijn.gen")
                     .filterNotNull()
-                    .filter { it.superclass.simpleName == "Extension" }
-
-                add { HelpCommand() }
-                add { SettingsCommand() }
-                add { SpotifyCommand() }
-                add { MathExtension() }
-                add { EvalCommand() }
-                add { AnimalExtension() }
-                add { EconomyExtension() }
+                    .filter { it.toString().contains("ExtensionAdderModule", true) && !it.toString().contains("$") }
+                    .maxByOrNull {
+                        it.name.replace(".*ExtensionAdderModule(\\d+)".toRegex()) { res ->
+                            res.groups[1]?.value ?: ""
+                        }.toInt()
+                    }
+                    ?.getConstructor()?.newInstance() ?: return@extensions
+                val list = sexy::class.java.getMethod("getList").invoke(sexy) as List<Extension>
+                for (ex in list) add { ex }
             }
 
             hooks {
@@ -79,6 +79,10 @@ object Melijn {
 
                     loadKoinModules((sexy.newInstance() as InjectorInterface).module)
                 }
+            }
+
+            cache {
+                cachedMessages = 0
             }
 
             applicationCommands {

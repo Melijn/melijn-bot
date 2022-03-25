@@ -11,12 +11,14 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.common.entity.Permission
 import dev.kord.rest.builder.message.create.embed
+import me.melijn.annotationprocessors.command.KordExtension
 import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.utils.KordExUtils.intRange
 import me.melijn.bot.utils.KordExUtils.stringLength
 import me.melijn.gen.PrefixesData
 import org.koin.core.component.inject
 
+@KordExtension
 class SettingsCommand : Extension() {
 
     override val name: String = "settings"

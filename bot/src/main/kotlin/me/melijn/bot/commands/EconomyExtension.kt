@@ -11,14 +11,14 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.rest.builder.message.create.embed
-import me.melijn.annotationprocessors.injector.Inject
+import me.melijn.annotationprocessors.command.KordExtension
 import me.melijn.bot.database.manager.BalanceManager
 import me.melijn.bot.utils.KordExUtils.translate
 import me.melijn.gen.UserBalanceData
 import org.koin.core.component.inject
 import kotlin.random.Random
 
-@Inject
+@KordExtension
 class EconomyExtension : Extension() {
 
     override val name: String = "economy"

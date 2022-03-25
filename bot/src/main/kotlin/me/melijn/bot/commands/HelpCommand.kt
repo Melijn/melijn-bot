@@ -16,9 +16,11 @@ import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.rest.builder.message.create.actionRow
 import dev.kord.rest.builder.message.create.embed
+import me.melijn.annotationprocessors.command.KordExtension
 import me.melijn.bot.database.manager.PrefixManager
 import org.koin.core.component.inject
 
+@KordExtension
 class HelpCommand : Extension() {
 
     override val name: String = "yardim"
@@ -61,7 +63,7 @@ class HelpCommand : Extension() {
                         **Command Help:** `${prefix}help <command>` (ex. `${prefix}help play`)
                         """.trimIndent()
                         footer {
-                            this.text = "@${bot.tag} can always be used as prefix"
+                            text = "@${bot.tag} can always be used as prefix"
                         }
                     }
                     actionRow {

@@ -6,7 +6,9 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.string
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
+import me.melijn.annotationprocessors.command.KordExtension
 
+@KordExtension
 class OsuExtension : Extension() {
 
     override val name: String = "osu"
@@ -17,7 +19,7 @@ class OsuExtension : Extension() {
             description = "osu statistic viewing commands"
 
             publicSubCommand {
-                name = "linkAccount"
+                name = "linkaccount"
                 description = "Links your osu username to your discord id for user inference when using osu commands"
 
                 action {

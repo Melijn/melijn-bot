@@ -6,28 +6,30 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.edit
+import me.melijn.annotationprocessors.command.KordExtension
 import me.melijn.bot.utils.CodeEvalUtil
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 
+@KordExtension
 class EvalCommand : Extension() {
 
     override val name: String = "eval"
 
     override suspend fun setup() {
         chatCommand(::EvalArgs) {
-            name = this@EvalCommand.name
+            name = "eval"
             description = "evaluating code"
             check {
                 userIsOwner()
             }
 
             action {
-                val msg = this.channel.createMessage {
-                    this.content = "Executing code.."
+                val msg = channel.createMessage {
+                    content = "Executing code.."
                 }
 
                 val paramStr = "context: ChatCommandContext<out EvalCommand.EvalArgs>"
-                val result = CodeEvalUtil.runCode(this.argString, paramStr, this)
+                val result = CodeEvalUtil.runCode(argString, paramStr, this)
 
                 msg.edit {
                     content = "Done!\nResult: $result"

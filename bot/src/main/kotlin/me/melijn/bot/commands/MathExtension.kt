@@ -4,7 +4,9 @@ import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.impl.long
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
+import me.melijn.annotationprocessors.command.KordExtension
 
+@KordExtension
 class MathExtension : Extension() {
 
     override val name: String = "math"
@@ -14,8 +16,8 @@ class MathExtension : Extension() {
             name = "gcd"
 
             action {
-                val gcd = gcd(this.arguments.a.parsed, this.arguments.b.parsed)
-                this.channel.createMessage("The greatest common denominator is: **${gcd}**")
+                val gcd = gcd(arguments.a.parsed, arguments.b.parsed)
+                channel.createMessage("The greatest common denominator is: **${gcd}**")
             }
         }
 
@@ -23,8 +25,8 @@ class MathExtension : Extension() {
             name = "scm"
 
             action {
-                val scm = scm(this.arguments.a.parsed, this.arguments.b.parsed)
-                this.channel.createMessage("The smallest common multiple is: **${scm}**")
+                val scm = scm(arguments.a.parsed, arguments.b.parsed)
+                channel.createMessage("The smallest common multiple is: **${scm}**")
             }
         }
     }

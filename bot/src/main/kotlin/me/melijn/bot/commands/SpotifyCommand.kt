@@ -16,6 +16,7 @@ import dev.kord.core.cache.data.ActivityData
 import dev.kord.gateway.PrivilegedIntent
 import dev.kord.rest.builder.message.create.embed
 import kotlinx.coroutines.flow.firstOrNull
+import me.melijn.annotationprocessors.command.KordExtension
 import me.melijn.bot.web.WebManager
 import org.jetbrains.kotlin.utils.keysToMap
 import org.koin.core.component.inject
@@ -23,6 +24,7 @@ import java.lang.Double.max
 import java.lang.Double.min
 import kotlin.math.roundToInt
 
+@KordExtension
 class SpotifyCommand : Extension() {
 
     override val name: String = "spotify"
