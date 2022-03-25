@@ -50,7 +50,7 @@ object KordExUtils {
         failIf(length > max, "$name length must be **<= $max** characters but was `$length`")
     }
 
-    fun TranslationsProvider.getMelijn(@PropertyKey(resourceBundle = "translations.melijn.strings") key: String, vararg replacements: Any): String =
+    fun TranslationsProvider.translate(@PropertyKey(resourceBundle = "translations.melijn.strings") key: String, vararg replacements: Any): String =
         translate(key, "melijn.strings", replacements.asList().toTypedArray())
 }
 

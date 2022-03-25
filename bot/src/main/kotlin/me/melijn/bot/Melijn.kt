@@ -84,7 +84,7 @@ object Melijn {
             applicationCommands {
                 enabled = true
 
-                if (settings.process.environment == Environment.Testing)
+                if (settings.process.environment == Environment.TESTING)
                     defaultGuild(settings.process.testingServerId.toULong())
             }
             chatCommands {

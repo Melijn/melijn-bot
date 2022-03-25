@@ -10,11 +10,10 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.user
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
-import com.kotlindiscord.kord.extensions.types.respondPublic
 import dev.kord.rest.builder.message.create.embed
 import me.melijn.annotationprocessors.injector.Inject
 import me.melijn.bot.database.manager.BalanceManager
-import me.melijn.bot.utils.KordExUtils.getMelijn
+import me.melijn.bot.utils.KordExUtils.translate
 import me.melijn.gen.UserBalanceData
 import org.koin.core.component.inject
 import kotlin.random.Random
@@ -33,9 +32,9 @@ class EconomyExtension : Extension() {
 
             action {
                 val balance = balanceManager.get(this.user.id).balance
-                respondPublic {
+                respond {
                     embed {
-                        description = translationsProvider.getMelijn("balance.show", balance)
+                        description = translationsProvider.translate("balance.show", balance)
                     }
                 }
             }
@@ -54,7 +53,7 @@ class EconomyExtension : Extension() {
                 balanceManager.store(balancePayer)
                 balanceManager.store(balanceReceiver)
                 respond {
-                    content = translationsProvider.getMelijn(
+                    content = translationsProvider.translate(
                         "pay.payed",
                         target.mention, amount, balancePayer.balance
                     )
@@ -70,7 +69,7 @@ class EconomyExtension : Extension() {
                 val balanceData = balanceManager.get(this.user.id)
                 balanceData.balance += 100
                 balanceManager.store(balanceData)
-                respondPublic {
+                respond {
                     embed {
                         description = "You now have **${balanceData.balance}** mel"
                     }
@@ -93,7 +92,7 @@ class EconomyExtension : Extension() {
                     val amount = balanceData.balance
                     if (amount == 0L) {
                         respond {
-                            content = translationsProvider.getMelijn("flip.noMels")
+                            content = translationsProvider.translate("flip.noMels")
                         }
                         return@action
                     }
@@ -139,9 +138,9 @@ class EconomyExtension : Extension() {
 
         balanceManager.store(balanceData)
 
-        respondPublic {
+        respond {
             embed {
-                description = translationsProvider.getMelijn("flip.flipped", landed, result, amount, balanceData.balance)
+                description = translationsProvider.translate("flip.flipped", landed, result, amount, balanceData.balance)
             }
         }
     }
@@ -151,7 +150,7 @@ class EconomyExtension : Extension() {
             name = "target"
             description = "user that will receive the mels"
             validate {
-                failIf(translations.getMelijn("pay.triedPayingSelf")) { value.id == context.getUser()?.id }
+                failIf(translations.translate("pay.triedPayingSelf")) { value.id == context.getUser()?.id }
             }
         }
         val amount = long {
@@ -162,8 +161,8 @@ class EconomyExtension : Extension() {
                     balanceManager.get(userId)
                 }?.balance ?: 0
 
-                failIf(translations.getMelijn("pay.triedPayingNothing")) { value <= 0 }
-                failIf(translations.getMelijn("pay.triedOverPaying", value, balance)) { value > balance }
+                failIf(translations.translate("pay.triedPayingNothing")) { value <= 0 }
+                failIf(translations.translate("pay.triedOverPaying", value, balance)) { value > balance }
             }
         }
     }
@@ -177,8 +176,8 @@ class EconomyExtension : Extension() {
                     balanceManager.get(userId)
                 }?.balance ?: 0
 
-                failIf(translations.getMelijn("flip.triedBettingNothing")) { value <= 0 }
-                failIf(translations.getMelijn("flip.triedOverBetting", value, balance)) { value > balance }
+                failIf(translations.translate("flip.triedBettingNothing")) { value <= 0 }
+                failIf(translations.translate("flip.triedOverBetting", value, balance)) { value > balance }
             }
         }
         val coinSide = coinSideArg()

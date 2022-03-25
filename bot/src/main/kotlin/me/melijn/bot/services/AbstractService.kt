@@ -1,8 +1,7 @@
 package me.melijn.bot.services
 
-import me.melijn.bot.utils.threading.RunnableTask
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import me.melijn.bot.utils.Log
+import me.melijn.kordkommons.async.RunnableTask
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
@@ -11,10 +10,15 @@ import kotlin.time.Duration
 
 abstract class Service(
     val name: String,
-    val delay: Duration,
-    val repeat: Duration,
+    private val delay: Duration,
+    private val repeat: Duration,
     val autoStart: Boolean = true
 ) {
+
+    private val scheduledExecutor: ScheduledExecutorService =
+        Executors.newSingleThreadScheduledExecutor(serviceThreadFactory(name))
+    private var future: ScheduledFuture<*>? = null
+    val logger by Log
 
     companion object {
         private val serviceThreadFactory = { name: String ->
@@ -24,20 +28,24 @@ abstract class Service(
         }
     }
 
-    private val scheduledExecutor: ScheduledExecutorService =
-        Executors.newSingleThreadScheduledExecutor(serviceThreadFactory(name))
-    private lateinit var future: ScheduledFuture<*>
-    val logger: Logger = LoggerFactory.getLogger(name)
-
     abstract val service: RunnableTask
 
-    open fun start() {
-        future = scheduledExecutor.scheduleAtFixedRate(service, delay.inWholeMilliseconds, repeat.inWholeMilliseconds, TimeUnit.MILLISECONDS)
-        logger.info("Started $name-Service")
+    fun start() {
+        if (future == null) {
+            future = scheduledExecutor.scheduleAtFixedRate(
+                service,
+                delay.inWholeMilliseconds,
+                repeat.inWholeMilliseconds,
+                TimeUnit.MILLISECONDS
+            )
+            logger.info { "Started $name-Service" }
+        } else {
+            logger.warn { "Tried starting $name-Service but this service is already running" }
+        }
     }
 
     open fun stop() {
-        future.cancel(false)
-        logger.info("Stopped $name-Service")
+        future?.cancel(false)
+        logger.info { "Stopped $name-Service" }
     }
 }

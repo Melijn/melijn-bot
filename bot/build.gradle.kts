@@ -59,10 +59,10 @@ val kotlin = "1.6.10"
 val scrimage = "4.0.22"
 
 dependencies {
-    implementation("dev.kord:kord-core:0.8.0-M9")
-    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.2-RC1")
+    implementation("dev.kord:kord-core:0.8.0-M12")
+    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.2-SNAPSHOT")
 
-    implementation("me.melijn.kordkommons:kord-kommons:1.0.6")
+    implementation("me.melijn.kordkommons:kord-kommons:1.0.9")
 
     implementation("io.sentry:sentry:5.2.2")
 

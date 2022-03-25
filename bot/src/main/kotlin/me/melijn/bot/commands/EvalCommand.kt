@@ -1,7 +1,7 @@
 package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
-import com.kotlindiscord.kord.extensions.commands.converters.impl.string
+import com.kotlindiscord.kord.extensions.commands.converters.impl.stringList
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
 import dev.kord.core.behavior.channel.createMessage
@@ -30,16 +30,16 @@ class EvalCommand : Extension() {
                 val result = CodeEvalUtil.runCode(this.argString, paramStr, this)
 
                 msg.edit {
-                    this.content = "Done!\nResult: $result"
+                    content = "Done!\nResult: $result"
                 }
             }
         }
     }
 
     inner class EvalArgs : Arguments() {
-        val code = string {
-            this.name = "code"
-            this.description = "code to execute"
+        val code = stringList {
+            name = "code"
+            description = "code to execute"
         }
     }
 }
