@@ -58,11 +58,16 @@ val kotlinX = "1.6.0" // https://mvnrepository.com/artifact/org.jetbrains.kotlin
 val kotlin = "1.6.10"
 val scrimage = "4.0.22"
 
-dependencies {
-    implementation("dev.kord:kord-core:0.8.0-M12")
-    implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.2-SNAPSHOT")
+val kord = "0.8.0-M12"
+val kordEx = "1.5.2-SNAPSHOT"
+val kordKommons = "1.1.0"
 
-    implementation("me.melijn.kordkommons:kord-kommons:1.0.9")
+dependencies {
+    implementation("dev.kord:kord-core:$kord")
+    implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
+
+
+    implementation("me.melijn.kordkommons:kord-kommons:$kordKommons")
 
     implementation("io.sentry:sentry:5.2.2")
 
@@ -111,6 +116,7 @@ dependencies {
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
     implementation("ch.qos.logback:logback-classic:1.2.11")
+
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
     implementation("com.fasterxml.jackson.core:jackson-core:$jackson")

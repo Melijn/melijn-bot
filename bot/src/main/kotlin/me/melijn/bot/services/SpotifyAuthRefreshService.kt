@@ -1,7 +1,7 @@
 package me.melijn.bot.services
 
 import me.melijn.bot.utils.KoinUtil.inject
-import me.melijn.bot.web.WebManager
+import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.async.RunnableTask
 import kotlin.time.Duration.Companion.minutes
 

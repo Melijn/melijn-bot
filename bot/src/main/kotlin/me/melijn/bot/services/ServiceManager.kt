@@ -1,6 +1,6 @@
 package me.melijn.bot.services
 
-import me.melijn.bot.utils.ReflectUtil
+import me.melijn.kordkommons.utils.ReflectUtil
 
 class ServiceManager {
 

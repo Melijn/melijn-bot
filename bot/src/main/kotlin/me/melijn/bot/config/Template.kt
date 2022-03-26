@@ -10,6 +10,7 @@ private class Template {
         val prefix by string("prefix", ">")
         val ownerIds by string("ownerIds", "")
         val id by string("id", "")
+        val version by string("version")
     }
 
     class Process : BotSettings("process") {
@@ -72,5 +73,16 @@ private class Template {
         val enabled by boolean("enabled", true)
         val host by string("host", "1.1.1.1")
         val port by int("port", 443)
+    }
+
+    class HttpServer : BotSettings("httpserver") {
+        val enabled by boolean("enabled", true)
+        val port by int("port", 8181)
+        val runningLimit by int("runningLimit", 3)
+        val requestQueueLimit by int("requestQueueLimit", 3)
+    }
+
+    class Sentry : BotSettings("sentry") {
+        val url by string("url")
     }
 }

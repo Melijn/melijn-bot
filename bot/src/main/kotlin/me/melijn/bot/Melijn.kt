@@ -8,23 +8,37 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.utils.loadModule
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
+import io.sentry.Sentry
 import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.model.Environment
+import me.melijn.bot.model.PodInfo
 import me.melijn.bot.services.ServiceManager
-import me.melijn.bot.utils.ReflectUtil
+import me.melijn.bot.utils.EnumUtil.lcc
+import me.melijn.bot.web.server.RestServer
 import me.melijn.gen.Settings
 import me.melijn.kordkommons.logger.logger
+import me.melijn.kordkommons.utils.ReflectUtil
 import org.koin.core.context.GlobalContext.loadKoinModules
 import org.koin.dsl.bind
 import org.koin.java.KoinJavaComponent.inject
+import java.net.InetAddress
+import kotlin.system.exitProcess
 
 object Melijn {
 
-    val logger = logger()
+    private val logger = logger()
 
     suspend fun susInit() {
         logger.info("Starting Melijn..")
         val settings = Settings
+        val podCount = settings.process.podCount
+        val shardCount = settings.process.shardCount
+        val podId = fetchPodIdFromHostname(
+            podCount,
+            settings.process.environment == Environment.PRODUCTION
+        )
+        PodInfo.init(podCount, shardCount, podId)
+        initSentry(settings)
 
         val botInstance = ExtensibleBot(settings.api.discord.token) {
             @OptIn(PrivilegedIntent::class)
@@ -42,15 +56,9 @@ object Melijn {
             extensions {
                 helpExtensionBuilder.enableBundledExtension = false
 
-                val sexy = ReflectUtil.findAllClassesUsingClassLoader("me.melijn.gen")
-                    .filterNotNull()
-                    .filter { it.toString().contains("ExtensionAdderModule", true) && !it.toString().contains("$") }
-                    .maxByOrNull {
-                        it.name.replace(".*ExtensionAdderModule(\\d+)".toRegex()) { res ->
-                            res.groups[1]?.value ?: ""
-                        }.toInt()
-                    }
-                    ?.getConstructor()?.newInstance() ?: return@extensions
+                val sexy = ReflectUtil.findCompleteGeneratedKspClass(
+                    "me.melijn.gen", "ExtensionAdderModule"
+                )
                 val list = sexy::class.java.getMethod("getList").invoke(sexy) as List<Extension>
                 for (ex in list) add { ex }
             }
@@ -67,17 +75,12 @@ object Melijn {
                         single { serviceManager } bind ServiceManager::class
                     }
 
-                    val sexy = ReflectUtil.findAllClassesUsingClassLoader("me.melijn.gen")
-                        .filterNotNull()
-                        .filter { it.toString().contains("InjectionKoinModule", true) && !it.toString().contains("$") }
-                        .maxByOrNull {
-                            it.name.replace(".*InjectionKoinModule(\\d+)".toRegex()) { res ->
-                                res.groups[1]?.value ?: ""
-                            }.toInt()
-                        }
-                        ?.getConstructor() ?: return@beforeKoinSetup
+                    val injectorInterface = ReflectUtil.getInstanceOfKspClass<InjectorInterface>(
+                        "me.melijn.gen", "InjectionKoinModule"
+                    )
 
-                    loadKoinModules((sexy.newInstance() as InjectorInterface).module)
+                    loadKoinModules(injectorInterface.module)
+                    RestServer
                 }
             }
 
@@ -106,6 +109,37 @@ object Melijn {
             }
         }
         botInstance.start()
+    }
+
+    private fun fetchPodIdFromHostname(podCount: Int, dynamic: Boolean): Int {
+        return try {
+            var hostName = "localhost"
+            if (dynamic) hostName = InetAddress.getLocalHost().hostName
+            logger.info("[hostName] {}", hostName)
+
+            if (podCount == 1) 0
+            else hostName.split("-").last().toInt()
+        } catch (t: Throwable) {
+            logger.warn("Cannot parse podId from hostname", t)
+            if (podCount == 1) 0
+            else {
+                Thread.sleep(1000)
+                exitProcess(404)
+            }
+        }
+    }
+
+    private fun initSentry(settings: Settings) {
+        Sentry.init { options ->
+            options.dsn = settings.sentry.url
+            options.environment = settings.process.environment.lcc()
+            options.release = settings.bot.version
+            // Set traces_sample_rate to 1.0 to capture 100% of transactions for performance monitoring.
+            // We recommend adjusting this value in production.
+            options.tracesSampleRate = 0.1
+            // When first trying Sentry it's good to see what the SDK is doing:
+            // options.debug = true
+        }
     }
 }
 

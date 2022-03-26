@@ -1,4 +1,4 @@
-package me.melijn.bot.web
+package me.melijn.bot.web.api
 
 import com.apollographql.apollo.ApolloClient
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -7,8 +7,6 @@ import io.ktor.client.engine.okhttp.*
 import io.ktor.client.features.*
 import io.ktor.client.features.json.*
 import me.melijn.annotationprocessors.injector.Inject
-import me.melijn.bot.web.api.AnimalImageApi
-import me.melijn.bot.web.api.MySpotifyApi
 import me.melijn.gen.Settings
 import okhttp3.OkHttpClient
 import org.koin.java.KoinJavaComponent.inject
@@ -27,7 +25,7 @@ class WebManager {
             serializer = JacksonSerializer(objectMapper)
         }
         install(UserAgent) {
-            agent = "Melijn / 2.0.8 Discord bot"
+            agent = "Melijn / 3.0.0 Discord bot"
         }
     }
 
