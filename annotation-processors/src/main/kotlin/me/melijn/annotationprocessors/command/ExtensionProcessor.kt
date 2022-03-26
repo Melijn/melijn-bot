@@ -18,7 +18,7 @@ class ExtensionProcessor(
     var lines = mutableListOf<String>()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val symbols = resolver.getSymbolsWithAnnotation("me.melijn.annotationprocessors.command.KordExtension").toList()
+        val symbols = resolver.getSymbolsWithAnnotation(KordExtension::class.java.name).toList()
         val ret = symbols.filter { !it.validate() }.toList()
 
         val process = symbols
@@ -29,13 +29,16 @@ class ExtensionProcessor(
                 codeGenerator.createNewFile(Dependencies(false), "me.melijn.gen", "ExtensionAdderModule${count}")
 
             injectKoinModuleFile.appendLine("package me.melijn.gen\n")
-            injectKoinModuleFile.appendLine("class ExtensionAdderModule${count} {\n")
-            injectKoinModuleFile.appendLine("    val list = listOf(")
+
+            injectKoinModuleFile.appendLine("import me.melijn.bot.model.ksp.ExtensionInterface")
+
+            injectKoinModuleFile.appendLine("\nclass ExtensionAdderModule${count} : ExtensionInterface() {\n")
+            injectKoinModuleFile.appendLine("    override val list = listOf(")
 
             process.forEach { it.accept(InjectorVisitor(lines), Unit) }
             injectKoinModuleFile.appendLine(lines.joinToString(",\n"))
 
-            injectKoinModuleFile.appendLine("    )\n")
+            injectKoinModuleFile.appendLine("    )")
             injectKoinModuleFile.appendLine("}")
             injectKoinModuleFile.close()
             count++

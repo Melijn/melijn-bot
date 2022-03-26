@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kotlindiscord.kord.extensions.ExtensibleBot
-import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.utils.loadModule
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
@@ -12,6 +11,8 @@ import io.sentry.Sentry
 import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.model.Environment
 import me.melijn.bot.model.PodInfo
+import me.melijn.bot.model.ksp.ExtensionInterface
+import me.melijn.bot.model.ksp.InjectorInterface
 import me.melijn.bot.services.ServiceManager
 import me.melijn.bot.utils.EnumUtil.lcc
 import me.melijn.bot.web.server.RestServer
@@ -38,7 +39,7 @@ object Melijn {
             settings.process.environment == Environment.PRODUCTION
         )
         PodInfo.init(podCount, shardCount, podId)
-        initSentry(settings)
+        //initSentry(settings)
 
         val botInstance = ExtensibleBot(settings.api.discord.token) {
             @OptIn(PrivilegedIntent::class)
@@ -56,10 +57,10 @@ object Melijn {
             extensions {
                 helpExtensionBuilder.enableBundledExtension = false
 
-                val sexy = ReflectUtil.findCompleteGeneratedKspClass(
+                val sexy = ReflectUtil.getInstanceOfKspClass<ExtensionInterface>(
                     "me.melijn.gen", "ExtensionAdderModule"
                 )
-                val list = sexy::class.java.getMethod("getList").invoke(sexy) as List<Extension>
+                val list = sexy.list
                 for (ex in list) add { ex }
             }
 

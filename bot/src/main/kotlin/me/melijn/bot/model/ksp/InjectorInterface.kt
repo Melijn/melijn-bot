@@ -1,4 +1,4 @@
-package me.melijn.bot
+package me.melijn.bot.model.ksp
 
 import org.koin.core.module.Module
 
