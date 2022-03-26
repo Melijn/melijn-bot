@@ -11,7 +11,7 @@ import dev.kord.rest.builder.message.create.embed
 import me.melijn.annotationprocessors.command.KordExtension
 import me.melijn.bot.model.AnimalType
 import me.melijn.bot.utils.MISSING_IMAGE_URL
-import me.melijn.bot.web.WebManager
+import me.melijn.bot.web.api.WebManager
 import org.koin.core.component.inject
 
 @KordExtension
