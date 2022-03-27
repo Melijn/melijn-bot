@@ -1,5 +1,6 @@
 package model
 
+import io.ktor.application.*
 import io.ktor.http.*
 
 abstract class AbstractPage(
@@ -9,4 +10,6 @@ abstract class AbstractPage(
 ) {
     abstract val src: String
     open val aliasRoutes: Array<String> = arrayOf()
+
+    open suspend fun render(call: ApplicationCall): String = src
 }
