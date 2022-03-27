@@ -10,20 +10,11 @@ import io.ktor.server.netty.*
 import me.melijn.kordkommons.logger.Log
 import me.melijn.kordkommons.logger.logger
 import me.melijn.kordkommons.utils.ReflectUtil
-import model.AbstractPage
+import model.PageInterface
 import model.SnippetsInterface
 import render.SourceRenderer
-import resource.Commands
-import resource.HomePage
-import resource.Style
 
-val abstractPages = setOf<AbstractPage>(
-    HomePage(),
-    Commands(),
-    Style()
-)
-
-val port = 9090
+const val port = 9090
 val logger = Log.logger()
 
 fun main() {
@@ -32,6 +23,7 @@ fun main() {
         SourceRenderer.registeredSnippets[snippet.name] = snippet
     }
 
+    val abstractPages = ReflectUtil.getInstanceOfKspClass<PageInterface>("me.melijn.gen", "Pages").pages
 
     logger.info { "http://localhost:$port" }
 

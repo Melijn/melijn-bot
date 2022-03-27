@@ -7,11 +7,13 @@ import io.ktor.util.*
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
-import me.melijn.siteannotationprocessors.injector.Inject
+import me.melijn.siteannotationprocessors.page.Page
+import me.melijn.siteannotationprocessors.snippet.Snippet
 import model.AbstractPage
 import org.intellij.lang.annotations.Language
 import snippet.AbstractSnippet
 
+@Page
 class Commands : AbstractPage("/commands", ContentType.Text.Html) {
 
     @Language("html")
@@ -34,7 +36,7 @@ class Commands : AbstractPage("/commands", ContentType.Text.Html) {
     """.trimIndent()
 }
 
-@Inject
+@Snippet
 class CommandsSnippet : AbstractSnippet<Any>() {
     override val name: String = "commands"
     override val src: String = ""

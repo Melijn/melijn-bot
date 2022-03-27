@@ -1,8 +1,8 @@
 package resource
 
 import io.ktor.http.*
+import me.melijn.siteannotationprocessors.page.Page
 import model.AbstractPage
-import model.Page
 import org.intellij.lang.annotations.Language
 import util.BOT_GITHUB_LINK
 import util.BOT_GITHUB_SELFHOST_GUIDE

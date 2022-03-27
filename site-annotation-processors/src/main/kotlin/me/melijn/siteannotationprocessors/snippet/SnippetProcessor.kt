@@ -1,4 +1,4 @@
-package me.melijn.siteannotationprocessors.injector
+package me.melijn.siteannotationprocessors.snippet
 
 import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.KSAnnotated
@@ -8,7 +8,7 @@ import com.google.devtools.ksp.symbol.KSVisitorVoid
 import com.google.devtools.ksp.validate
 import me.melijn.siteannotationprocessors.util.appendLine
 
-class InjectorProcessor(
+class SnippetProcessor(
     private val codeGenerator: CodeGenerator,
     val logger: KSPLogger
 ) : SymbolProcessor {
@@ -18,7 +18,7 @@ class InjectorProcessor(
     var lines = mutableListOf<String>()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val jClass = Inject::class.java
+        val jClass = Snippet::class.java
         val symbols = resolver.getSymbolsWithAnnotation(jClass.name).toList()
         val ret = symbols.filter { !it.validate() }.toList()
 

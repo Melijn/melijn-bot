@@ -1,1 +1,2 @@
-me.melijn.siteannotationprocessors.injector.InjectorProvider
+me.melijn.siteannotationprocessors.snippet.SnippetProvider
+me.melijn.siteannotationprocessors.page.PageProvider

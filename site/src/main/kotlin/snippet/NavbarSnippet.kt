@@ -1,9 +1,9 @@
 package snippet
 
-import me.melijn.siteannotationprocessors.injector.Inject
+import me.melijn.siteannotationprocessors.snippet.Snippet
 import org.intellij.lang.annotations.Language
 
-@Inject
+@Snippet
 class NavbarSnippet : AbstractSnippet<Any>() {
 
     @Language("html")
