@@ -1,13 +1,18 @@
 package render
 
+import kotlinx.coroutines.runBlocking
+import snippet.AbstractSnippet
+
 object SourceRenderer {
 
-    val registeredSnippets = HashMap<String, String>()
+    val registeredSnippets = HashMap<String, AbstractSnippet<Any>>()
 
-    fun render(src: String): String {
+    suspend fun render(src: String): String {
         return src.replace("\\{\\{\\s* (\\w+) \\s*}}".toRegex()) { match ->
             val snippetName = match.groups[1]!!.value
-            registeredSnippets[snippetName] ?: "snippet \"$snippetName\" is unregistered"
+            runBlocking {
+                registeredSnippets[snippetName]?.render(src) ?: "snippet \"$snippetName\" is unregistered"
+            }
         }
     }
 

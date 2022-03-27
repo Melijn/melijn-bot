@@ -9,7 +9,6 @@ abstract class AbstractPage(
 ) {
     abstract val src: String
     open val aliasRoutes: Array<String> = arrayOf()
-
 }
 
 annotation class Page

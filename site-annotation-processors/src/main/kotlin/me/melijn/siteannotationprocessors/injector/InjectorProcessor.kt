@@ -27,15 +27,18 @@ class InjectorProcessor(
 
         if (process.isNotEmpty()) {
             val injectKoinModuleFile =
-                codeGenerator.createNewFile(Dependencies(false), "me.melijn.gen", "InjectionKoinModule${count}")
+                codeGenerator.createNewFile(Dependencies(false), "me.melijn.gen", "Snippets${count}")
 
             injectKoinModuleFile.appendLine("package me.melijn.gen\n")
-            injectKoinModuleFile.appendLine("    val module = listOf(")
+            injectKoinModuleFile.appendLine("import model.SnippetsInterface")
+            injectKoinModuleFile.appendLine("class Snippets$count : SnippetsInterface {")
+            injectKoinModuleFile.appendLine("    override val snippets = listOf(")
 
             process.forEach { it.accept(InjectorVisitor(lines), Unit) }
             injectKoinModuleFile.appendLine(lines.joinToString(",\n"))
 
             injectKoinModuleFile.appendLine("    )\n")
+            injectKoinModuleFile.appendLine("}")
             injectKoinModuleFile.close()
             count++
         }

@@ -11,5 +11,7 @@ class HeadSnippet : AbstractSnippet<Any>() {
      <link rel="stylesheet" href="style.css"> 
 """.trimIndent()
 
+    override val name: String = "head"
+
 }
 

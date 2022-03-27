@@ -34,5 +34,34 @@ class Style : AbstractPage("/style.css", ContentType.Text.CSS) {
             margin-right: 8px;
         }
         
+        .footer {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+        }
+        
+        .navbar > div {
+            display: flex;
+        }
+        
+        .cmd {
+            margin-bottom: 10px;
+        }
+        
+        table {
+          border-collapse: collapse;
+          border-spacing: 0;
+        }
+        
+        td.type {
+            text-align: right;
+            font-weight: bold;
+            padding-bottom: 7px;
+        }
+        
+        td {
+            vertical-align: top;
+            padding-right: 10px;
+        }
     """
 }
