@@ -19,6 +19,11 @@ class NavbarSnippet : AbstractSnippet<Any>() {
                  Commands
              </a>
          </div>
+         <div>
+             <a href='/login'>
+                 Login
+             </a>
+         </div>
      </div>
 """.trimIndent()
 

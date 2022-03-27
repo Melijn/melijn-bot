@@ -13,6 +13,7 @@ import me.melijn.kordkommons.utils.ReflectUtil
 import model.PageInterface
 import model.SnippetsInterface
 import render.SourceRenderer
+import util.JavaResourcesUtil
 
 const val port = 9090
 val logger = Log.logger()
@@ -22,9 +23,10 @@ fun main() {
     for (snippet in snippets) {
         SourceRenderer.registeredSnippets[snippet.name] = snippet
     }
+    logger.info { "Registered ${snippets.size} snippets" }
 
     val abstractPages = ReflectUtil.getInstanceOfKspClass<PageInterface>("me.melijn.gen", "Pages").pages
-
+    logger.info { "Registered ${abstractPages.size} pages" }
     logger.info { "http://localhost:$port" }
 
     embeddedServer(Netty, port) {
@@ -57,6 +59,19 @@ fun main() {
                     }
                 }
             }
+            route("static") {
+                var resourceCount = 0
+                JavaResourcesUtil.onEachResource("/static") { relPath, file ->
+                    if (file.isFile) {
+                        resourceCount++
+                        get(relPath.replace("\\", "/")) {
+                            call.respondFile(file)
+                        }
+                    }
+                }
+                logger.info { "Registered $resourceCount resources" }
+            }
         }
+
     }.start(wait = true)
 }
