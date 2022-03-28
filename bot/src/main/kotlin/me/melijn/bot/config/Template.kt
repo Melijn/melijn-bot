@@ -1,9 +1,10 @@
 package me.melijn.bot.config
 
+import me.melijn.ap.settings.SettingsTemplate
 import me.melijn.bot.model.Environment
 import me.melijn.kordkommons.environment.BotSettings
 
-@SettingsTemplate
+@SettingsTemplate("import me.melijn.bot.model.Environment")
 private class Template {
 
     class Bot : BotSettings("bot") {

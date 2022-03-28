@@ -6,7 +6,7 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.string
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
-import me.melijn.annotationprocessors.command.KordExtension
+import me.melijn.apkordex.command.KordExtension
 
 @KordExtension
 class OsuExtension : Extension() {

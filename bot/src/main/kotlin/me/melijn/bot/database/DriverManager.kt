@@ -9,7 +9,7 @@ import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.api.async.RedisAsyncCommands
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await
-import me.melijn.annotationprocessors.injector.Inject
+import me.melijn.ap.injector.Inject
 import me.melijn.gen.CreateTablesModule
 import me.melijn.gen.Settings
 import me.melijn.kordkommons.async.TaskManager

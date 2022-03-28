@@ -38,6 +38,8 @@ dependencies {
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-client-json:$ktorVersion")
     implementation("io.ktor:ktor-client-serialization:$ktorVersion")
+
+    implementation("io.insert-koin:koin-core:3.1.5")
 }
 
 ksp {}

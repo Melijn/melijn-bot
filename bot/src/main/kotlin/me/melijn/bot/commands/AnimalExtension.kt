@@ -8,7 +8,7 @@ import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.common.Color
 import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
 import dev.kord.rest.builder.message.create.embed
-import me.melijn.annotationprocessors.command.KordExtension
+import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.model.AnimalType
 import me.melijn.bot.utils.MISSING_IMAGE_URL
 import me.melijn.bot.web.api.WebManager

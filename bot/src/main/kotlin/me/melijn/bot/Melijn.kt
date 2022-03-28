@@ -8,11 +8,11 @@ import com.kotlindiscord.kord.extensions.utils.loadModule
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
 import io.sentry.Sentry
+import me.melijn.ap.injector.InjectorInterface
+import me.melijn.apkordex.command.ExtensionInterface
 import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.model.Environment
 import me.melijn.bot.model.PodInfo
-import me.melijn.bot.model.ksp.ExtensionInterface
-import me.melijn.bot.model.ksp.InjectorInterface
 import me.melijn.bot.services.ServiceManager
 import me.melijn.bot.utils.EnumUtil.lcc
 import me.melijn.bot.web.server.RestServer

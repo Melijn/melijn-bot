@@ -4,7 +4,7 @@ import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.impl.long
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
-import me.melijn.annotationprocessors.command.KordExtension
+import me.melijn.apkordex.command.KordExtension
 
 @KordExtension
 class MathExtension : Extension() {

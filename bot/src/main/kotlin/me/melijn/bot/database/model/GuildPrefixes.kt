@@ -1,10 +1,11 @@
 package me.melijn.bot.database.model
 
-import me.melijn.annotationprocessors.createtable.CreateTable
+import me.melijn.ap.cacheable.Cacheable
+import me.melijn.ap.createtable.CreateTable
 import org.jetbrains.exposed.sql.Table
 
 @CreateTable
-@Cacheable<Prefixes>
+@Cacheable
 object Prefixes : Table("prefixes") {
 
     @OptIn(ExperimentalUnsignedTypes::class)

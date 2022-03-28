@@ -16,7 +16,7 @@ import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.rest.builder.message.create.actionRow
 import dev.kord.rest.builder.message.create.embed
-import me.melijn.annotationprocessors.command.KordExtension
+import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.PrefixManager
 import org.koin.core.component.inject
 

@@ -6,7 +6,7 @@ import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.features.*
 import io.ktor.client.features.json.*
-import me.melijn.annotationprocessors.injector.Inject
+import me.melijn.ap.injector.Inject
 import me.melijn.gen.Settings
 import okhttp3.OkHttpClient
 import org.koin.java.KoinJavaComponent.inject

@@ -67,7 +67,11 @@ dependencies {
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
 
 
-    implementation("me.melijn.kordkommons:kord-kommons:$kordKommons")
+    implementation("me.melijn.kordkommons:kommons:$kordKommons")
+    implementation("me.melijn.kordkommons:ap:0.0.1")
+    implementation("me.melijn.kordkommons:apkordex:0.0.1")
+    ksp("me.melijn.kordkommons:ap:0.0.1")
+    ksp("me.melijn.kordkommons:apkordex:0.0.1")
 
     implementation("io.sentry:sentry:5.2.2")
 
@@ -77,8 +81,8 @@ dependencies {
     implementation("com.github.ToxicMushroom:JEmojis:a8c82848f166893f67251c741579c74c80fbb2dd")
 
     // Annotation preprocessors
-    implementation(project(":annotation-processors"))
-    ksp(project(":annotation-processors"))
+//    implementation(project(":annotation-processors"))
+//    ksp(project(":annotation-processors"))
 
     api("org.jetbrains.kotlin:kotlin-script-util:$kotlin")
     api("org.jetbrains.kotlin:kotlin-compiler:$kotlin")
@@ -156,8 +160,9 @@ dependencies {
 }
 
 ksp {
-//    arg("option1", "value1")
-//    arg("option2", "value2")
+    arg("apkordex_package", "me.melijn.gen")
+    arg("ap_package", "me.melijn.gen")
+    arg("ap_redis_key_prefix", "melijn:")
 }
 
 kotlin {

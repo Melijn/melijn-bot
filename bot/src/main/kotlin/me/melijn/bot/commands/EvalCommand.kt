@@ -6,7 +6,7 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.edit
-import me.melijn.annotationprocessors.command.KordExtension
+import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.utils.CodeEvalUtil
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 

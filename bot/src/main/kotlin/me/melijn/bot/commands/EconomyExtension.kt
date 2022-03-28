@@ -11,7 +11,7 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.rest.builder.message.create.embed
-import me.melijn.annotationprocessors.command.KordExtension
+import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.BalanceManager
 import me.melijn.bot.utils.KordExUtils.translate
 import me.melijn.gen.UserBalanceData
