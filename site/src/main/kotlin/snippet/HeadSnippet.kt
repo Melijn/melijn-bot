@@ -11,6 +11,7 @@ class HeadSnippet : AbstractSnippet<Any>() {
         
 <link rel="stylesheet" href="style.css"> 
 <link rel="icon" type="image/png" href="/static/fabicon.png">
+<script type="text/javascript" src="/static/cookies.js"></script>
 
 """.trimIndent()
 

@@ -1,29 +1,35 @@
 package resource
 
-import com.sun.org.apache.xml.internal.security.algorithms.SignatureAlgorithm
+import database.manager.UserCookieManager
 import httpClient
+import io.jsonwebtoken.SignatureAlgorithm
+import io.jsonwebtoken.impl.DefaultJwtBuilder
+import io.jsonwebtoken.security.Keys
 import io.ktor.application.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.SerializationException
+import me.melijn.gen.Settings
+import me.melijn.gen.UserCookieData
+import me.melijn.kordkommons.logger.Log
 import me.melijn.siteannotationprocessors.page.Page
-import model.AbstractPage
-import okhttp3.internal.http2.Settings
+import model.*
 import org.intellij.lang.annotations.Language
 import org.koin.core.component.inject
-import java.util.*
-import kotlin.random.Random.Default.nextLong
+import kotlin.random.Random
 
 @Page
-class Login : AbstractPage("/login", ContentType.Text.Html) {
+class Login : AbstractPage("/callback", ContentType.Text.Html) {
 
     val settings by inject<Settings>()
+    val userCookieManager by inject<UserCookieManager>()
+    val logger by Log
 
     @Language("js")
     val js: String = """
-        if (!loggedIn) {
-            
-        }
-        
         console.log(item);
     """.trimIndent()
 
@@ -48,125 +54,116 @@ class Login : AbstractPage("/login", ContentType.Text.Html) {
 
 
     override suspend fun render(call: ApplicationCall): String {
-        var extraJs = StringBuilder()
+        val extraJs = StringBuilder()
         var source = src
         val code = call.request.queryParameters["code"]
-        if (code != null) {
-            val cookie = codeToCookie(code)
-            if (cookie == null) {
-                source = source.replace("%login-state%", "Invalid code parameter, try again")
+
+        val filledJs = if (code != null) {
+            val tokenOwner = getOwner(code)
+            val cookie = generateRandomCookie()
+
+            val expireDays = tokenOwner.oauthToken.expiresIn / 60 / 60 / 24
+            linkCookieToOwner(tokenOwner, cookie)
+            extraJs.appendLine("setCookie('jwt', '${cookie}', $expireDays)")
+            extraJs.appendLine("window.location.replace('/commands');")
+            extraJs.toString()
+        } else {
+            val cookie = call.request.cookies["jwt", CookieEncoding.RAW]
+            val loginStatus = if (cookie != null && validateCookie(cookie)) {
+                val userData = userCookieManager.getByIndex0(cookie).firstOrNull()
+                "Logged in :) you are: $userData"
+            } else {
+                extraJs.appendLine("document.cookie = '';")
+
+                "Uh oh stinky, your cookie was invalid or expired, please <a href='/login'>login</a> again :)"
             }
+            source = source.replace("%login-state%", loginStatus)
+            extraJs.toString()
         }
 
-        val cookie = call.request.cookies["jwt", CookieEncoding.RAW]
-        val filledJs = if (cookie == null || !validateCookie(cookie)) {
-            "let loggedIn = false\n$js"
-        } else "let loggedIn = true\n$js"
         source = source.replace("%js%", filledJs)
         return source
     }
 
-    private fun codeToCookie(code: String): String? {
+    private fun linkCookieToOwner(tokenOwner: TokenOwner, cookie: String) {
+        userCookieManager.store(
+            UserCookieData(
+                tokenOwner.partialDiscordUser.id,
+                cookie,
+                Clock.System.now().toLocalDateTime(TimeZone.UTC),
+                tokenOwner.oauthToken.accessToken,
+                tokenOwner.oauthToken.tokenType,
+                tokenOwner.oauthToken.expiresIn,
+                tokenOwner.oauthToken.refreshToken,
+                tokenOwner.oauthToken.scope,
+            )
+        )
+    }
 
+    private fun generateRandomCookie(): String {
+        val key = Keys.hmacShaKeyFor(settings.service.jwtKey.toByteArray())
+        val prevUid = lastSubId++
+        val newUid = (prevUid + 1).toString() + Random.nextLong()
+
+        return DefaultJwtBuilder()
+            .setPayload(newUid)
+            .signWith(key, SignatureAlgorithm.HS256)
+            .compact()
+    }
+
+    companion object {
+        var lastSubId = System.currentTimeMillis()
+    }
+
+    private suspend fun getOwner(code: String): TokenOwner {
         val oauth = settings.discordOauth
         val encodedUrlParams = Parameters.build {
             append("client_id", oauth.botId)
             append("client_secret", oauth.botSecret)
             append("grant_type", "authorization_code")
             append("code", code)
-            append("redirect_uri", oauth.redirectUrl + routePart)
+            append("redirect_uri", oauth.redirectUrl)
         }.formUrlEncode()
 
 
-        try {
-            val tokenResponse = httpClient.post<String>("${context.discordApi}/oauth2/token") {
+        val tokenResponse = try {
+            httpClient.post<Oauth2Token>("${oauth.discordApiHost}/oauth2/token") {
                 this.body = encodedUrlParams
                 headers {
                     append("Content-Type", "application/x-www-form-urlencoded")
                 }
-            }.json()
-
-            val token = tokenResponse.get("access_token")?.asText()
-            if (token == null) {
-                logger.info("unsuccessful login, discord response: " + tokenResponse.toPrettyString())
-                context.replyError(HttpStatusCode.BadRequest, "Unsuccessful login, contact support if this keeps occurring")
-                return
             }
-            val refreshToken = tokenResponse.get("refresh_token").asText()
-            val lifeTime = tokenResponse.get("expires_in").asLong()
-
-            val scope = tokenResponse.get("scope").asText()
-            val required = listOf("identify", "guilds")
-            if (required.any { !scope.contains(it) }) {
-                context.replyError(
-                    HttpStatusCode.BadRequest,
-                    "Missing one or more of the following discord scopes in the code parameter you supplied." +
-                        "\nRequired scopes: $required"
-                )
-                return
-            }
-
-            val user = httpClient.get<String>("${context.discordApi}/users/@me") {
-                this.headers {
-                    append("Authorization", "Bearer $token")
-                }
-            }.json()
-
-            val avatar = user.get("avatar").asText()
-            val userName = user.get("username").asText()
-            val discriminator = user.get("discriminator").asText()
-            val userId = user.get("id").asLong()
-            val tag = "$userName#$discriminator"
-
-            val key = Keys.hmacShaKeyFor(context.settings.restServer.jwtKey)
-            val prevUid = lastSubId++
-            val newUid = (prevUid + 1).toString() + Random.nextLong()
-
-            val jwt = DefaultJwtBuilder()
-                .setPayload(newUid)
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact()
-
-            val json = objectMapper.createObjectNode()
-                .put("jwt", jwt)
-                .put("lifeTime", lifeTime)
-                .put("avatar", avatar)
-                .put("tag", tag)
-
-            val buffer = ByteBuffer.allocate(Long.SIZE_BYTES * 2)
-                .putLong(prevUid)
-                .putLong(Random.nextLong())
-
-            context.daoManager.sessionWrapper.setSessionInfo(
-                jwt, SessionInfo(
-                    Base58.encode(buffer.array()),
-                    context.now + lifeTime,
-                    userId,
-                    token,
-                    refreshToken
-                )
-            )
-
-            context.daoManager.userWrapper.setUserInfo(
-                jwt, UserInfo(
-                    userId,
-                    userName,
-                    discriminator,
-                    avatar
-                ),
-                lifeTime
-            )
-
-            context.replyJson(json.toString())
-
-        } catch (t: Throwable) {
-            t.printStackTrace()
-            context.replyError(HttpStatusCode.InternalServerError)
+        } catch (t: SerializationException) {
+            throw FriendlyHttpException(HttpStatusCode.BadRequest, "Your oauth code was probably invalid")
         }
 
+        val token = tokenResponse.accessToken
+
+        val scope = tokenResponse.scope
+        val required = listOf("identify", "guilds")
+        if (!required.all { scope.contains(it) }) {
+            throw FriendlyHttpException(
+                HttpStatusCode.BadRequest,
+                "Missing one or more of the following discord scopes in the code parameter you supplied." +
+                    "\nRequired scopes: $required"
+            )
+        }
+
+        val user = httpClient.get<PartialDiscordUser>("${oauth.discordApiHost}/users/@me") {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $token")
+            }
+        }
+
+        return TokenOwner(
+            Oauth2Token(token, tokenResponse.tokenType, tokenResponse.expiresIn, tokenResponse.refreshToken, scope),
+            user
+        )
     }
 
     private fun validateCookie(cookie: String): Boolean {
-        return true
+        val userCookie = userCookieManager.getByIndex0(cookie).firstOrNull()
+        if (userCookie != null) return true
+        return false
     }
 }

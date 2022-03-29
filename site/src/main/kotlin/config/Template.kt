@@ -1,9 +1,9 @@
 package config
 
-import me.melijn.bot.config.SettingsTemplate
+import me.melijn.ap.settings.SettingsTemplate
 import me.melijn.kordkommons.environment.BotSettings
 
-@SettingsTemplate
+@SettingsTemplate("")
 private class Template {
 
     class Bot : BotSettings("bot") {
@@ -35,11 +35,13 @@ private class Template {
 
     class Service : BotSettings("service") {
         val port by int("port")
+        val jwtKey by string("jwtkey")
     }
 
     class DiscordOauth : BotSettings("discordOauth") {
         val botId by string("botId")
         val botSecret by string("botSecret")
         val redirectUrl by string("redirectUrl")
+        val discordApiHost by string("discordApiHost")
     }
 }
