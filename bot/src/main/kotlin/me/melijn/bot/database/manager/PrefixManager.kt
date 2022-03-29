@@ -2,9 +2,9 @@ package me.melijn.bot.database.manager
 
 import dev.kord.common.entity.Snowflake
 import me.melijn.ap.injector.Inject
-import me.melijn.bot.database.DriverManager
 import me.melijn.gen.PrefixesData
 import me.melijn.gen.database.manager.AbstractPrefixesManager
+import me.melijn.kordkommons.database.DriverManager
 
 @Inject
 class PrefixManager(driverManager: DriverManager) : AbstractPrefixesManager(driverManager) {

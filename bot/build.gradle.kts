@@ -68,10 +68,14 @@ dependencies {
 
 
     implementation("me.melijn.kordkommons:kommons:$kordKommons")
-    implementation("me.melijn.kordkommons:ap:0.0.1")
-    implementation("me.melijn.kordkommons:apkordex:0.0.1")
-    ksp("me.melijn.kordkommons:ap:0.0.1")
-    ksp("me.melijn.kordkommons:apkordex:0.0.1")
+    implementation("me.melijn.kordkommons:redgres-kommons:0.0.2")
+
+    val apKord = "me.melijn.kordkommons:ap:0.0.4"
+    val apKordex = "me.melijn.kordkommons:apkordex:0.0.1"
+    implementation(apKord)
+    implementation(apKordex)
+    ksp(apKord)
+    ksp(apKordex)
 
     implementation("io.sentry:sentry:5.2.2")
 

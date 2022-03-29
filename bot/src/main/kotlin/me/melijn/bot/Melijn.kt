@@ -8,6 +8,7 @@ import com.kotlindiscord.kord.extensions.utils.loadModule
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
 import io.sentry.Sentry
+import me.melijn.ap.createtable.CreateTableInterface
 import me.melijn.ap.injector.InjectorInterface
 import me.melijn.apkordex.command.ExtensionInterface
 import me.melijn.bot.database.manager.PrefixManager
@@ -17,7 +18,10 @@ import me.melijn.bot.services.ServiceManager
 import me.melijn.bot.utils.EnumUtil.lcc
 import me.melijn.bot.web.server.RestServer
 import me.melijn.gen.Settings
+import me.melijn.kordkommons.database.ConfigUtil
+import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.logger.logger
+import me.melijn.kordkommons.redis.RedisConfig
 import me.melijn.kordkommons.utils.ReflectUtil
 import org.koin.core.context.GlobalContext.loadKoinModules
 import org.koin.dsl.bind
@@ -68,20 +72,23 @@ object Melijn {
                 beforeKoinSetup {
                     val objectMapper: ObjectMapper = jacksonObjectMapper()
                         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                    val serviceManager = ServiceManager()
+                    val driverManager = initDriverManager(settings)
 
                     loadModule {
                         single { settings } bind Settings::class
                         single { objectMapper } bind ObjectMapper::class
-                        single { serviceManager } bind ServiceManager::class
+                        single { driverManager } bind DriverManager::class
                     }
 
                     val injectorInterface = ReflectUtil.getInstanceOfKspClass<InjectorInterface>(
                         "me.melijn.gen", "InjectionKoinModule"
                     )
-
                     loadKoinModules(injectorInterface.module)
-                    RestServer
+
+                    RestServer // Inits restServer object
+
+                    val serviceManager by inject<ServiceManager>(ServiceManager::class.java)
+                    serviceManager.startAll()
                 }
             }
 
@@ -110,6 +117,18 @@ object Melijn {
             }
         }
         botInstance.start()
+    }
+
+    private fun initDriverManager(settings: Settings): DriverManager {
+        val redisConfig = settings.redis.run { RedisConfig(enabled, host, port, user, pass) }
+        val hikariConfig = settings.database.run {
+            ConfigUtil.generateDefaultHikariConfig(host, port, name, user, pass)
+        }
+
+        val createTableInterface = ReflectUtil.getInstanceOfKspClass<CreateTableInterface>(
+            "me.melijn.gen", "CreateTablesModule"
+        )
+        return DriverManager(hikariConfig, redisConfig) { createTableInterface.createTables() }
     }
 
     private fun fetchPodIdFromHostname(podCount: Int, dynamic: Boolean): Int {

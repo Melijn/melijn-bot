@@ -1,12 +1,14 @@
 package me.melijn.bot.services
 
+import me.melijn.ap.injector.Inject
 import me.melijn.kordkommons.utils.ReflectUtil
 
+@Inject
 class ServiceManager {
 
     private val services: MutableList<Service> = mutableListOf()
 
-    init {
+    fun startAll() {
         ReflectUtil.findAllClassesUsingClassLoader("me.melijn.bot.services")
             .filterNotNull()
             .filter { it.superclass.simpleName == "Service" }
