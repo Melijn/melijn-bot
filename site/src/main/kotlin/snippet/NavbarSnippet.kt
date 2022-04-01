@@ -1,8 +1,13 @@
 package snippet
 
 import database.manager.UserCookieManager
+import database.manager.UserDataManager
 import io.ktor.application.*
+import me.melijn.gen.UserDataData
 import me.melijn.siteannotationprocessors.snippet.Snippet
+import model.Oauth2Token
+import model.PartialDiscordUser
+import model.TokenOwner
 import org.intellij.lang.annotations.Language
 import org.koin.core.component.inject
 import util.CookieUtil
@@ -11,7 +16,8 @@ import util.KtorUtil.getMelijnSession
 @Snippet
 class NavbarSnippet : AbstractSnippet<Any>() {
 
-    val userCookieManager: UserCookieManager by inject()
+    private val userCookieManager: UserCookieManager by inject()
+    private val userDataManager: UserDataManager by inject()
 
     @Language("html")
     override val src = """
@@ -27,11 +33,6 @@ class NavbarSnippet : AbstractSnippet<Any>() {
              </a>
          </div>
          %loginDependent%
-         <div>
-             <a href='/login'>
-                 Login
-             </a>
-         </div>
      </div>
 """.trimIndent()
 
@@ -42,19 +43,28 @@ class NavbarSnippet : AbstractSnippet<Any>() {
     }
 
     private fun getLoginDependent(call: ApplicationCall): String {
-        val valid = call.request.getMelijnSession()?.let { cookie ->
+        val cookieData = call.request.getMelijnSession()?.let { cookie ->
             userCookieManager.getByIndex0(cookie)?.let { userCookieData ->
-                CookieUtil.isValid(userCookieData)
+                val cookieData = userCookieData.takeIf { CookieUtil.isValid(userCookieData) }
+                cookieData?.run {
+                    val userData = userDataManager.getById(userId)
+                        ?: UserDataData(userId, "missing", "0000", null)
+                    TokenOwner(
+                        Oauth2Token(token, tokenType, expiresInSeconds, refreshToken, scope),
+                        PartialDiscordUser(userId, userData.username, userData.discriminator, userData.avatarUrl)
+                    )
+                }
             }
-        } ?: false
-        return if (valid) {
+        }
+        return if (cookieData != null) {
             @Language("html")
             val loggedIn = """
-                 <div>
-                     <a href='/logout'>
-                         Logout
-                     </a>
-                 </div>
+                <div>
+                    <a href='/dashboard'>Dashboard</a>
+                </div>
+                <div>
+                    <a href='/logout'>Logout</a>
+                </div>
             """.trimIndent()
             loggedIn
         } else {

@@ -5,14 +5,18 @@ import io.ktor.response.*
 
 object KtorUtil {
 
-    const val MELIJN_COOKIE_NAME = "jwt"
-    const val MELIJN_COOKIE_MAXAGE = 7L
+    private const val MELIJN_COOKIE_NAME = "jwt"
+    private const val MELIJN_COOKIE_MAXAGE = 604_800L
 
     fun ApplicationRequest.getMelijnSession(): String? {
-        return this.cookies[MELIJN_COOKIE_NAME]
+        return cookies[MELIJN_COOKIE_NAME]
     }
 
     fun ApplicationResponse.setMelijnSession(value: String) {
-        this.cookies.append(MELIJN_COOKIE_NAME, value, maxAge = MELIJN_COOKIE_MAXAGE)
+        cookies.append(MELIJN_COOKIE_NAME, value, maxAge = MELIJN_COOKIE_MAXAGE)
+    }
+
+    fun ApplicationResponse.clearMelijnSession() {
+        cookies.appendExpired(MELIJN_COOKIE_NAME)
     }
 }

@@ -1,36 +1,32 @@
 package resource
 
+import api.discord.DiscordApi
 import database.manager.UserCookieManager
-import httpClient
+import database.manager.UserDataManager
 import io.ktor.application.*
-import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.response.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.serialization.SerializationException
-import me.melijn.gen.Settings
 import me.melijn.gen.UserCookieData
-import me.melijn.kordkommons.logger.Log
+import me.melijn.gen.UserDataData
 import me.melijn.siteannotationprocessors.page.Page
-import model.*
+import model.AbstractPage
+import model.CustomResponseException
+import model.TokenOwner
 import org.intellij.lang.annotations.Language
 import org.koin.core.component.inject
-import util.CookieUtil.generateRandomCookie
+import util.CookieUtil
+import util.KtorUtil.getMelijnSession
 import util.KtorUtil.setMelijnSession
 
 @Page
 class Login : AbstractPage("/callback", ContentType.Text.Html) {
 
-    val settings by inject<Settings>()
-    val userCookieManager by inject<UserCookieManager>()
-    val logger by Log
-
-    @Language("js")
-    val js: String = """
-        console.log(item);
-    """.trimIndent()
+    private val userCookieManager by inject<UserCookieManager>()
+    private val userDataManager by inject<UserDataManager>()
+    private val discordApi by inject<DiscordApi>()
 
     @Language("html")
     override val src: String = """
@@ -44,113 +40,51 @@ class Login : AbstractPage("/callback", ContentType.Text.Html) {
                 <h1>Login Status</h1>
                 <h2 id='login-state'>%login-state%</h2>
             </body>
-            <script>
-            %js%
-            </script>
             {{ footer }}
         </html>
     """.trimIndent()
 
 
     override suspend fun render(call: ApplicationCall): String {
-        val extraJs = StringBuilder()
-        var source = src
+        var response = src
         val code = call.request.queryParameters["code"]
 
-        val filledJs = if (code != null) {
-            val tokenOwner = getOwner(code)
-            val cookie = generateRandomCookie()
+        if (code != null) {
+            val tokenOwner = discordApi.retrieveDiscordTokenOwner(code)
+            val cookie = CookieUtil.generateRandomCookie()
 
-            // val expireDays = tokenOwner.oauthToken.expiresIn / 60 / 60 / 24
             linkCookieToOwner(tokenOwner, cookie)
             call.response.setMelijnSession(cookie)
             call.respondRedirect("/commands", false)
             throw CustomResponseException()
         } else {
-            val cookie = call.request.cookies["jwt", CookieEncoding.RAW]
-            val loginStatus = if (cookie != null && validateCookie(cookie)) {
+            val cookie = call.request.getMelijnSession()
+
+            val loginStatus = if (cookie != null && userCookieManager.isValidCookie(cookie)) {
                 val userData = userCookieManager.getByIndex0(cookie)
 
                 "Logged in :) you are: $userData"
             } else {
-                extraJs.appendLine("document.cookie = '';")
-
-                "Uh oh stinky, your cookie was invalid or expired, please <a href='/login'>login</a> again :)"
+                "You are not logged in currently: <a href='/login'>login</a> :)"
             }
-            source = source.replace("%login-state%", loginStatus)
-            extraJs.toString()
+
+            response = response.replace("%login-state%", loginStatus)
         }
 
-        source = source.replace("%js%", filledJs)
-        return source
+        return response
     }
 
     private fun linkCookieToOwner(tokenOwner: TokenOwner, cookie: String) {
-        userCookieManager.store(
-            UserCookieData(
-                tokenOwner.partialDiscordUser.id,
-                cookie,
-                Clock.System.now().toLocalDateTime(TimeZone.UTC),
-                tokenOwner.oauthToken.accessToken,
-                tokenOwner.oauthToken.tokenType,
-                tokenOwner.oauthToken.expiresIn,
-                tokenOwner.oauthToken.refreshToken,
-                tokenOwner.oauthToken.scope,
-            )
-        )
-    }
-
-
-
-    private suspend fun getOwner(code: String): TokenOwner {
-        val oauth = settings.discordOauth
-        val encodedUrlParams = Parameters.build {
-            append("client_id", oauth.botId)
-            append("client_secret", oauth.botSecret)
-            append("grant_type", "authorization_code")
-            append("code", code)
-            append("redirect_uri", oauth.redirectUrl)
-        }.formUrlEncode()
-
-
-        val tokenResponse = try {
-            httpClient.post<Oauth2Token>("${oauth.discordApiHost}/oauth2/token") {
-                this.body = encodedUrlParams
-                headers {
-                    append("Content-Type", "application/x-www-form-urlencoded")
-                }
-            }
-        } catch (t: SerializationException) {
-            throw FriendlyHttpException(HttpStatusCode.BadRequest, "Your oauth code was probably invalid")
-        }
-
-        val token = tokenResponse.accessToken
-
-        val scope = tokenResponse.scope
-        val required = listOf("identify", "guilds")
-        if (!required.all { scope.contains(it) }) {
-            throw FriendlyHttpException(
-                HttpStatusCode.BadRequest,
-                "Missing one or more of the following discord scopes in the code parameter you supplied." +
-                    "\nRequired scopes: $required"
+        tokenOwner.oauthToken.run {
+            userCookieManager.store(
+                UserCookieData(
+                    tokenOwner.partialDiscordUser.id, cookie, Clock.System.now().toLocalDateTime(TimeZone.UTC),
+                    accessToken, tokenType, expiresIn, refreshToken, scope
+                )
             )
         }
-
-        val user = httpClient.get<PartialDiscordUser>("${oauth.discordApiHost}/users/@me") {
-            headers {
-                append(HttpHeaders.Authorization, "Bearer $token")
-            }
+        tokenOwner.partialDiscordUser.run {
+            userDataManager.store(UserDataData(id, username, discriminator, avatar))
         }
-
-        return TokenOwner(
-            Oauth2Token(token, tokenResponse.tokenType, tokenResponse.expiresIn, tokenResponse.refreshToken, scope),
-            user
-        )
-    }
-
-    private fun validateCookie(cookie: String): Boolean {
-        val userCookie = userCookieManager.getByIndex0(cookie)
-        if (userCookie != null) return true
-        return false
     }
 }

@@ -22,7 +22,7 @@ val logbackVersion = "1.2.11"
 
 val kordKommons = "1.1.1"
 val redgresKommons = "0.0.2"
-val apKord = "0.0.6"
+val apKord = "0.0.7"
 
 dependencies {
     implementation(kotlin("stdlib"))

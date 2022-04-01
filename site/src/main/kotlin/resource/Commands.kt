@@ -51,14 +51,20 @@ class CommandsSnippet : AbstractSnippet<Any>() {
             for (command in commands) {
                 val cmdArr = command.jsonArray
                 val name = cmdArr[0].jsonPrimitive.content
+                    .escapeHTML()
                 val description = cmdArr[1].jsonPrimitive.content
+                    .escapeHTML()
                 val syntax = cmdArr[2].jsonPrimitive.content
+                    .escapeHTML()
                     .replace("%prefix%", ">".escapeHTML())
-                val aliases = cmdArr[3].jsonArray.map { it.jsonPrimitive.content }
+                val aliases = cmdArr[3].jsonArray.map { it.jsonPrimitive.content.escapeHTML() }
                 val argHelp = cmdArr[4].jsonPrimitive.content
+                    .escapeHTML()
                     .replace("`([^`]*)`".toRegex()) { res ->
                         "<code>${res.groups[1]!!.value}</code>"
-                    }
+                    }.replace("\n", "<br>")
+                val requirements = cmdArr[5].jsonArray.map { it.jsonPrimitive.content }
+                val examples = cmdArr[6].jsonArray.map { it.jsonPrimitive.content }
 
                 val entryTitle = name + aliases.joinToString("") { " | $it" }
 
@@ -82,6 +88,14 @@ class CommandsSnippet : AbstractSnippet<Any>() {
                                             <tr>
                                                 <td class='type'>Arghelp</td>
                                                 <td colspan='3'>$argHelp</td>
+                                            </tr>
+                                            <tr>
+                                                <td class='type'>Requirements</td>
+                                                <td colspan='3'>$requirements</td>
+                                            </tr>
+                                            <tr>
+                                                <td class='type'>Examples</td>
+                                                <td colspan='3'>$examples</td>
                                             </tr>
                                         </tbody>
                                     </table> 

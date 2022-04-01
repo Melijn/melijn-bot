@@ -39,8 +39,5 @@ object CookieUtil {
             .compact()
     }
 
-
     private var lastSubId = System.currentTimeMillis()
-
-
 }
