@@ -16,6 +16,5 @@ class HeadSnippet : AbstractSnippet<Any>() {
 """.trimIndent()
 
     override val name: String = "head"
-
 }
 

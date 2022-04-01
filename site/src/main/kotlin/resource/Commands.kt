@@ -1,6 +1,7 @@
 package resource
 
 import httpClient
+import io.ktor.application.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.util.*
@@ -41,7 +42,7 @@ class CommandsSnippet : AbstractSnippet<Any>() {
     override val name: String = "commands"
     override val src: String = ""
 
-    override suspend fun render(prop: Any): String {
+    override suspend fun render(call:ApplicationCall, prop: Any): String {
         val json = httpClient.get<JsonObject>("https://vps2-melijn.bitflow.dev/commands")
         val sb = StringBuilder()
         val extra = json["extra"]

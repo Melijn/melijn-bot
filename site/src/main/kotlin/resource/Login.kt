@@ -2,12 +2,10 @@ package resource
 
 import database.manager.UserCookieManager
 import httpClient
-import io.jsonwebtoken.SignatureAlgorithm
-import io.jsonwebtoken.impl.DefaultJwtBuilder
-import io.jsonwebtoken.security.Keys
 import io.ktor.application.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import io.ktor.response.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -19,7 +17,8 @@ import me.melijn.siteannotationprocessors.page.Page
 import model.*
 import org.intellij.lang.annotations.Language
 import org.koin.core.component.inject
-import kotlin.random.Random
+import util.CookieUtil.generateRandomCookie
+import util.KtorUtil.setMelijnSession
 
 @Page
 class Login : AbstractPage("/callback", ContentType.Text.Html) {
@@ -62,15 +61,16 @@ class Login : AbstractPage("/callback", ContentType.Text.Html) {
             val tokenOwner = getOwner(code)
             val cookie = generateRandomCookie()
 
-            val expireDays = tokenOwner.oauthToken.expiresIn / 60 / 60 / 24
+            // val expireDays = tokenOwner.oauthToken.expiresIn / 60 / 60 / 24
             linkCookieToOwner(tokenOwner, cookie)
-            extraJs.appendLine("setCookie('jwt', '${cookie}', $expireDays)")
-            extraJs.appendLine("window.location.replace('/commands');")
-            extraJs.toString()
+            call.response.setMelijnSession(cookie)
+            call.respondRedirect("/commands", false)
+            throw CustomResponseException()
         } else {
             val cookie = call.request.cookies["jwt", CookieEncoding.RAW]
             val loginStatus = if (cookie != null && validateCookie(cookie)) {
-                val userData = userCookieManager.getByIndex0(cookie).firstOrNull()
+                val userData = userCookieManager.getByIndex0(cookie)
+
                 "Logged in :) you are: $userData"
             } else {
                 extraJs.appendLine("document.cookie = '';")
@@ -100,20 +100,7 @@ class Login : AbstractPage("/callback", ContentType.Text.Html) {
         )
     }
 
-    private fun generateRandomCookie(): String {
-        val key = Keys.hmacShaKeyFor(settings.service.jwtKey.toByteArray())
-        val prevUid = lastSubId++
-        val newUid = (prevUid + 1).toString() + Random.nextLong()
 
-        return DefaultJwtBuilder()
-            .setPayload(newUid)
-            .signWith(key, SignatureAlgorithm.HS256)
-            .compact()
-    }
-
-    companion object {
-        var lastSubId = System.currentTimeMillis()
-    }
 
     private suspend fun getOwner(code: String): TokenOwner {
         val oauth = settings.discordOauth
@@ -162,7 +149,7 @@ class Login : AbstractPage("/callback", ContentType.Text.Html) {
     }
 
     private fun validateCookie(cookie: String): Boolean {
-        val userCookie = userCookieManager.getByIndex0(cookie).firstOrNull()
+        val userCookie = userCookieManager.getByIndex0(cookie)
         if (userCookie != null) return true
         return false
     }
