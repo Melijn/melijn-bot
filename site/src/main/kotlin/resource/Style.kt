@@ -46,11 +46,13 @@ class Style : AbstractPage("/style.css", ContentType.Text.CSS) {
         
         .cmd {
             margin-bottom: 10px;
+            border-bottom: 1px solid grey;
+            border-top: 1px solid grey;
         }
         
         table {
-          border-collapse: collapse;
-          border-spacing: 0;
+            border-collapse: collapse;
+            border-spacing: 0;
         }
         
         td.type {

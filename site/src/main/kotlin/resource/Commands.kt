@@ -7,10 +7,8 @@ import io.ktor.http.*
 import io.ktor.util.*
 import kotlinx.serialization.json.*
 import me.melijn.siteannotationprocessors.page.Page
-import me.melijn.siteannotationprocessors.snippet.Snippet
 import model.AbstractPage
 import org.intellij.lang.annotations.Language
-import snippet.AbstractSnippet
 
 @Page
 class Commands : AbstractPage("/commands", ContentType.Text.Html) {
@@ -25,7 +23,20 @@ class Commands : AbstractPage("/commands", ContentType.Text.Html) {
     {{ navbar }}
     <body>
         <h1>Melijn Commands</h1>
-        <input id='commands-search' type='text' placeholder='Find a command'>
+        <form action='/commands' target='_self' method='get' autocomplete='off'>
+            <fieldset>
+                <legend>Filters</legend>
+                 <label for="category">Category:</label>
+                <select id="category" name="c">
+                    <option value=""></option>
+                    %options%
+                </select> 
+                <br>
+                <label for="commands-search">Command:</label><br>
+                <input id='commands-search' type='text' name='q' placeholder='Find a command' value='%q%'>
+                <input type='submit' value='Filter'><a href='/commands'><button type='button'>Reset</button></a>
+            </fieldset>
+        </form>
         <div class='categories'>
             {{ commands }}
         </div>
@@ -33,16 +44,11 @@ class Commands : AbstractPage("/commands", ContentType.Text.Html) {
     {{ footer }}
 </html>
     """.trimIndent()
-}
 
-@Snippet
-class CommandsSnippet : AbstractSnippet<Any>() {
-
-    override val name: String = "commands"
-    override val src: String = ""
-
-    override suspend fun render(call: ApplicationCall, prop: Any): String {
+    override suspend fun render(call: ApplicationCall): String {
         val json = httpClient.get<JsonObject>("https://vps2-melijn.bitflow.dev/commands")
+        val query = call.request.queryParameters["q"]?.escapeHTML()?.takeIf { it.isNotBlank() }
+        val categoryQuery = call.request.queryParameters["c"]?.escapeHTML()?.takeIf { it.isNotBlank() }
         val sb = StringBuilder()
         val extraObject = json["extra"]?.jsonObject
         val runConditions = extraObject?.get("runconditions")?.jsonArray ?: JsonArray(emptyList())
@@ -55,16 +61,29 @@ class CommandsSnippet : AbstractSnippet<Any>() {
                     runConditionInfoArr[1].jsonPrimitive.content
                 )
             }.toList(),
-            Sequence { perms.iterator() }.map { it.jsonPrimitive.content }.toList()
+            Sequence { perms.iterator() }.map { it.jsonPrimitive.content }.toList(),
+            query,
+            categoryQuery
         )
 
+        val random = System.currentTimeMillis()
+        sb.appendLine("""<div>%count$random% commands</div>""")
+
+        val optionBuilder = StringBuilder()
         for (category in json.keys.filterNot { it == "extra" }) {
             val commands = json[category]!!.jsonArray
             for (command in commands) {
                 addChild("", command, extraInfo, category, sb)
             }
+            optionBuilder.appendLine("<option value='${category}' ${if (category.equals(extraInfo.categoryQuery, true)) "selected='selected'" else ""}>${category.lowercase()}</option>")
         }
-        return sb.toString()
+
+        val commands = sb.toString().replaceFirst("%count$random%", "${extraInfo.counter}")
+
+        return src
+            .replace("{{ commands }}", commands)
+            .replace("%options%", optionBuilder.toString())
+            .replace("%q%", extraInfo.query ?: "")
     }
 
     private fun addChild(
@@ -108,7 +127,7 @@ class CommandsSnippet : AbstractSnippet<Any>() {
             }
             .replace("\n", "<br>")
 
-        val fieldMap = mapOf<String, String>(
+        val fieldMap = mapOf(
             "Description" to description,
             "Syntax" to syntax,
             "Argument Info" to argHelp,
@@ -151,7 +170,16 @@ class CommandsSnippet : AbstractSnippet<Any>() {
             </div>
         """.trimIndent()
 
-        sb.appendLine(value)
+        if (extraInfo.categoryQuery == null || category.equals(extraInfo.categoryQuery, true)) {
+            if (extraInfo.query == null
+                || name.contains(extraInfo.query, true)
+                || aliases.any { it.contains(extraInfo.query, true) }
+                || fieldMap.entries.any { it.value.contains(extraInfo.query, true) }
+            ) {
+                sb.appendLine(value)
+                extraInfo.counter++
+            }
+        }
 
         for (cmd in children) {
             addChild("$name ", cmd, extraInfo, category, sb)
@@ -161,7 +189,10 @@ class CommandsSnippet : AbstractSnippet<Any>() {
 
 data class ExtraInfo(
     val runConditions: List<RunCondition>,
-    val discordPermissions: List<String>
+    val discordPermissions: List<String>,
+    val query: String?,
+    val categoryQuery: String?,
+    var counter: Int = 0
 ) {
     data class RunCondition(
         val name: String,
