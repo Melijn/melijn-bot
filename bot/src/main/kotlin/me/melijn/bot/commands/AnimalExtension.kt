@@ -10,6 +10,7 @@ import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
 import dev.kord.rest.builder.message.create.embed
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.model.AnimalType
+import me.melijn.bot.utils.EnumUtil.ucc
 import me.melijn.bot.utils.MISSING_IMAGE_URL
 import me.melijn.bot.web.api.WebManager
 import org.koin.core.component.inject
@@ -44,7 +45,7 @@ class AnimalExtension : Extension() {
 
     private suspend fun FollowupMessageCreateBuilder.animalEmbed(animal: AnimalType) {
         embed {
-            title = animal.toString()
+            title = animal.ucc()
             color = Color(100, 100, 220)
             image = webManager.animalImageApi.getRandomAnimalImage(animal) ?: MISSING_IMAGE_URL
         }

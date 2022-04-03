@@ -13,9 +13,10 @@ import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.rest.builder.message.create.embed
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.BalanceManager
-import me.melijn.bot.utils.KordExUtils.translate
+import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.gen.UserBalanceData
 import org.koin.core.component.inject
+import org.postgresql.util.GT.tr
 import kotlin.random.Random
 
 @KordExtension
@@ -34,7 +35,7 @@ class EconomyExtension : Extension() {
                 val balance = balanceManager.get(this.user.id).balance
                 respond {
                     embed {
-                        description = translationsProvider.translate("balance.show", balance)
+                        description = tr("balance.show", balance)
                     }
                 }
             }
@@ -53,7 +54,7 @@ class EconomyExtension : Extension() {
                 balanceManager.store(balancePayer)
                 balanceManager.store(balanceReceiver)
                 respond {
-                    content = translationsProvider.translate(
+                    content = tr(
                         "pay.payed",
                         target.mention, amount, balancePayer.balance
                     )
@@ -140,7 +141,7 @@ class EconomyExtension : Extension() {
 
         respond {
             embed {
-                description = translationsProvider.translate("flip.flipped", landed, result, amount, balanceData.balance)
+                description = tr("flip.flipped", landed, result, amount, balanceData.balance)
             }
         }
     }
@@ -161,8 +162,8 @@ class EconomyExtension : Extension() {
                     balanceManager.get(userId)
                 }?.balance ?: 0
 
-                failIf(translations.translate("pay.triedPayingNothing")) { value <= 0 }
-                failIf(translations.translate("pay.triedOverPaying", value, balance)) { value > balance }
+                failIf(tr("pay.triedPayingNothing")) { value <= 0 }
+                failIf(tr("pay.triedOverPaying", value, balance)) { value > balance }
             }
         }
     }
@@ -176,8 +177,8 @@ class EconomyExtension : Extension() {
                     balanceManager.get(userId)
                 }?.balance ?: 0
 
-                failIf(translations.translate("flip.triedBettingNothing")) { value <= 0 }
-                failIf(translations.translate("flip.triedOverBetting", value, balance)) { value > balance }
+                failIf(tr("flip.triedBettingNothing")) { value <= 0 }
+                failIf(tr("flip.triedOverBetting", value, balance)) { value > balance }
             }
         }
         val coinSide = coinSideArg()

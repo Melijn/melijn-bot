@@ -1,12 +1,14 @@
 package me.melijn.bot.utils
 
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext
+import com.kotlindiscord.kord.extensions.commands.CommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.ChoiceEnum
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandContext
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
 import dev.kord.core.event.message.MessageCreateEvent
+import me.melijn.bot.utils.EnumUtil.ucc
 import me.melijn.gen.Settings
 import org.jetbrains.annotations.PropertyKey
 import org.koin.core.component.inject
@@ -50,11 +52,13 @@ object KordExUtils {
         failIf(length > max, "$name length must be **<= $max** characters but was `$length`")
     }
 
-    fun TranslationsProvider.translate(@PropertyKey(resourceBundle = "translations.melijn.strings") key: String, vararg replacements: Any): String =
+    fun TranslationsProvider.tr(@PropertyKey(resourceBundle = "translations.melijn.strings") key: String, vararg replacements: Any): String =
         translate(key, "melijn.strings", replacements.asList().toTypedArray())
+    fun CommandContext.tr(@PropertyKey(resourceBundle = "translations.melijn.strings") key: String, vararg replacements: Any): String =
+        translationsProvider.translate(key, "melijn.strings", replacements.asList().toTypedArray())
 }
 
 interface InferredChoiceEnum : ChoiceEnum {
     override val readableName: String
-        get() = this.toString()
+        get() = this.toString().ucc()
 }

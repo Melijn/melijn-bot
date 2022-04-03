@@ -20,5 +20,6 @@ enum class AnimalType(
     NYAN_CAT(AnimalSource.ImgHoard to "nyancat"),
     PENGUIN(AnimalSource.ImgHoard to "penguin"),
     POSSUM(AnimalSource.ImgHoard to "possum"),
-    SNEK(AnimalSource.ImgHoard to "snek"),
+    SNEK(AnimalSource.ImgHoard to "snake"),
+    YOSHI(AnimalSource.ImgHoard to "yoshi"),
 }
