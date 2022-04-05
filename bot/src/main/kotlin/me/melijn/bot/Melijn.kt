@@ -5,8 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kotlindiscord.kord.extensions.ExtensibleBot
 import com.kotlindiscord.kord.extensions.utils.loadModule
+import dev.kord.core.Kord
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
+import dev.schlaubi.lavakord.LavaKord
+import dev.schlaubi.lavakord.kord.lavakord
 import io.sentry.Sentry
 import me.melijn.ap.createtable.CreateTableInterface
 import me.melijn.ap.injector.InjectorInterface
@@ -32,6 +35,7 @@ import kotlin.system.exitProcess
 object Melijn {
 
     private val logger = logger()
+    lateinit var lavalink: LavaKord
 
     suspend fun susInit() {
         logger.info("Starting Melijn..")
@@ -90,7 +94,14 @@ object Melijn {
                     val serviceManager by inject<ServiceManager>(ServiceManager::class.java)
                     serviceManager.startAll()
                 }
+
+                setup {
+                    val kord by inject<Kord>(Kord::class.java)
+                    lavalink = kord.lavakord()
+                    lavalink.addNode(Settings.lavalink.url, Settings.lavalink.password, "node1")
+                }
             }
+
 
             cache {
                 cachedMessages = 0

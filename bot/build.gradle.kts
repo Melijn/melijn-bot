@@ -66,6 +66,7 @@ dependencies {
     implementation("dev.kord:kord-core:$kord")
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
 
+    implementation("dev.schlaubi.lavakord", "kord", "3.5.1")
 
     implementation("me.melijn.kordkommons:kommons:$kordKommons")
     implementation("me.melijn.kordkommons:redgres-kommons:0.0.2")

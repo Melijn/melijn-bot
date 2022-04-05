@@ -86,4 +86,9 @@ private class Template {
     class Sentry : BotSettings("sentry") {
         val url by string("url")
     }
+
+    class Lavalink : BotSettings("lavalink") {
+        val url by string("url0")
+        val password by string("password0")
+    }
 }
