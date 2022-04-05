@@ -1,8 +1,8 @@
 plugins {
-    kotlin("jvm") version "1.6.10"
-    id("com.google.devtools.ksp") version "1.6.10-1.0.4"
+    kotlin("jvm") version "1.6.20"
+    id("com.google.devtools.ksp") version "1.6.20-1.0.4"
     id("com.github.johnrengelman.shadow") version "7.1.2"
-    kotlin("plugin.serialization") version "1.6.10"
+    kotlin("plugin.serialization") version "1.6.20"
 }
 
 version = "1.0"
