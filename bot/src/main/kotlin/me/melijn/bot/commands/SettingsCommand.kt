@@ -13,8 +13,8 @@ import dev.kord.common.entity.Permission
 import dev.kord.rest.builder.message.create.embed
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.PrefixManager
-import me.melijn.bot.utils.KordExUtils.intRange
-import me.melijn.bot.utils.KordExUtils.stringLength
+import me.melijn.bot.utils.KordExUtils.inRange
+import me.melijn.bot.utils.KordExUtils.lengthBetween
 import me.melijn.gen.PrefixesData
 import org.koin.core.component.inject
 
@@ -99,7 +99,7 @@ class SettingsCommand : Extension() {
                 failIf(index == null && value == null, "You must supply a prefix or index")
 
                 value ?: return@validate
-                stringLength(name, 1, 32)
+                lengthBetween(name, 1, 32)
                 val prefixes = prefixManager.getPrefixes(context.getGuild()!!.id)
                 val prefixNotExists = prefixes.none { it.prefix == value }
                 failIf(prefixNotExists, "$value is a non existent prefix")
@@ -111,7 +111,7 @@ class SettingsCommand : Extension() {
             validate {
                 value ?: return@validate
                 val prefixesAmount = prefixManager.getPrefixes(context.getGuild()!!.id).size
-                intRange(name, 0, prefixesAmount - 1)
+                inRange(name, 0, prefixesAmount - 1)
             }
         }
     }
@@ -121,7 +121,7 @@ class SettingsCommand : Extension() {
             name = "prefix"
             description = "a prefix for the bot"
             validate {
-                stringLength(name, 1, 32)
+                lengthBetween(name, 1, 32)
             }
         }
     }

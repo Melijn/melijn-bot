@@ -31,6 +31,7 @@ import org.koin.dsl.bind
 import org.koin.java.KoinJavaComponent.inject
 import java.net.InetAddress
 import kotlin.system.exitProcess
+import kotlin.time.Duration.Companion.seconds
 
 object Melijn {
 
@@ -97,7 +98,12 @@ object Melijn {
 
                 setup {
                     val kord by inject<Kord>(Kord::class.java)
-                    lavalink = kord.lavakord()
+                    lavalink = kord.lavakord {
+                        link {
+                            autoReconnect = true
+                            retry = linear(1.seconds, 60.seconds, Int.MAX_VALUE)
+                        }
+                    }
                     lavalink.addNode(Settings.lavalink.url, Settings.lavalink.password, "node1")
                 }
             }

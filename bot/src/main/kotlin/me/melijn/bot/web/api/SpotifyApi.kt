@@ -2,7 +2,6 @@ package me.melijn.bot.web.api
 
 import com.neovisionaries.i18n.CountryCode
 import kotlinx.coroutines.future.await
-import me.melijn.bot.model.TrackSource
 import me.melijn.bot.music.Track
 import me.melijn.gen.Settings
 import se.michaelthelin.spotify.SpotifyApi
@@ -71,8 +70,9 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
     }
 
     private fun se.michaelthelin.spotify.model_objects.specification.Track.toTrack(): Track {
-        return Track(name, artists.contentDeepToString(), uri, id, false, null, durationMs.toLong(),
-            TrackSource.Spotify)
+        throw Exception("")
+//        return Track(name, artists.contentDeepToString(), uri, id, false, null, durationMs.toLong(),
+//            TrackSource.Spotify)
     }
 
     private suspend fun acceptArtistResults(match: MatchResult): List<Track> {
@@ -115,8 +115,9 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
     }
 
     private fun TrackSimplified.toTrack(): Track {
-        return Track(name, artists.contentDeepToString(), uri, id, false, null, durationMs.toLong(),
-                TrackSource.Spotify)
+        throw Exception()
+//        return Track(name, artists.contentDeepToString(), uri, id, false, null, durationMs.toLong(),
+//                TrackSource.Spotify)
     }
 
     private suspend fun acceptAlbumResults(match: MatchResult): List<Track> {

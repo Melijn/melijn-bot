@@ -6,5 +6,15 @@ enum class TrackSource {
     Twitch,
     Spotify,
     Http,
-    Unknown
+    Unknown;
+
+    companion object {
+        fun bestMatch(value: String): TrackSource {
+            val match = values().firstOrNull {
+                it.toString().equals(value, true) ||
+                    value.contains(it.toString(), true)
+            }
+            return match ?: Unknown
+        }
+    }
 }

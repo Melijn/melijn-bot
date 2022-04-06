@@ -60,7 +60,7 @@ val scrimage = "4.0.22"
 
 val kord = "0.8.0-M12"
 val kordEx = "1.5.2-SNAPSHOT"
-val kordKommons = "1.1.0"
+val kordKommons = "1.1.3"
 
 dependencies {
     implementation("dev.kord:kord-core:$kord")
