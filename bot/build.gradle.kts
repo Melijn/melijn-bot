@@ -61,6 +61,7 @@ val scrimage = "4.0.22"
 val kord = "0.8.0-M12"
 val kordEx = "1.5.2-SNAPSHOT"
 val kordKommons = "1.1.3"
+val redgresKommons = "0.0.3"
 
 dependencies {
     implementation("dev.kord:kord-core:$kord")
@@ -69,7 +70,7 @@ dependencies {
     implementation("dev.schlaubi.lavakord", "kord", "3.5.1")
 
     implementation("me.melijn.kordkommons:kommons:$kordKommons")
-    implementation("me.melijn.kordkommons:redgres-kommons:0.0.2")
+    implementation("me.melijn.kordkommons:redgres-kommons:$redgresKommons")
 
     val apKord = "me.melijn.kordkommons:ap:0.0.4"
     val apKordex = "me.melijn.kordkommons:apkordex:0.0.1"

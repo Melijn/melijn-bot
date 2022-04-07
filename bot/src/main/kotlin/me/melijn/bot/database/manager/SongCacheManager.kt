@@ -24,7 +24,8 @@ class SongCacheManager(private val driverManager: DriverManager) {
             "melijn:songcache:${input}",
             Json.encodeToString(fetchedTracks),
             time,
-            TimeUnit.MINUTES
+            TimeUnit.MINUTES,
+            compress = true
         )
     }
 
@@ -32,7 +33,10 @@ class SongCacheManager(private val driverManager: DriverManager) {
      * can be empty if no tracks are cached
      */
     suspend fun getFetched(input: String): List<FetchedTrack> {
-        return driverManager.getCacheEntry("melijn:songcache:${input}", 10)?.run {
+        return driverManager.getCacheEntry(
+            "melijn:songcache:${input}", 10,
+            compress = true
+        )?.run {
             Json.decodeFromString<List<FetchedTrack>>(this)
         } ?: emptyList()
     }
@@ -43,7 +47,7 @@ class SongCacheManager(private val driverManager: DriverManager) {
             "melijn:songcache:spotify:${input}",
             objectMapper.writeValueAsString(tracks),
             time,
-            TimeUnit.MINUTES
+            compress = true
         )
     }
 
@@ -51,7 +55,7 @@ class SongCacheManager(private val driverManager: DriverManager) {
      * can be empty if no tracks are cached
      */
     suspend fun getSpotify(input: String): List<Track> {
-        return driverManager.getCacheEntry("melijn:songcache:spotify:${input}", 10)?.run {
+        return driverManager.getCacheEntry("melijn:songcache:spotify:${input}", 10, compress = true)?.run {
             objectMapper.readValue<List<Track>>(this)
         } ?: emptyList()
     }
@@ -62,7 +66,7 @@ class SongCacheManager(private val driverManager: DriverManager) {
             "melijn:songcache:spotifysimplified:${input}",
             objectMapper.writeValueAsString(tracks),
             time,
-            TimeUnit.MINUTES
+            compress = true
         )
     }
 
@@ -70,7 +74,7 @@ class SongCacheManager(private val driverManager: DriverManager) {
      * can be empty if no tracks are cached
      */
     suspend fun getSpotifySimplified(input: String): List<TrackSimplified> {
-        return driverManager.getCacheEntry("melijn:songcache:spotifysimplified:${input}", 10)?.run {
+        return driverManager.getCacheEntry("melijn:songcache:spotifysimplified:${input}", 10, compress = true)?.run {
             objectMapper.readValue<List<TrackSimplified>>(this)
         } ?: emptyList()
     }
