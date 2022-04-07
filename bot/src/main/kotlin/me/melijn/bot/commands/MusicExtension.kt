@@ -31,16 +31,18 @@ import me.melijn.bot.utils.KordExUtils.atLeast
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.TimeUtil.formatElapsed
+import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.utils.StringUtils
+import org.koin.core.component.inject
 import org.springframework.boot.ansi.AnsiColor
 import kotlin.math.roundToInt
 import kotlin.time.Duration
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
 @KordExtension
 class MusicExtension : Extension() {
+
     override val name: String = "music"
+    val webManager by inject<WebManager>()
 
     override suspend fun setup() {
         publicSlashCommand {
@@ -125,13 +127,15 @@ class MusicExtension : Extension() {
                 val player = trackManager.player
                 val skipped = trackManager.playingTrack ?: return@action
 
-                val skippedPart = tr("skip.manyTracks", amount, skipped.url, skipped.title,
-                    player.positionDuration.formatElapsed(), skipped.length.formatElapsed())
+                val skippedPart = tr(
+                    "skip.manyTracks", amount, skipped.url, skipped.title,
+                    player.positionDuration.formatElapsed(), skipped.length.formatElapsed()
+                )
 
                 trackManager.skip(amount, type)
 
                 val next = trackManager.playingTrack
-                val nextPart = if (next == null){
+                val nextPart = if (next == null) {
                     tr("skip.noNextTrack")
                 } else {
                     tr("skip.nextTrack", next.url, next.title, next.length.formatElapsed())
@@ -178,7 +182,6 @@ class MusicExtension : Extension() {
 
                 val bar = "${blue}${"━".repeat(progress)}${green}${"━".repeat(count - progress)}${reset}"
                 val status = if (player.paused) "paused" else "playing"
-
 
                 respond {
                     embed {
@@ -241,59 +244,67 @@ class MusicExtension : Extension() {
 
                 val query = arguments.song.parsed
                 val queuePosition = arguments.queuePosition.parsed ?: QueuePosition.BOTTOM
-                val search = if (query.startsWith("http://") || query.startsWith("https://")) {
-                    query
-                } else {
-                    "ytsearch:$query"
-                }
 
                 if (tryJoinUser(link)) return@action
 
-                val item = link.loadItem(search)
+                val spotifyApi = webManager.spotifyApi
+                val isHttpQuery = query.startsWith("http://") || query.startsWith("https://")
+                val requester = PartialUser.fromKordUser(user)
+                val tracks = if (isHttpQuery && (query.contains("open.spotify.com") && spotifyApi != null)) {
+                    spotifyApi.getTracksFromSpotifyUrl(query, requester)
+                } else {
+                    val search = if (isHttpQuery) query else "ytsearch:$query"
+                    val item = link.loadItem(search)
+
+                    (when (item.loadType) {
+                        TrackResponse.LoadType.TRACK_LOADED -> listOf(item.tracks.first())
+                        TrackResponse.LoadType.PLAYLIST_LOADED -> item.tracks
+                        TrackResponse.LoadType.SEARCH_RESULT -> listOf(item.tracks.first())
+                        else -> emptyList()
+                    }).map {
+                        val lavakordTrack = it.toTrack()
+                        FetchedTrack.fromLavakordTrackWithData(
+                            lavakordTrack,
+                            TrackData.fromNow(requester, it.info.identifier)
+                        )
+                    }
+                }
                 val oldQueueSize = trackManager.queue.size
 
-                for (lavaKordTrack in item.tracks) {
-                    val trackData = TrackData.fromNow(PartialUser.fromKordUser(user), lavaKordTrack.info.identifier)
-                    val track = FetchedTrack.fromLavakordTrackWithData(lavaKordTrack.toTrack(), trackData)
+                for (track in tracks) {
                     trackManager.queue(track, queuePosition)
                 }
 
-                when (item.loadType) {
-                    TrackResponse.LoadType.TRACK_LOADED, TrackResponse.LoadType.SEARCH_RESULT -> {
-                        val lavaKordTrack = item.track
+                when {
+                    tracks.size == 1 -> {
+                        val track = tracks.first()
                         respond {
                             embed {
                                 title = tr("play.title", user.tag)
                                 description = tr(
                                     "play.description",
-                                    lavaKordTrack.info.uri,
-                                    lavaKordTrack.info.title,
-                                    lavaKordTrack.info.length.toDuration(
-                                        DurationUnit.MILLISECONDS
-                                    ).formatElapsed()
+                                    track.url,
+                                    track.title,
+                                    track.length.formatElapsed()
                                 )
                             }
                         }
                     }
-                    TrackResponse.LoadType.PLAYLIST_LOADED -> {
+                    tracks.size > 1 -> {
                         respond {
                             embed {
                                 title = tr("play.manyAddedTitle", user.tag)
                                 description = tr(
                                     "play.manyAddedDescription",
-                                    item.tracks.size,
+                                    tracks.size,
                                     oldQueueSize,
                                     trackManager.queue.size
                                 )
                             }
                         }
                     }
-                    TrackResponse.LoadType.NO_MATCHES -> respond { content = "no matches" }
-                    TrackResponse.LoadType.LOAD_FAILED -> respond { content = "Error: ${item.exception?.message}" }
-                    else -> {}
+                    else -> respond { content = "No matches!" }
                 }
-
-
             }
         }
 

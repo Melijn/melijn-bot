@@ -1,10 +1,12 @@
 package me.melijn.bot.music
 
+import me.melijn.bot.Melijn
 import me.melijn.bot.model.TrackSource
+import org.koin.java.KoinJavaComponent.inject
 import kotlin.time.Duration
 
+@kotlinx.serialization.Serializable
 class SpotifyTrack(
-    override val track: String,
     override val title: String,
     override val author: String?,
 
@@ -14,15 +16,19 @@ class SpotifyTrack(
     override val isStream: Boolean,
 
     override val data: TrackData,
-    override val length: Duration,
+    @kotlinx.serialization.Serializable(with = DurationSerializer::class)
+    override val length: Duration
+) : Track() {
 
     override val trackInfoVersion: Byte = 2
-) : Track(title, author, url, identifier, isStream, data, length, TrackSource.Spotify, trackInfoVersion) {
+    override val sourceType: TrackSource = TrackSource.Spotify
+    override val track: String? = null
 
-    override fun getLavakordTrack(): dev.schlaubi.lavakord.audio.player.Track {
-        return dev.schlaubi.lavakord.audio.player.Track(
-            trackInfoVersion, track, title, author ?: "", length, identifier ?: "", isStream, !isStream,
-            url, sourceType.toString().lowercase(), Duration.ZERO
-        )
+    private val trackLoader: TrackLoader by inject(TrackLoader::class.java)
+
+    override suspend fun getLavakordTrack(): dev.schlaubi.lavakord.audio.player.Track? {
+        val tracks = trackLoader.search(Melijn.lavalink.nodes.first(), "$title $author", data.requester)
+        val fetched = tracks.firstOrNull() ?: return null
+        return fetched.getLavakordTrack()
     }
 }

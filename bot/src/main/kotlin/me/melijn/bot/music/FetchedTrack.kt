@@ -3,6 +3,7 @@ package me.melijn.bot.music
 import me.melijn.bot.model.TrackSource
 import kotlin.time.Duration
 
+@kotlinx.serialization.Serializable
 class FetchedTrack(
     override val track: String,
     override var title: String,
@@ -13,13 +14,14 @@ class FetchedTrack(
     override var isStream: Boolean,
 
     override var data: TrackData,
+    @kotlinx.serialization.Serializable(with = DurationSerializer::class)
     override var length: Duration,
 
     override var sourceType: TrackSource,
     override var trackInfoVersion: Byte = 2
-) : Track(title, author, url, identifier, isStream, data, length, sourceType, trackInfoVersion) {
+) : Track() {
 
-    override fun getLavakordTrack(): dev.schlaubi.lavakord.audio.player.Track {
+    override suspend fun getLavakordTrack(): dev.schlaubi.lavakord.audio.player.Track {
         return dev.schlaubi.lavakord.audio.player.Track(
             trackInfoVersion, track, title, author ?: "", length, identifier ?: "", isStream, !isStream,
             url, sourceType.toString().lowercase(), Duration.ZERO

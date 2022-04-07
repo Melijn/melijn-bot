@@ -7,6 +7,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.melijn.kordkommons.async.SafeList
 import me.melijn.kordkommons.async.Task
+import me.melijn.kordkommons.logger.logger
 import kotlin.random.Random
 
 class TrackManager(val link: Link) {
@@ -30,7 +31,7 @@ class TrackManager(val link: Link) {
             nextTrack(event.track)
     }
 
-    private suspend fun nextTrack(previousTrack: dev.schlaubi.lavakord.audio.player.Track) {
+    private suspend fun nextTrack(previousTrack: dev.schlaubi.lavakord.audio.player.Track?) {
         val lastData = playingTrack?.data
         if (queue.isEmpty()) {
             if (loopedQueue || looped) {
@@ -53,15 +54,24 @@ class TrackManager(val link: Link) {
         val track = queue.removeAtOrNull(0) ?: return
         play(track)
 
-        if (loopedQueue) {
+        if (loopedQueue && previousTrack != null) {
             queue(FetchedTrack.fromLavakordTrackWithData(previousTrack, lastData!!), QueuePosition.BOTTOM)
         }
     }
 
+    private val logger = logger()
     suspend fun play(track: Track) {
-        mutex.withLock {
-            player.playTrack(track.getLavakordTrack())
-            playingTrack = track
+        val foundTrack = track.getLavakordTrack()
+        if (foundTrack == null) {
+            // TODO: send track fetch error in music channel
+            logger.warn { "Failed to fetch ${track.url}" }
+            nextTrack(track.getLavakordTrack())
+        } else {
+            val fetched = FetchedTrack.fromLavakordTrackWithData(foundTrack, track.data!!)
+            mutex.withLock {
+                player.playTrack(foundTrack)
+                playingTrack = fetched
+            }
         }
     }
 
@@ -102,9 +112,16 @@ class TrackManager(val link: Link) {
         } ?: stopAndDestroy()
     }
 
+    private suspend fun stop() {
+        mutex.withLock {
+            player.stopTrack()
+            playingTrack = null
+        }
+    }
+
     private suspend fun stopAndDestroy() {
         queue.clear()
-        player.stopTrack()
+        stop()
 
         Task {
             link.destroy()
