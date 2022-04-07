@@ -13,9 +13,11 @@ import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.common.DiscordTimestampStyle
 import dev.kord.common.toMessageFormat
+import dev.kord.core.behavior.interaction.followup.edit
 import dev.kord.core.entity.User
 import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
 import dev.kord.rest.builder.message.create.embed
+import dev.kord.rest.builder.message.modify.embed
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordUtil.effectiveAvatarUrl
@@ -93,6 +95,38 @@ class UtilityExtension : Extension() {
                             value = tr("info.versionsFieldValue", System.getProperty("java.version"),
                                 "${KotlinVersion.CURRENT.major}.${KotlinVersion.CURRENT.minor}.${KotlinVersion.CURRENT.patch}")
                         }
+                    }
+                }
+            }
+        }
+        publicSlashCommand {
+            name = "ping"
+            description = "bot latency"
+            val kord = kord
+            action {
+                val timeStamp1 = System.currentTimeMillis()
+                val msg = respond {
+                    embed {
+                        title = tr("ping.title")
+                        description = tr("ping.gatewayPing", kord.gateway.averagePing?.inWholeMilliseconds ?: 0)
+                    }
+                }
+                val timeStamp2 = System.currentTimeMillis()
+                val sendMessagePing = timeStamp2 - timeStamp1
+                val edited = msg.edit {
+                    embed {
+                        title = tr("ping.title")
+                        description = msg.message.embeds.first().description + "\n" +
+                                tr("ping.sendMessagePing", sendMessagePing)
+                    }
+                }
+                val timeStamp3 = System.currentTimeMillis()
+                val editMessagePing = timeStamp3 - timeStamp2
+                msg.edit {
+                    embed {
+                        title = tr("ping.title")
+                        description = edited.message.embeds.first().description + "\n" +
+                                tr("ping.editMessagePing", editMessagePing)
                     }
                 }
             }
