@@ -3,6 +3,7 @@ package me.melijn.bot.music
 import me.melijn.bot.Melijn
 import me.melijn.bot.model.TrackSource
 import org.koin.java.KoinJavaComponent.inject
+import java.lang.StrictMath.abs
 import kotlin.time.Duration
 
 @kotlinx.serialization.Serializable
@@ -28,7 +29,9 @@ class SpotifyTrack(
 
     override suspend fun getLavakordTrack(): dev.schlaubi.lavakord.audio.player.Track? {
         val tracks = trackLoader.search(Melijn.lavalink.nodes.first(), "$title $author", data.requester)
-        val fetched = tracks.firstOrNull() ?: return null
+        val fetched = tracks.withIndex().minByOrNull {
+            (it.index * 5_000) + abs(it.value.length.inWholeMilliseconds - length.inWholeMilliseconds)
+        }?.value ?: return null
         return fetched.getLavakordTrack()
     }
 }

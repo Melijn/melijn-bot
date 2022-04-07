@@ -1,13 +1,17 @@
 package me.melijn.bot.music
 
+import dev.kord.core.entity.User
 import dev.schlaubi.lavakord.audio.Link
 import dev.schlaubi.lavakord.audio.TrackEndEvent
 import dev.schlaubi.lavakord.audio.on
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import me.melijn.bot.commands.playFromTarget
+import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.async.SafeList
 import me.melijn.kordkommons.async.Task
 import me.melijn.kordkommons.logger.logger
+import org.koin.java.KoinJavaComponent.inject
 import kotlin.random.Random
 
 class TrackManager(val link: Link) {
@@ -36,6 +40,13 @@ class TrackManager(val link: Link) {
         if (queue.isEmpty()) {
             if (loopedQueue || looped) {
                 play(playingTrack!!)
+                return
+            }
+
+            val target1 = target
+            if (target1 != null) {
+                val webManager by inject<WebManager>(WebManager::class.java)
+                webManager.spotifyApi?.let { playFromTarget(it, target1) }
                 return
             }
 
@@ -107,9 +118,13 @@ class TrackManager(val link: Link) {
             queue.addAll(toQueue)
         }
 
-        queue.removeFirstAndGetNextOrNull(nextPos)?.let { next ->
+        val hasNext = queue.removeFirstAndGetNextOrNull(nextPos)?.let { next ->
             play(next)
-        } ?: stopAndDestroy()
+        } != null
+        if (!hasNext) {
+            if (target == null) stopAndDestroy()
+            else nextTrack(playingTrack?.getLavakordTrack())
+        }
     }
 
     private suspend fun stop() {
@@ -126,5 +141,11 @@ class TrackManager(val link: Link) {
         Task {
             link.destroy()
         }.run()
+    }
+
+    var target: User? = null
+
+    fun follow(user: User?) {
+        target = user
     }
 }

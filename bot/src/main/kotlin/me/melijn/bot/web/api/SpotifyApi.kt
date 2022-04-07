@@ -40,6 +40,21 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
         private val spotifyAlbumUri = Regex("spotify:album:(\\w+)")
         private val spotifyArtistUrl = Regex("https://open\\.spotify\\.com/artist/(\\w+)(?:\\?\\S+)?")
         private val spotifyArtistUri = Regex("spotify:artist:(\\w+)")
+
+        fun se.michaelthelin.spotify.model_objects.specification.Track.toTrack(requester: PartialUser): Track {
+            val trackData = TrackData.fromNow(requester, null)
+            return SpotifyTrack(
+                name, artists.joinToString(", ") { it.name }, uri, id, false, trackData,
+                Duration.ofMillis(durationMs.toLong()).toKotlinDuration()
+            )
+        }
+        fun TrackSimplified.toTrack(requester: PartialUser): Track {
+            val trackData = TrackData.fromNow(requester, null)
+            return SpotifyTrack(
+                name, artists.joinToString(", ") { it.name }, uri, id, false, trackData,
+                Duration.ofMillis(durationMs.toLong()).toKotlinDuration()
+            )
+        }
     }
 
     suspend fun getTracksFromSpotifyUrl(
@@ -78,14 +93,6 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
         val trackId = track.groupValues[1]
 
         return getTrackById(trackId).toTrack(requester)
-    }
-
-    private fun se.michaelthelin.spotify.model_objects.specification.Track.toTrack(requester: PartialUser): Track {
-        val trackData = TrackData.fromNow(requester, null)
-        return SpotifyTrack(
-            name, artists.joinToString(", ") { it.name }, uri, id, false, trackData,
-            Duration.ofMillis(durationMs.toLong()).toKotlinDuration()
-        )
     }
 
     private suspend fun acceptArtistResults(match: MatchResult, requester: PartialUser): List<Track> {
@@ -136,13 +143,7 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
             .toList()
     }
 
-    private fun TrackSimplified.toTrack(requester: PartialUser): Track {
-        val trackData = TrackData.fromNow(requester, null)
-        return SpotifyTrack(
-            name, artists.joinToString(", ") { it.name }, uri, id, false, trackData,
-            Duration.ofMillis(durationMs.toLong()).toKotlinDuration()
-        )
-    }
+
 
     private suspend fun acceptAlbumResults(match: MatchResult, trackData: PartialUser): List<Track> {
         val id = match.groupValues[1]

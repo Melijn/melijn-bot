@@ -14,21 +14,19 @@ class TrackLoader : KoinComponent {
 
     private val songCacheManager by inject<SongCacheManager>()
 
-    suspend fun search(restNode: RestNode, input: String, requester: PartialUser): List<FetchedTrack> {
+    suspend fun search(restNode: RestNode, input: String, requester: PartialUser, ): List<FetchedTrack> {
         val cached = songCacheManager.getFetched(input)
         if (cached.isNotEmpty()) return cached
         val item = restNode.loadItem("ytsearch:$input")
 
         val tracks = when (item.loadType) {
-            TrackResponse.LoadType.SEARCH_RESULT, TrackResponse.LoadType.TRACK_LOADED -> {
-                val track = item.tracks.first().toTrack()
-                val trackData = TrackData.fromNow(requester, track.identifier)
-                listOf(FetchedTrack.fromLavakordTrackWithData(track, trackData))
-            }
+            TrackResponse.LoadType.SEARCH_RESULT,
+            TrackResponse.LoadType.TRACK_LOADED,
             TrackResponse.LoadType.PLAYLIST_LOADED -> {
                 item.tracks.map {
-                    val track = it.toTrack()
-                    FetchedTrack.fromLavakordTrackWithData(track, TrackData.fromNow(requester, track.identifier))
+                    val fullTrack = it.toTrack()
+                    val trackData = TrackData.fromNow(requester, fullTrack.identifier)
+                    FetchedTrack.fromLavakordTrackWithData(fullTrack, trackData)
                 }
             }
             TrackResponse.LoadType.NO_MATCHES, TrackResponse.LoadType.LOAD_FAILED -> {

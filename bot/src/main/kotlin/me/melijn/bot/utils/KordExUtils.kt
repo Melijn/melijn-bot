@@ -12,6 +12,7 @@ import com.kotlindiscord.kord.extensions.commands.converters.builders.Validation
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
+import dev.kord.core.event.interaction.ChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import me.melijn.bot.utils.EnumUtil.ucc
 import me.melijn.gen.Settings
@@ -25,6 +26,16 @@ object KordExUtils {
         failIfNot("bot owner command") {
             botSettings.bot.ownerIds.split(",").any {
                 it.trim() == this.event.message.author?.id?.value.toString()
+            }
+        }
+    }
+
+    @JvmName("userIsOwnerChatInputCommandInteractionCreateEvent")
+    suspend fun CheckContext<ChatInputCommandInteractionCreateEvent>.userIsOwner() {
+        val botSettings by inject<Settings>()
+        failIfNot("bot owner command") {
+            botSettings.bot.ownerIds.split(",").any {
+                it.trim() == this.event.interaction.user.id.value.toString()
             }
         }
     }
