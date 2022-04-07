@@ -5,9 +5,9 @@ plugins {
     id("application")
     id("com.apollographql.apollo") version "2.5.11"
     id("com.github.johnrengelman.shadow") version "7.1.2"
-    kotlin("jvm") version "1.6.10"
-    id("com.google.devtools.ksp") version "1.6.10-1.0.4"
-    kotlin("plugin.serialization") version "1.6.10"
+    kotlin("jvm") version "1.6.20"
+    id("com.google.devtools.ksp") version "1.6.20-1.0.4"
+    kotlin("plugin.serialization") version "1.6.20"
 }
 
 application.mainClass.set("me.melijn.bot.MelijnKt")
@@ -55,7 +55,7 @@ val jackson = "2.13.2" // https://mvnrepository.com/artifact/com.fasterxml.jacks
 val ktor = "1.6.8"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 val apollo = "2.5.11" // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
 val kotlinX = "1.6.0" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
-val kotlin = "1.6.10"
+val kotlin = "1.6.20"
 val scrimage = "4.0.22"
 
 val kord = "0.8.0-M12"
