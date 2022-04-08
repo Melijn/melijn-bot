@@ -107,7 +107,7 @@ class MusicExtension : Extension() {
                 val toRemove = mutableListOf<Track>()
                 for (range in from.list)
                     for (i in range) {
-                        val element = trackManager.queue.get(i)
+                        val element = trackManager.queue.get(i - 1)
                         if (!toRemove.contains(element))
                             toRemove.add(element)
                     }
@@ -454,7 +454,8 @@ class MusicExtension : Extension() {
                             embed {
                                 title = tr("play.title", user.tag)
                                 description = tr(
-                                    "play.description",
+                                    "play.addedOne",
+                                    trackManager.queue.size,
                                     track.url,
                                     track.title,
                                     track.length.formatElapsed()
