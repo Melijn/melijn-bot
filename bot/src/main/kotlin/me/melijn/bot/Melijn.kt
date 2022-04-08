@@ -19,6 +19,7 @@ import me.melijn.bot.model.Environment
 import me.melijn.bot.model.PodInfo
 import me.melijn.bot.services.ServiceManager
 import me.melijn.bot.utils.EnumUtil.lcc
+import me.melijn.bot.utils.RealLinearRetry
 import me.melijn.bot.web.server.RestServer
 import me.melijn.gen.Settings
 import me.melijn.kordkommons.database.ConfigUtil
@@ -101,10 +102,11 @@ object Melijn {
                     lavalink = kord.lavakord {
                         link {
                             autoReconnect = true
-                            retry = linear(1.seconds, 60.seconds, Int.MAX_VALUE)
+                            retry = RealLinearRetry(1.seconds, 60.seconds, Int.MAX_VALUE)
                         }
                     }
-                    lavalink.addNode(Settings.lavalink.url, Settings.lavalink.password, "node1")
+                    for (i in 0 until Settings.lavalink.url.size)
+                        lavalink.addNode(Settings.lavalink.url[i], Settings.lavalink.password[i], "node$i")
                 }
             }
 

@@ -35,6 +35,7 @@ configure<ApolloExtension> {
 
 repositories {
     mavenCentral()
+    mavenLocal()
     maven("https://oss.sonatype.org/content/repositories/snapshots")
 
     maven("https://maven.kotlindiscord.com/repository/maven-snapshots/")
@@ -60,7 +61,7 @@ val scrimage = "4.0.22"
 
 val kord = "0.8.0-M12"
 val kordEx = "1.5.2-SNAPSHOT"
-val kordKommons = "1.1.3"
+val kordKommons = "1.1.4"
 val redgresKommons = "0.0.3"
 
 dependencies {

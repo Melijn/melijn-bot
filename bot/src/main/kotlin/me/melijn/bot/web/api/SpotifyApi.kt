@@ -41,17 +41,20 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
         private val spotifyArtistUrl = Regex("https://open\\.spotify\\.com/artist/(\\w+)(?:\\?\\S+)?")
         private val spotifyArtistUri = Regex("spotify:artist:(\\w+)")
 
+        private fun getUrl(id: String) = "https://open.spotify.com/track/$id"
+
         fun se.michaelthelin.spotify.model_objects.specification.Track.toTrack(requester: PartialUser): Track {
             val trackData = TrackData.fromNow(requester, null)
             return SpotifyTrack(
-                name, artists.joinToString(", ") { it.name }, uri, id, false, trackData,
+                name, artists.joinToString(", ") { it.name }, getUrl(id), id, false, trackData,
                 Duration.ofMillis(durationMs.toLong()).toKotlinDuration()
             )
         }
+
         fun TrackSimplified.toTrack(requester: PartialUser): Track {
             val trackData = TrackData.fromNow(requester, null)
             return SpotifyTrack(
-                name, artists.joinToString(", ") { it.name }, uri, id, false, trackData,
+                name, artists.joinToString(", ") { it.name }, getUrl(id), id, false, trackData,
                 Duration.ofMillis(durationMs.toLong()).toKotlinDuration()
             )
         }

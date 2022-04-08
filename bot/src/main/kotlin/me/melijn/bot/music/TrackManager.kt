@@ -1,12 +1,16 @@
 package me.melijn.bot.music
 
+import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.User
 import dev.schlaubi.lavakord.audio.Link
 import dev.schlaubi.lavakord.audio.TrackEndEvent
 import dev.schlaubi.lavakord.audio.on
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import me.melijn.bot.commands.playFromTarget
+import me.melijn.bot.commands.SpotifyCommand
+import me.melijn.bot.model.PartialUser
+import me.melijn.bot.web.api.MySpotifyApi
+import me.melijn.bot.web.api.MySpotifyApi.Companion.toTrack
 import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.async.SafeList
 import me.melijn.kordkommons.async.Task
@@ -134,7 +138,7 @@ class TrackManager(val link: Link) {
         }
     }
 
-    private suspend fun stopAndDestroy() {
+    suspend fun stopAndDestroy() {
         clear()
         stop()
 
@@ -155,5 +159,10 @@ class TrackManager(val link: Link) {
 
     suspend fun seek(position: Long) {
         player.seekTo(position)
+    }
+
+    suspend fun playFromTarget(spotifyApi: MySpotifyApi, user: User) {
+        val track = SpotifyCommand.getSpotifyTrackFromUser(Snowflake(link.guildId), user, spotifyApi) ?: return
+        play(track.toTrack(PartialUser.fromKordUser(user)))
     }
 }

@@ -4,27 +4,21 @@ import com.kotlindiscord.kord.extensions.checks.guildFor
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalEnumChoice
-import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalChannel
-import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalInt
-import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalUser
-import com.kotlindiscord.kord.extensions.commands.converters.impl.string
+import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
+import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
+import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.types.editingPaginator
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.common.entity.ChannelType
 import dev.kord.common.entity.Snowflake
-import dev.kord.core.Kord
-import dev.kord.core.behavior.requestMembers
 import dev.kord.core.entity.User
-import dev.kord.gateway.PrivilegedIntent
 import dev.kord.rest.builder.message.create.embed
 import dev.schlaubi.lavakord.audio.Link
 import dev.schlaubi.lavakord.kord.connectAudio
-import dev.schlaubi.lavakord.rest.TrackResponse
-import dev.schlaubi.lavakord.rest.loadItem
-import kotlinx.coroutines.flow.firstOrNull
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.Melijn
+import me.melijn.bot.commands.SpotifyCommand.Companion.getSpotifyTrackFromUser
 import me.melijn.bot.model.PartialUser
 import me.melijn.bot.model.TrackSource
 import me.melijn.bot.music.*
@@ -34,13 +28,14 @@ import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.TimeUtil.formatElapsed
+import me.melijn.bot.utils.intRanges
 import me.melijn.bot.utils.shortTime
 import me.melijn.bot.web.api.MySpotifyApi
 import me.melijn.bot.web.api.MySpotifyApi.Companion.toTrack
 import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.utils.StringUtils
+import me.melijn.kordkommons.utils.escapeMarkdown
 import org.koin.core.component.inject
-import org.koin.java.KoinJavaComponent.inject
 import org.springframework.boot.ansi.AnsiColor
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -50,40 +45,164 @@ import kotlin.time.Duration
 class MusicExtension : Extension() {
 
     override val name: String = "music"
-    val webManager by inject<WebManager>()
+    private val webManager by inject<WebManager>()
+    private val trackLoader by inject<TrackLoader>()
 
     inner class FollowUserArgs : Arguments() {
         val target = optionalUser {
             name = "target"
-            description = "musicplayer will follow spotify status"
+            description = "MusicPlayer will follow spotify status"
         }
     }
 
     inner class SeekArgs : Arguments() {
-        val time = shortTime { 
+        val time = shortTime {
             name = "timeStamp"
             description = "format mm:ss or hh:mm:ss (e.g. 1:35 for 1 minute 35 seconds)"
         }
     }
 
+    inner class MoveArgs : Arguments() {
+        val from = int {
+            name = "from"
+            description = "Index of the track you want to move (see queue command for viewing indexes)"
+            validate {
+                failIfInvalidTrackIndex()
+            }
+        }
+        val to = int {
+            name = "to"
+            description = "Index where the track needs to be moved to"
+            validate {
+                failIfInvalidTrackIndex()
+            }
+        }
+
+        private suspend fun ValidationContext<Int>.failIfInvalidTrackIndex() {
+            failIf(context.tr("move.invalidIndex", value)) {
+                val guild = context.getGuild()!!.asGuild()
+                val trackManager = guild.getTrackManager()
+                value > trackManager.queue.size || value < 1
+            }
+        }
+    }
+
+
+    inner class RemoveArgs : Arguments() {
+        val positions = intRanges {
+            name = "positions"
+            description = "Track positions seperated by ,"
+        }
+    }
+
     override suspend fun setup() {
-        publicGuildSlashCommand(::SeekArgs) {
+        publicGuildSlashCommand(::RemoveArgs) {
+            name = "remove"
+            description = "Removes a track from the queue"
+
+            action {
+                val from = arguments.positions.parsed
+                val guild = guild!!.asGuild()
+                val trackManager = guild.getTrackManager()
+                val toRemove = mutableListOf<Track>()
+                for (range in from.list)
+                    for (i in range) {
+                        val element = trackManager.queue.get(i)
+                        if (!toRemove.contains(element))
+                            toRemove.add(element)
+                    }
+
+                trackManager.queue.removeAll(toRemove)
+                respond {
+                    content = "Removed ${toRemove.size} tracks"
+                }
+            }
+        }
+
+        publicGuildSlashCommand(::MoveArgs) {
+            name = "move"
+            description = "Moves a track to another position in the queue"
+
+            action {
+                val from = arguments.from.parsed - 1
+                val to = arguments.to.parsed - 1
+                val guild = guild!!.asGuild()
+                val trackManager = guild.getTrackManager()
+
+                val trackList = trackManager.queue
+                val track = trackList.removeAt(from)
+                trackList.add(to, track)
+
+                respond {
+                    content = tr("move.moved", track.title.escapeMarkdown(), from + 1, to + 1)
+                }
+            }
+        }
+
+        publicGuildSlashCommand {
             name = "seek"
             description = "Seek to another timestamp in the track"
 
-            action {
-                val guild = guild!!.asGuild()
-                val position = arguments.time.parsed
-                val trackManager = guild.getTrackManager()
-                trackManager.seek(position)
+            publicSubCommand(::SeekArgs) {
+                name = "position"
+                description = "Seek to a position in the track"
 
-                respond {
-                    content = tr("seek.seeked",
-                        java.time.Duration.ofMillis(position).formatElapsed(),
-                        trackManager.playingTrack?.length?.formatElapsed().toString()
-                    )
+                action {
+                    val guild = guild!!.asGuild()
+                    val position = arguments.time.parsed
+                    val trackManager = guild.getTrackManager()
+                    trackManager.seek(position)
+
+                    respond {
+                        content = tr(
+                            "seek.seeked",
+                            java.time.Duration.ofMillis(position).formatElapsed(),
+                            trackManager.playingTrack?.length?.formatElapsed().toString()
+                        )
+                    }
                 }
             }
+            publicSubCommand(::SeekArgs) {
+                name = "forward"
+                description = "Forward to a position in the track"
+
+                action {
+                    val guild = guild!!.asGuild()
+                    val position = arguments.time.parsed
+                    val trackManager = guild.getTrackManager()
+                    val newPos = trackManager.player.position + position
+                    trackManager.seek(newPos)
+
+                    respond {
+                        content = tr(
+                            "seek.forwarded",
+                            java.time.Duration.ofMillis(newPos).formatElapsed(),
+                            trackManager.playingTrack?.length?.formatElapsed().toString()
+                        )
+                    }
+                }
+            }
+            publicSubCommand(::SeekArgs) {
+                name = "rewind"
+                description = "Rewind to a position in the track"
+
+                action {
+                    val guild = guild!!.asGuild()
+                    val position = arguments.time.parsed
+                    val trackManager = guild.getTrackManager()
+                    val newPos = trackManager.player.position - position
+                    trackManager.seek(newPos)
+
+                    respond {
+                        content = tr(
+                            "seek.rewinded",
+                            java.time.Duration.ofMillis(newPos).formatElapsed(),
+                            trackManager.playingTrack?.length?.formatElapsed().toString()
+                        )
+                    }
+                }
+            }
+
         }
 
         publicGuildSlashCommand {
@@ -283,7 +402,7 @@ class MusicExtension : Extension() {
         }
 
         publicGuildSlashCommand(::VCArgs) {
-            name = "connect"
+            name = "summon"
             description = "bot joins your channel"
 
             action {
@@ -311,6 +430,7 @@ class MusicExtension : Extension() {
                 val guild = guild!!.asGuild()
                 val user = user.asUser()
                 val trackManager = guild.getTrackManager()
+                val oldQueueSize = trackManager.queue.size
                 val link = trackManager.link
 
                 val query = arguments.song.parsed
@@ -318,38 +438,19 @@ class MusicExtension : Extension() {
 
                 if (tryJoinUser(link)) return@action
 
-                val spotifyApi = webManager.spotifyApi
-                val isHttpQuery = query.startsWith("http://") || query.startsWith("https://")
                 val requester = PartialUser.fromKordUser(user)
-                val tracks = if (isHttpQuery && (query.contains("open.spotify.com") && spotifyApi != null)) {
-                    spotifyApi.getTracksFromSpotifyUrl(query, requester)
-                } else {
-                    val search = if (isHttpQuery) query else "ytsearch:$query"
-                    val item = link.loadItem(search)
+                val tracks = trackLoader.searchTracks(link.node, query, requester)
 
-                    (when (item.loadType) {
-                        TrackResponse.LoadType.TRACK_LOADED -> listOf(item.tracks.first())
-                        TrackResponse.LoadType.PLAYLIST_LOADED -> item.tracks
-                        TrackResponse.LoadType.SEARCH_RESULT -> listOf(item.tracks.first())
-                        else -> emptyList()
-                    }).map {
-                        val lavakordTrack = it.toTrack()
-                        FetchedTrack.fromLavakordTrackWithData(
-                            lavakordTrack,
-                            TrackData.fromNow(requester, it.info.identifier)
-                        )
-                    }
-                }
-                val oldQueueSize = trackManager.queue.size
 
                 for (track in tracks) {
                     trackManager.queue(track, queuePosition)
                 }
 
-                when {
-                    tracks.size == 1 -> {
-                        val track = tracks.first()
-                        respond {
+                respond {
+                    when {
+                        tracks.size == 1 -> {
+                            val track = tracks.first()
+
                             embed {
                                 title = tr("play.title", user.tag)
                                 description = tr(
@@ -360,9 +461,7 @@ class MusicExtension : Extension() {
                                 )
                             }
                         }
-                    }
-                    tracks.size > 1 -> {
-                        respond {
+                        tracks.size > 1 -> {
                             embed {
                                 title = tr("play.manyAddedTitle", user.tag)
                                 description = tr(
@@ -373,8 +472,8 @@ class MusicExtension : Extension() {
                                 )
                             }
                         }
+                        else -> content = "No matches!"
                     }
-                    else -> respond { content = "No matches!" }
                 }
             }
         }
@@ -384,9 +483,10 @@ class MusicExtension : Extension() {
             description = "stops music"
 
             action {
-                val guildId = guild?.id?.value!!
-                val link = Melijn.lavalink.getLink(guildId)
-                link.player.stopTrack()
+                val guild = guild!!.asGuild()
+                val trackManager = guild.getTrackManager()
+                trackManager.stopAndDestroy()
+
                 respond {
                     content = "stopped"
                 }
@@ -485,37 +585,7 @@ class MusicExtension : Extension() {
     }
 }
 
-@OptIn(PrivilegedIntent::class)
-suspend fun TrackManager.playFromTarget(
-    spotifyApi: MySpotifyApi,
-    parsed: User
-) {
-
-    val kord by inject<Kord>(Kord::class.java)
-
-    /**
-     * fetch full discord member which can have spotify presences since
-     * we don't cache or store user presences
-     * **/
-    val targetMember = kord.getGuild(Snowflake(link.guildId))?.requestMembers {
-        userIds.add(parsed.id)
-        presences = true
-    }?.firstOrNull()
-
-    /** get spotify presences **/
-    val presences = targetMember?.data?.presences?.value
-    val possibleSpotifyActivities = presences?.mapNotNull { presence ->
-        presence.activities.firstOrNull { it.name == "Spotify" }
-    } ?: emptyList()
-    val spotifyActivity = possibleSpotifyActivities.firstOrNull() ?: return
-    val songName = spotifyActivity.details.value
-    val songAuthors = spotifyActivity.state.value?.split("; ") ?: emptyList()
-
-    val searchTerm = buildList {
-        songName?.let { add(it) }
-        songAuthors.firstOrNull()?.let { add(it) }
-    }.joinToString(" ")
-
-    val track = spotifyApi.searchTrack(searchTerm) ?: return
-    play(track.toTrack(PartialUser.fromKordUser(parsed)))
+suspend fun TrackManager.playFromTarget(spotifyApi: MySpotifyApi, user: User) {
+    val track = getSpotifyTrackFromUser(Snowflake(link.guildId), user, spotifyApi) ?: return
+    play(track.toTrack(PartialUser.fromKordUser(user)))
 }

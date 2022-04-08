@@ -211,3 +211,61 @@ class ShortTimeConverter(
         return time
     }
 }
+
+@Converter(
+    "intRanges",
+    types = [ConverterType.DEFAULTING, ConverterType.OPTIONAL, ConverterType.SINGLE]
+)
+class IntRangesConverter(
+    override var validator: Validator<IntRanges> = null
+) : SingleConverter<IntRanges>() {
+    override val signatureTypeString: String = "converters.ints.signatureType"
+    override val showTypeInSignature: Boolean = false
+
+    override suspend fun parse(parser: StringParser?, context: CommandContext, named: String?): Boolean {
+        val arg: String = named ?: parser?.parseNext()?.data ?: return false
+
+        parsed = parse(context, arg)
+
+        return true
+    }
+
+    override suspend fun toSlashOption(arg: Argument<*>): OptionsBuilder =
+        StringChoiceBuilder(arg.displayName, arg.description).apply { required = true }
+
+    override suspend fun parseOption(context: CommandContext, option: OptionValue<*>): Boolean {
+        val optionValue = (option as? StringOptionValue)?.value ?: return false
+
+        parsed = parse(context, optionValue)
+
+        return true
+    }
+
+    private fun parse(context: CommandContext, arg: String): IntRanges {
+        try {
+            val intRanges = mutableListOf<IntRange>()
+            val parts = arg.split("\\s*,\\s*".toRegex())
+            for (part in parts) {
+                if (part.isNumber()) {
+                    val one = part.toInt()
+                    intRanges.add(IntRange(one, one))
+                    continue
+                }
+                val partParts = part.split("-|\\.\\.".toRegex())
+                val from = partParts[0].toInt()
+                val to = partParts[1].toInt()
+                intRanges.add(IntRange(from, to))
+            }
+            return IntRanges(intRanges)
+        } catch (ex: Throwable) {
+            ex.printStackTrace()
+            throw DiscordRelayedException(context.tr("intRangeConverter.badFormat", arg.escapeMarkdown()))
+        }
+    }
+}
+
+class IntRanges(val list: List<IntRange>)
+
+private fun String.isNumber(): Boolean {
+    return toIntOrNull() != null
+}

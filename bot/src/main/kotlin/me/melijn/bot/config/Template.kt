@@ -88,7 +88,7 @@ private class Template {
     }
 
     class Lavalink : BotSettings("lavalink") {
-        val url by string("url0")
-        val password by string("password0")
+        val url by stringList("url")
+        val password by stringList("password")
     }
 }
