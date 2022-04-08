@@ -1,21 +1,35 @@
 package me.melijn.bot.utils
 
+import com.kotlindiscord.kord.extensions.DiscordRelayedException
 import com.kotlindiscord.kord.extensions.annotations.ExtensionDSL
 import com.kotlindiscord.kord.extensions.checks.anyGuild
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext
+import com.kotlindiscord.kord.extensions.commands.Argument
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.CommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommand
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.ChoiceEnum
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandContext
+import com.kotlindiscord.kord.extensions.commands.converters.SingleConverter
+import com.kotlindiscord.kord.extensions.commands.converters.Validator
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
+import com.kotlindiscord.kord.extensions.modules.annotations.converters.Converter
+import com.kotlindiscord.kord.extensions.modules.annotations.converters.ConverterType
+import com.kotlindiscord.kord.extensions.parser.StringParser
+import dev.kord.core.entity.interaction.OptionValue
+import dev.kord.core.entity.interaction.StringOptionValue
 import dev.kord.core.event.interaction.ChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
+import dev.kord.rest.builder.interaction.OptionsBuilder
+import dev.kord.rest.builder.interaction.StringChoiceBuilder
 import me.melijn.bot.utils.EnumUtil.ucc
+import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.gen.Settings
+import me.melijn.kordkommons.utils.SPACE_PATTERN
+import me.melijn.kordkommons.utils.escapeMarkdown
 import org.jetbrains.annotations.PropertyKey
 import org.koin.core.component.inject
 
@@ -144,4 +158,56 @@ object KordExUtils {
 interface InferredChoiceEnum : ChoiceEnum {
     override val readableName: String
         get() = this.toString().ucc()
+}
+
+@Converter(
+    "shortTime",
+    types = [ConverterType.DEFAULTING, ConverterType.LIST, ConverterType.OPTIONAL, ConverterType.SINGLE]
+)
+class ShortTimeConverter(
+    override var validator: Validator<Long> = null
+) : SingleConverter<Long>() {
+    override val signatureTypeString: String = "converters.string.signatureType"
+    override val showTypeInSignature: Boolean = false
+
+    override suspend fun parse(parser: StringParser?, context: CommandContext, named: String?): Boolean {
+        val arg: String = named ?: parser?.parseNext()?.data ?: return false
+
+        parsed = parse(context, arg)
+
+        return true
+    }
+
+    override suspend fun toSlashOption(arg: Argument<*>): OptionsBuilder =
+        StringChoiceBuilder(arg.displayName, arg.description).apply { required = true }
+
+    override suspend fun parseOption(context: CommandContext, option: OptionValue<*>): Boolean {
+        val optionValue = (option as? StringOptionValue)?.value ?: return false
+
+        parsed = parse(context, optionValue)
+
+        return true
+    }
+
+    private fun parse(context: CommandContext, arg: String): Long {
+        if (!arg.matches("(?:\\d{1,2}:)?\\d{1,2}:\\d{1,2}".toRegex())) {
+            throw DiscordRelayedException(context.tr("shortTimeConverter.badFormatDetected", arg.escapeMarkdown()))
+        }
+
+        val parts = arg
+            .replace(":", " ")
+            .split(SPACE_PATTERN).toMutableList()
+
+        var time: Long = 0
+
+        for ((index, part) in parts.reversed().withIndex()) {
+            time += part.toShort() * when (index) {
+                0 -> 1000
+                1 -> 60_000
+                2 -> 3_600_000
+                else -> 0
+            }
+        }
+        return time
+    }
 }

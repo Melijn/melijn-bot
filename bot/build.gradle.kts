@@ -66,6 +66,7 @@ val redgresKommons = "0.0.3"
 dependencies {
     implementation("dev.kord:kord-core:$kord")
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
+    ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
 
     implementation("dev.schlaubi.lavakord", "kord", "3.5.1")
 
@@ -86,10 +87,7 @@ dependencies {
     // https://github.com/freya022/JEmojis
     implementation("com.github.ToxicMushroom:JEmojis:a8c82848f166893f67251c741579c74c80fbb2dd")
 
-    // Annotation preprocessors
-//    implementation(project(":annotation-processors"))
-//    ksp(project(":annotation-processors"))
-
+    // Annotation processors
     api("org.jetbrains.kotlin:kotlin-script-util:$kotlin")
     api("org.jetbrains.kotlin:kotlin-compiler:$kotlin")
     api("org.jetbrains.kotlin:kotlin-scripting-compiler:$kotlin")

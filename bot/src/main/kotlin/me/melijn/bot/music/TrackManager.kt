@@ -135,7 +135,7 @@ class TrackManager(val link: Link) {
     }
 
     private suspend fun stopAndDestroy() {
-        queue.clear()
+        clear()
         stop()
 
         Task {
@@ -147,5 +147,13 @@ class TrackManager(val link: Link) {
 
     fun follow(user: User?) {
         target = user
+    }
+
+    suspend fun clear() {
+        queue.clear()
+    }
+
+    suspend fun seek(position: Long) {
+        player.seekTo(position)
     }
 }

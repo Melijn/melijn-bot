@@ -24,7 +24,7 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
         .setClientSecret(spotifySettings.password)
         .build()
 
-    val songCacheManager by inject<SongCacheManager>(SongCacheManager::class.java)
+    private val songCacheManager by inject<SongCacheManager>(SongCacheManager::class.java)
 
     suspend fun updateSpotifyCredentials() {
         val credentialsRequest = api.clientCredentials().build()
@@ -143,8 +143,6 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
             .toList()
     }
 
-
-
     private suspend fun acceptAlbumResults(match: MatchResult, trackData: PartialUser): List<Track> {
         val id = match.groupValues[1]
         return (songCacheManager.getSpotifySimplified(id).takeIf { it.isNotEmpty() } ?: api.getAlbumsTracks(id)
@@ -178,5 +176,4 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
                 songCacheManager.storeSpotify(search, listOf(it))
             }
     }
-
 }

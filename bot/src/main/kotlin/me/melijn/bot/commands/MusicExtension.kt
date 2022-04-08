@@ -34,6 +34,7 @@ import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.TimeUtil.formatElapsed
+import me.melijn.bot.utils.shortTime
 import me.melijn.bot.web.api.MySpotifyApi
 import me.melijn.bot.web.api.MySpotifyApi.Companion.toTrack
 import me.melijn.bot.web.api.WebManager
@@ -41,6 +42,7 @@ import me.melijn.kordkommons.utils.StringUtils
 import org.koin.core.component.inject
 import org.koin.java.KoinJavaComponent.inject
 import org.springframework.boot.ansi.AnsiColor
+import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.time.Duration
 
@@ -57,7 +59,47 @@ class MusicExtension : Extension() {
         }
     }
 
+    inner class SeekArgs : Arguments() {
+        val time = shortTime { 
+            name = "timeStamp"
+            description = "format mm:ss or hh:mm:ss (e.g. 1:35 for 1 minute 35 seconds)"
+        }
+    }
+
     override suspend fun setup() {
+        publicGuildSlashCommand(::SeekArgs) {
+            name = "seek"
+            description = "Seek to another timestamp in the track"
+
+            action {
+                val guild = guild!!.asGuild()
+                val position = arguments.time.parsed
+                val trackManager = guild.getTrackManager()
+                trackManager.seek(position)
+
+                respond {
+                    content = tr("seek.seeked",
+                        java.time.Duration.ofMillis(position).formatElapsed(),
+                        trackManager.playingTrack?.length?.formatElapsed().toString()
+                    )
+                }
+            }
+        }
+
+        publicGuildSlashCommand {
+            name = "clearQueue"
+            description = "Clears the queue"
+
+            action {
+                val guild = guild!!.asGuild()
+                val trackManager = guild.getTrackManager()
+                trackManager.clear()
+                respond {
+                    content = tr("clearQueue.cleared")
+                }
+            }
+        }
+
         publicGuildSlashCommand(::FollowUserArgs) {
             name = "followUser"
             description = "MusicPlayer will follow user's spotify status, skip to fetch again"
@@ -201,7 +243,7 @@ class MusicExtension : Extension() {
                 }
 
                 val count = 30
-                val progress = ((player.position * count.toDouble()) /
+                val progress = (max(0.0, (player.position * count.toDouble())) /
                     playing.length.inWholeMilliseconds.toDouble()).roundToInt()
 
                 val ansiFormat = { color: AnsiColor -> "\u001B[0;${color}m" }
