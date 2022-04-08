@@ -1,8 +1,10 @@
 package me.melijn.bot.utils
 
 import kotlin.time.Duration
+import kotlin.time.toKotlinDuration
 
 object TimeUtil {
+    fun java.time.Duration.formatElapsed(): String = this.toKotlinDuration().formatElapsed()
     fun Duration.formatElapsed(): String {
         val millis = inWholeMilliseconds % 1000
         val seconds = inWholeSeconds % 60
