@@ -5,12 +5,15 @@ import com.kotlindiscord.kord.extensions.commands.application.ApplicationCommand
 import com.kotlindiscord.kord.extensions.commands.application.DefaultApplicationCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalUser
+import com.kotlindiscord.kord.extensions.commands.converters.impl.role
 import com.kotlindiscord.kord.extensions.commands.converters.impl.snowflake
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.extensions.publicUserCommand
 import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
 import com.kotlindiscord.kord.extensions.types.respond
+import com.kotlindiscord.kord.extensions.utils.canInteract
+import com.kotlindiscord.kord.extensions.utils.selfMember
 import dev.kord.common.DiscordTimestampStyle
 import dev.kord.common.toMessageFormat
 import dev.kord.core.behavior.interaction.followup.edit
@@ -18,10 +21,12 @@ import dev.kord.core.entity.User
 import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
 import dev.kord.rest.builder.message.create.embed
 import dev.kord.rest.builder.message.modify.embed
+import kotlinx.coroutines.flow.count
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordUtil.effectiveAvatarUrl
 import org.koin.core.component.inject
+
 
 @KordExtension
 class UtilityExtension : Extension() {
@@ -49,6 +54,32 @@ class UtilityExtension : Extension() {
             }
         }
 
+        publicSlashCommand(::RoleInfoArgs) {
+            name = "roleInfo"
+            description = "gives roleInfo"
+            action {
+                val role = arguments.role.parsed
+                val hex = java.lang.String.format("#%02x%02x%02x", role.color.red, role.color.green, role.color.blue)
+                respond {
+                    embed {
+                        title = tr("roleInfo.infoTitle")
+                        description = tr(
+                            "roleInfo.infoDescription", role.name, role.id,
+                            role.id.timestamp.toMessageFormat(DiscordTimestampStyle.ShortDateTime), role.rawPosition,
+                            role.guild.roles.count(), role.mentionable, role.hoisted, role.managed,
+                            role.color.rgb.toString(), hex.uppercase(),
+                            "RGB(${role.color.red}, ${role.color.green}, ${role.color.blue})",
+                            role.guild.selfMember().canInteract(role)
+                        )
+                        color = role.color
+                        role.icon?.url?.let {
+                            thumbnail { url = it }
+                        }
+                    }
+                }
+            }
+        }
+
         publicSlashCommand(::IdInfoArgs) {
             name = "idInfo"
             description = "Shows timestamp"
@@ -56,7 +87,11 @@ class UtilityExtension : Extension() {
                 val id = this.arguments.id.parsed
                 val millis = id.timestamp.toEpochMilliseconds()
                 respond {
-                    content = tr("idInfo.info", id.timestamp.toMessageFormat(DiscordTimestampStyle.ShortDateTime), millis.toString())
+                    content = tr(
+                        "idInfo.info",
+                        id.timestamp.toMessageFormat(DiscordTimestampStyle.ShortDateTime),
+                        millis.toString()
+                    )
                 }
             }
         }
@@ -64,19 +99,22 @@ class UtilityExtension : Extension() {
         val chatCommandsRegistry: ChatCommandRegistry by inject()
         val applicationCommands: ApplicationCommandRegistry by inject()
 
-        publicSlashCommand() {
+        publicSlashCommand {
             name = "info"
             description = "Bot information"
             action {
                 respond {
                     embed {
                         thumbnail {
-                            url = "https://cdn.discordapp.com/avatars/368362411591204865/9326b331e0e42f185318bb305fdaa950.png"
+                            url =
+                                "https://cdn.discordapp.com/avatars/368362411591204865/9326b331e0e42f185318bb305fdaa950.png"
                         }
                         field {
                             name = tr("info.aboutFieldTitle")
-                            value = tr("info.aboutFieldValue", "ToxicMushroom#0001",
-                                "https://discord.gg/tfQ9s7u", "https://melijn.com/invite", "https://melijn.com")
+                            value = tr(
+                                "info.aboutFieldValue", "ToxicMushroom#0001",
+                                "https://discord.gg/tfQ9s7u", "https://melijn.com/invite", "https://melijn.com"
+                            )
                         }
                         field {
                             name = tr("info.infoFieldTitle")
@@ -92,8 +130,10 @@ class UtilityExtension : Extension() {
                         }
                         field {
                             name = tr("info.versionsFieldTitle")
-                            value = tr("info.versionsFieldValue", System.getProperty("java.version"),
-                                "${KotlinVersion.CURRENT.major}.${KotlinVersion.CURRENT.minor}.${KotlinVersion.CURRENT.patch}")
+                            value = tr(
+                                "info.versionsFieldValue", System.getProperty("java.version"),
+                                "${KotlinVersion.CURRENT.major}.${KotlinVersion.CURRENT.minor}.${KotlinVersion.CURRENT.patch}"
+                            )
                         }
                     }
                 }
@@ -160,7 +200,15 @@ class UtilityExtension : Extension() {
     inner class IdInfoArgs : Arguments() {
         val id = snowflake {
             name = "id"
-            description ="id"
+            description = "id"
         }
     }
+
+    inner class RoleInfoArgs : Arguments() {
+        val role = role {
+            name = "role"
+            description = "gives information about the role"
+        }
+    }
+
 }
