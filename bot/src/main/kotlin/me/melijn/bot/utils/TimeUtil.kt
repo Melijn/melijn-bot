@@ -1,5 +1,7 @@
 package me.melijn.bot.utils
 
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.toKotlinLocalDateTime
 import kotlin.time.Duration
 import kotlin.time.toKotlinDuration
 
@@ -19,4 +21,6 @@ object TimeUtil {
             else -> String.format("%d days %d:%02d:%02d", days, hours, minutes, seconds)
         }
     }
+
+    fun now(): LocalDateTime = java.time.LocalDateTime.now().toKotlinLocalDateTime()
 }

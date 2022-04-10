@@ -165,4 +165,13 @@ class TrackManager(val link: Link) {
         val track = SpotifyCommand.getSpotifyTrackFromUser(Snowflake(link.guildId), user, spotifyApi) ?: return
         play(track.toTrack(PartialUser.fromKordUser(user)))
     }
+
+    suspend fun shuffle() {
+        queue.shuffle()
+    }
+
+    suspend fun getTrackByIndex(trackIndex: Int): Track? {
+        return if (trackIndex == 0) playingTrack
+        else queue.getOrNull(trackIndex)
+    }
 }

@@ -63,6 +63,7 @@ val kord = "0.8.0-M12"
 val kordEx = "1.5.2-SNAPSHOT"
 val kordKommons = "1.1.4"
 val redgresKommons = "0.0.3"
+val apKordVersion = "0.1.0"
 
 dependencies {
     implementation("dev.kord:kord-core:$kord")
@@ -74,7 +75,8 @@ dependencies {
     implementation("me.melijn.kordkommons:kommons:$kordKommons")
     implementation("me.melijn.kordkommons:redgres-kommons:$redgresKommons")
 
-    val apKord = "me.melijn.kordkommons:ap:0.0.4"
+
+    val apKord = "me.melijn.kordkommons:ap:$apKordVersion"
     val apKordex = "me.melijn.kordkommons:apkordex:0.0.1"
     implementation(apKord)
     implementation(apKordex)
@@ -102,6 +104,7 @@ dependencies {
     // Database
     // https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-core
     implementation("org.jetbrains.exposed:exposed-core:0.37.3")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.37.3")
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.37.3")
 
     // https://search.maven.org/artifact/com.zaxxer/HikariCP
