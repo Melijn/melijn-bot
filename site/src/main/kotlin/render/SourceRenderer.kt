@@ -1,8 +1,8 @@
 package render
 
-import io.ktor.application.*
 import io.ktor.http.*
-import io.ktor.response.*
+import io.ktor.server.application.*
+import io.ktor.server.response.*
 import io.ktor.util.pipeline.*
 import kotlinx.coroutines.runBlocking
 import me.melijn.kordkommons.logger.Log

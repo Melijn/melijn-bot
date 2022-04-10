@@ -1,13 +1,17 @@
-import io.ktor.application.*
-import io.ktor.auth.*
-import io.ktor.features.*
 import io.ktor.http.*
 import io.ktor.http.content.*
-import io.ktor.response.*
-import io.ktor.routing.*
-import io.ktor.serialization.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.autohead.*
+import io.ktor.server.plugins.compression.*
+import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.cors.*
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import me.melijn.ap.createtable.CreateTableInterface
 import me.melijn.ap.injector.InjectorInterface
 import me.melijn.gen.Settings
@@ -47,9 +51,9 @@ fun main() {
         }
         install(AutoHeadResponse)
         install(CORS) {
-            method(HttpMethod.Get)
-            method(HttpMethod.Post)
-            method(HttpMethod.Delete)
+            allowMethod(HttpMethod.Get)
+            allowMethod(HttpMethod.Post)
+            allowMethod(HttpMethod.Delete)
             anyHost()
         }
         install(Authentication) {
@@ -70,13 +74,12 @@ fun main() {
             }
         }
         install(StatusPages) {
-
-            status(HttpStatusCode.NotFound) {
+            status(HttpStatusCode.NotFound) { call, status ->
                 call.respond(
                     TextContent(
-                        "${it.value} ${it.description}",
+                        "${status.value} ${status.description}",
                         ContentType.Text.Plain.withCharset(Charsets.UTF_8),
-                        it
+                        status
                     )
                 )
             }

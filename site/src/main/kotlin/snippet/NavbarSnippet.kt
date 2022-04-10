@@ -2,7 +2,7 @@ package snippet
 
 import database.manager.UserCookieManager
 import database.manager.UserDataManager
-import io.ktor.application.*
+import io.ktor.server.application.*
 import me.melijn.gen.UserDataData
 import me.melijn.siteannotationprocessors.snippet.Snippet
 import model.Oauth2Token

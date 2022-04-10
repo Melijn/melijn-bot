@@ -1,6 +1,7 @@
 package api.discord
 
 import httpClient
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.serialization.SerializationException
@@ -39,12 +40,12 @@ class DiscordApi : KoinComponent {
 
 
         val tokenResponse = try {
-            httpClient.post<Oauth2Token>("${oauth.discordApiHost}/oauth2/token") {
-                this.body = encodedUrlParams
+            httpClient.post("${oauth.discordApiHost}/oauth2/token") {
+                setBody(encodedUrlParams)
                 headers {
                     append("Content-Type", "application/x-www-form-urlencoded")
                 }
-            }
+            }.body<Oauth2Token>()
         } catch (t: SerializationException) {
             throw FriendlyHttpException(HttpStatusCode.BadRequest, "Your oauth code was probably invalid")
         }
@@ -61,11 +62,12 @@ class DiscordApi : KoinComponent {
             )
         }
 
-        val user = httpClient.get<PartialDiscordUser>("${oauth.discordApiHost}/users/@me") {
+        val user = httpClient.get("${oauth.discordApiHost}/users/@me") {
             headers {
                 append(HttpHeaders.Authorization, "Bearer $token")
             }
         }
+            .body<PartialDiscordUser>()
 
         return TokenOwner(
             Oauth2Token(token, tokenResponse.tokenType, tokenResponse.expiresIn, tokenResponse.refreshToken, scope),
