@@ -15,6 +15,7 @@ class Commands : AbstractPage("/commands", ContentType.Text.Html) {
 
     @Language("html")
     override val src: String = """
+<!DOCTYPE html>
 <html lang="uk">
     <head>
         <title>Melijn Homepage</title>
