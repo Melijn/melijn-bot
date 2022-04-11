@@ -4,7 +4,6 @@ import com.kotlindiscord.kord.extensions.checks.guildFor
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalEnumChoice
-import com.kotlindiscord.kord.extensions.commands.application.slash.group
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
@@ -13,27 +12,29 @@ import com.kotlindiscord.kord.extensions.types.editingPaginator
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.utils.suggestStringMap
 import dev.kord.common.entity.ChannelType
+import dev.kord.core.behavior.interaction.followup.edit
 import dev.kord.rest.builder.message.create.embed
 import dev.schlaubi.lavakord.audio.Link
 import dev.schlaubi.lavakord.kord.connectAudio
+import kotlinx.datetime.Clock
+import kotlinx.datetime.UtcOffset
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toJavaInstant
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.Melijn
 import me.melijn.bot.database.manager.PlaylistManager
 import me.melijn.bot.database.manager.PlaylistTrackManager
 import me.melijn.bot.model.PartialUser
 import me.melijn.bot.model.TrackSource
+import me.melijn.bot.music.*
 import me.melijn.bot.music.MusicManager.getTrackManager
-import me.melijn.bot.music.QueuePosition
-import me.melijn.bot.music.SkipType
-import me.melijn.bot.music.Track
-import me.melijn.bot.music.TrackLoader
+import me.melijn.bot.utils.*
 import me.melijn.bot.utils.KordExUtils.atLeast
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
+import me.melijn.bot.utils.StringsUtil.ansiFormat
 import me.melijn.bot.utils.TimeUtil.formatElapsed
-import me.melijn.bot.utils.intRanges
-import me.melijn.bot.utils.shortTime
 import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.utils.StringUtils
 import me.melijn.kordkommons.utils.escapeMarkdown
@@ -42,6 +43,7 @@ import org.springframework.boot.ansi.AnsiColor
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 @KordExtension
 class MusicExtension : Extension() {
@@ -69,18 +71,16 @@ class MusicExtension : Extension() {
             name = "from"
             description = "Index of the track you want to move (see queue command for viewing indexes)"
             validate {
-                failIfInvalidTrackIndex()
+                failIfInvalidTrackIndex(value)
             }
         }
         val to = int {
             name = "to"
             description = "Index where the track needs to be moved to"
             validate {
-                failIfInvalidTrackIndex()
+                failIfInvalidTrackIndex(value)
             }
         }
-
-
     }
 
     inner class RemoveArgs : Arguments() {
@@ -95,24 +95,25 @@ class MusicExtension : Extension() {
             name = "playlist"
             description = "New or existing playlist name or existing playlist index"
             autoComplete {
-                this.suggestStringMap(
-                    mapOf(
-                        "tok tok" to "chicken"
-                    )
-                )
+                val playlists = playlistManager.getByIndex0(user.id.value)
+                suggestStringMap(playlists.associate { it.name to it.name })
             }
         }
-        val trackIndex = optionalInt {
+        val trackIndexes = optionalIntRanges {
             name = "trackindex"
             description = "Index of a track in queue, see /queue"
             validate {
-                failIfInvalidTrackIndex()
+                val varmoment = value ?: return@validate
+                val trackManager = context.getGuild()!!.asGuild().getTrackManager()
+                varmoment.list.forEach {
+                    for (i in it) failIfInvalidTrackIndex(i) { trackManager }
+                }
             }
         }
     }
 
-    inner class PlaylistListArgs : Arguments() {
-        val playlist = string {
+    inner class PlaylistRemoveArgs : Arguments() {
+        val playlist = playlist {
             name = "playlist"
             description = "Existing playlist name"
 
@@ -120,22 +121,50 @@ class MusicExtension : Extension() {
                 val playlists = playlistManager.getByIndex0(user.id.value)
                 suggestStringMap(playlists.associate { it.name to it.name })
             }
+        }
+        val trackIndexes = intRanges {
+            name = "trackindex"
+            description = "Index of a track in the playlist, see `/playlist tracks`"
             validate {
-                val playlists = context.getUser()?.id?.value?.let { playlistManager.getByIndex0(it) } ?: return@validate
-                val trimmed = value.trim()
-                failIf(context.tr("playlist.playlistArgDoesNotExist", value)) {
-                    playlists.none { it.name == trimmed }
+                val tracks = playlistTrackManager.getTracksInPlaylist(playlist.parsed)
+                value.list.any {
+                    val from = it.first
+                    val to = it.last
+                    failIf(
+                        context.tr(
+                            "playlist.invalidTrackIndex",
+                            from == to, from.toString(), to.toString()
+                        )
+                    ) {
+                        from >= tracks.size || from < 0 || to >= tracks.size || to < 0
+                    }
                 }
             }
         }
     }
 
-    private suspend fun ValidationContext<Int?>.failIfInvalidTrackIndex() {
-        val noVarMoment = value ?: return
+    inner class PlaylistListArgs : Arguments() {
+        val playlist = playlist {
+            name = "playlist"
+            description = "Existing playlist name"
+
+            autoComplete {
+                val playlists = playlistManager.getByIndex0(user.id.value)
+                suggestStringMap(playlists.associate { it.name to it.name })
+            }
+        }
+    }
+
+    private suspend fun ValidationContext<*>.failIfInvalidTrackIndex(
+        index: Int?,
+        trackManagerFun: suspend ValidationContext<*>.() -> TrackManager = {
+            context.getGuild()!!.asGuild().getTrackManager()
+        }
+    ) {
+        val noVarMoment = index ?: return
         failIf(context.tr("move.invalidIndex", noVarMoment)) {
-            val guild = context.getGuild()!!.asGuild()
-            val trackManager = guild.getTrackManager()
-            noVarMoment > trackManager.queue.size || noVarMoment < 1
+            val trackManager = trackManagerFun()
+            index > trackManager.queue.size || index < 1
         }
     }
 
@@ -147,122 +176,197 @@ class MusicExtension : Extension() {
             name = "playlist"
             description = "Manage playlist things"
 
-            group("add") {
-                description = "balls"
-                publicSubCommand(::PlaylistAddArgs) {
-                    name = "add"
-                    description = "Adds a track to your playlist"
 
-                    action {
-                        val guild = guild!!.asGuild()
-                        val trackManager = guild.getTrackManager()
-                        val trackIndex = arguments.trackIndex.parsed
+            publicSubCommand(::PlaylistListArgs) {
+                name = "load"
+                description = "Loads all tracks of the playlist into the queue"
 
-                        val targetTrack =
-                            if (trackIndex != null) trackManager.getTrackByIndex(trackIndex)?.getLavakordTrack()
-                            else trackManager.player.playingTrack
-                        if (targetTrack == null) {
-                            respond { content = ":?" }
-                            return@action
-                        }
+                action {
+                    val playlist = this.arguments.playlist.parsed
+                    val tracks = playlistTrackManager.getTracksInPlaylist(playlist)
+                    val guild = this.guild!!.asGuild()
+                    val trackManager = guild.getTrackManager()
+                    val link = trackManager.link
+                    if (tryJoinUser(link)) return@action
 
-                        val playlistName = arguments.playlist.parsed
-                        val existingPlaylist = playlistManager.getByNameOrDefault(user.id, playlistName)
-                        playlistManager.store(existingPlaylist)
+                    for (track in tracks) {
+                        val lavakordTrack = dev.schlaubi.lavakord.audio.player.Track.fromLavalink(track.track)
+                        val data = TrackData.fromNow(PartialUser.fromKordUser(user.asUser()), lavakordTrack.identifier)
+                        val fetchedTrack = FetchedTrack.fromLavakordTrackWithData(lavakordTrack, data)
+                        trackManager.queue(fetchedTrack, QueuePosition.BOTTOM)
+                    }
 
-                        playlistTrackManager.newTrack(existingPlaylist, targetTrack.track)
-                        val tracks = playlistTrackManager.getTracksInPlaylist(existingPlaylist)
+                    respond {
+                        content = tr("playlist.load.queued", tracks.size, playlist.name.escapeMarkdown())
+                    }
+                }
+            }
 
-                        respond {
+            publicSubCommand(::PlaylistAddArgs) {
+                name = "add"
+                description = "Adds a track to your playlist"
+
+                action {
+                    val guild = guild!!.asGuild()
+                    val trackManager = guild.getTrackManager()
+                    val hashSet = HashSet<Int>()
+                    val trackIndexes = arguments.trackIndexes.parsed
+                    trackIndexes?.list?.forEach { range -> range.forEach { hashSet.add(it) } }
+
+                    var i = 0
+                    val msg = respond {
+                        content = tr("playlist.add.fetching", i, hashSet.size - 1)
+                    }
+
+                    val targetTracks =
+                        if (trackIndexes != null) {
+                            trackManager.getTracksByIndexes(trackIndexes.list).mapNotNull {
+                                val fetched = it.getLavakordTrack()
+                                if (TimeUtil.between(Clock.System.now(), msg.message.timestamp) > 5.seconds) {
+                                    msg.edit {
+                                        content = tr("playlist.add.fetching", i, hashSet.size - 1)
+                                    }
+                                }
+                                i++
+                                fetched
+                            }
+                        } else trackManager.player.playingTrack?.let { listOf(it) } ?: emptyList()
+                    if (targetTracks.isEmpty()) {
+                        msg.edit { content = tr("playlist.add.trackNoFetch") }
+                        return@action
+                    }
+
+                    val playlistName = arguments.playlist.parsed
+                    val existingPlaylist = playlistManager.getByNameOrDefault(user.id, playlistName)
+                    playlistManager.store(existingPlaylist)
+
+                    for (track in targetTracks) playlistTrackManager.newTrack(existingPlaylist, track.track)
+                    val tracks = playlistTrackManager.getTracksInPlaylist(existingPlaylist)
+
+                    if (targetTracks.size == 1) {
+                        val targetTrack = targetTracks.first()
+                        msg.edit {
                             content = tr(
                                 "playlist.add.added", targetTrack.title.escapeMarkdown(),
                                 playlistName.escapeMarkdown(), tracks.size - 1
                             )
                         }
+                    } else {
+                        msg.edit {
+                            content = tr(
+                                "playlist.add.addedMany",
+                                targetTracks.size,
+                                playlistName.escapeMarkdown(),
+                                tracks.size - 1,
+                                tracks.size - 1 + targetTracks.size
+                            )
+                        }
                     }
                 }
             }
 
-            group("remove") {
-                description = "balls"
-                publicSubCommand {
-                    name = "single"
-                    description = "Removes a track from your playlist"
+            publicSubCommand(::PlaylistRemoveArgs) {
+                name = "remove"
+                description = "Removes tracks from your playlist"
 
-                    action {
-
+                action {
+                    val existingPlaylist = arguments.playlist.parsed
+                    val tracks = playlistTrackManager.getTracksInPlaylist(existingPlaylist)
+                    val toRemove = tracks.withIndex().filter { (i, _) ->
+                        arguments.trackIndexes.parsed.list.any { it.contains(i) }
                     }
+                    if (toRemove.size == 1) {
+                        val (index, track) = toRemove[0]
+                        val lavakordTrack = dev.schlaubi.lavakord.audio.player.Track.fromLavalink(track.track)
+                        playlistTrackManager.delete(track)
+                        respond {
+                            content = tr(
+                                "playlist.remove.removedTrack",
+                                index,
+                                lavakordTrack.uri.toString(),
+                                lavakordTrack.title.escapeMarkdown(),
+                                existingPlaylist.name.escapeMarkdown()
+                            )
+                        }
+                    } else {
+                        playlistTrackManager.deleteAll(toRemove.map { it.value })
+                        respond {
+                            content = tr(
+                                "playlist.remove.removedTracks",
+                                toRemove.size,
+                                existingPlaylist.name.escapeMarkdown()
+                            )
+                        }
+                    }
+
+                    if (toRemove.size == tracks.size) playlistManager.delete(existingPlaylist)
                 }
             }
 
-            group("list") {
-                description = "balls"
-                publicSubCommand() {
-                    name = "all"
-                    description = "Lists all your playlists"
+            publicSubCommand {
+                name = "playlists"
+                description = "Lists all your playlists"
 
-                    action {
-                        val existingPlaylist = playlistManager.getPlaylistsOfUserWithTrackCount(user.id)
+                action {
+                    val existingPlaylist = playlistManager.getPlaylistsOfUserWithTrackCount(user.id)
 
-                        var description = "```INI\n# index - public - [name] - tracks - [created]"
+                    var description = "```INI\n# index - public - [name] - tracks - [created]"
 
-                        existingPlaylist.entries.withIndex().forEach { (index, playlistWithCount) ->
-                            val (playlist, count) = playlistWithCount
-                            description += "\n" + tr(
-                                "playlist.list.all.playlistEntry", index, playlist.public, playlist.name, count,
-                                playlist.created,
-                            )
-                        }
-                        description += "```"
-
-                        editingPaginator {
-                            val parts = StringUtils.splitMessage(description)
-                            for (part in parts) {
-                                page {
-                                    this.title = tr("playlist.list.all.listTitle", user.asUser().tag)
-                                    this.description = part
-                                }
-                            }
-                        }.send()
-                    }
-                }
-
-                publicSubCommand(::PlaylistListArgs) {
-                    name = "tracks"
-                    description = "Lists your playlist tracks"
-
-                    action {
-                        val playlistName = arguments.playlist.parsed
-                        val existingPlaylist = playlistManager.getByNameOrDefault(user.id, playlistName)
-                        val tracks = playlistTrackManager.getTracksInPlaylist(existingPlaylist)
-                        var totalDuration = Duration.ZERO
-                        var description = ""
-
-                        tracks.withIndex().forEach { (index, trackData) ->
-                            val lavakordTrack = dev.schlaubi.lavakord.audio.player.Track.fromLavalink(trackData.track)
-                            totalDuration += lavakordTrack.length
-                            description += "\n" + tr(
-                                "queue.queueEntry", index + 1, lavakordTrack.uri ?: "", lavakordTrack.title,
-                                lavakordTrack.length.formatElapsed()
-                            )
-                        }
-
-                        description += tr(
-                            "playlist.list.fakeFooter",
-                            totalDuration.formatElapsed(),
-                            tracks.size
+                    existingPlaylist.entries.withIndex().forEach { (index, playlistWithCount) ->
+                        val (playlist, count) = playlistWithCount
+                        description += "\n" + tr(
+                            "playlist.list.all.playlistEntry", index, playlist.public, playlist.name, count,
+                            java.util.Date.from(playlist.created.toInstant(UtcOffset.ZERO).toJavaInstant())
                         )
-
-                        editingPaginator {
-                            val parts = StringUtils.splitMessage(description)
-                            for (part in parts) {
-                                page {
-                                    this.title = tr("playlist.list.listTitle", user.asUser().tag)
-                                    this.description = part
-                                }
-                            }
-                        }.send()
                     }
+                    description += "```"
+
+                    editingPaginator {
+                        val parts = StringUtils.splitMessageWithCodeBlocks(description)
+                        for (part in parts) {
+                            page {
+                                this.title = tr("playlist.list.all.listTitle", user.asUser().tag)
+                                this.description = part
+                            }
+                        }
+                    }.send()
+                }
+            }
+
+            publicSubCommand(::PlaylistListArgs) {
+                name = "tracks"
+                description = "Lists your playlist tracks"
+
+                action {
+                    val existingPlaylist = arguments.playlist.parsed
+                    val tracks = playlistTrackManager.getTracksInPlaylist(existingPlaylist)
+                    var totalDuration = Duration.ZERO
+                    var description = ""
+
+                    tracks.withIndex().forEach { (index, trackData) ->
+                        val lavakordTrack = dev.schlaubi.lavakord.audio.player.Track.fromLavalink(trackData.track)
+                        totalDuration += lavakordTrack.length
+                        description += "\n" + tr(
+                            "queue.queueEntry", index, lavakordTrack.uri ?: "", lavakordTrack.title,
+                            lavakordTrack.length.formatElapsed()
+                        )
+                    }
+
+                    description += tr(
+                        "playlist.list.fakeFooter",
+                        totalDuration.formatElapsed(),
+                        tracks.size
+                    )
+
+                    editingPaginator {
+                        val parts = StringUtils.splitMessage(description)
+                        for (part in parts) {
+                            page {
+                                this.title = tr("playlist.list.listTitle", user.asUser().tag)
+                                this.description = part
+                            }
+                        }
+                    }.send()
                 }
             }
         }
@@ -580,7 +684,6 @@ class MusicExtension : Extension() {
                 val progress = (max(0.0, (player.position * count.toDouble())) /
                     playing.length.inWholeMilliseconds.toDouble()).roundToInt()
 
-                val ansiFormat = { color: AnsiColor -> "\u001B[0;${color}m" }
                 val blue = ansiFormat(AnsiColor.BLUE)
                 val green = ansiFormat(AnsiColor.GREEN)
                 val reset = ansiFormat(AnsiColor.DEFAULT)

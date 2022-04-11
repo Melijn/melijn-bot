@@ -174,4 +174,10 @@ class TrackManager(val link: Link) {
         return if (trackIndex == 0) playingTrack
         else queue.getOrNull(trackIndex)
     }
+
+    suspend fun getTracksByIndexes(ranges: List<IntRange>): List<Track> {
+        val indexes = HashSet<Int>()
+        ranges.forEach { range -> for (i in range) indexes.add(i) }
+        return queue.getAll(indexes)
+    }
 }

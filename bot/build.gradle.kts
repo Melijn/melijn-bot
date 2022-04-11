@@ -61,7 +61,7 @@ val scrimage = "4.0.22"
 
 val kord = "0.8.0-M12"
 val kordEx = "1.5.2-SNAPSHOT"
-val kordKommons = "1.1.4"
+val kordKommons = "1.1.8"
 val redgresKommons = "0.0.3"
 val apKordVersion = "0.1.0"
 

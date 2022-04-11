@@ -1,6 +1,8 @@
 package me.melijn.bot.utils
 
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.toJavaInstant
 import kotlinx.datetime.toKotlinLocalDateTime
 import kotlin.time.Duration
 import kotlin.time.toKotlinDuration
@@ -23,4 +25,7 @@ object TimeUtil {
     }
 
     fun now(): LocalDateTime = java.time.LocalDateTime.now().toKotlinLocalDateTime()
+    fun between(time1: Instant, time2: Instant): Duration {
+        return java.time.Duration.between(time1.toJavaInstant(), time2.toJavaInstant()).toKotlinDuration()
+    }
 }

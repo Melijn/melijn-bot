@@ -25,8 +25,10 @@ import dev.kord.core.event.interaction.ChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.interaction.OptionsBuilder
 import dev.kord.rest.builder.interaction.StringChoiceBuilder
+import me.melijn.bot.database.manager.PlaylistManager
 import me.melijn.bot.utils.EnumUtil.ucc
 import me.melijn.bot.utils.KordExUtils.tr
+import me.melijn.gen.PlaylistData
 import me.melijn.gen.Settings
 import me.melijn.kordkommons.utils.SPACE_PATTERN
 import me.melijn.kordkommons.utils.escapeMarkdown
@@ -167,7 +169,7 @@ interface InferredChoiceEnum : ChoiceEnum {
 class ShortTimeConverter(
     override var validator: Validator<Long> = null
 ) : SingleConverter<Long>() {
-    override val signatureTypeString: String = "converters.string.signatureType"
+    override val signatureTypeString: String = "converters.shortTime.signatureType"
     override val showTypeInSignature: Boolean = false
 
     override suspend fun parse(parser: StringParser?, context: CommandContext, named: String?): Boolean {
@@ -209,6 +211,53 @@ class ShortTimeConverter(
             }
         }
         return time
+    }
+}
+
+
+@Converter(
+    "playlist",
+    types = [ConverterType.DEFAULTING, ConverterType.LIST, ConverterType.OPTIONAL, ConverterType.SINGLE]
+)
+class PlaylistConverter(
+    override var validator: Validator<PlaylistData> = null
+) : SingleConverter<PlaylistData>() {
+    override val signatureTypeString: String = "converters.playlist.signatureType"
+    override val showTypeInSignature: Boolean = false
+    private val playlistManager by inject<PlaylistManager>()
+
+    override suspend fun parse(parser: StringParser?, context: CommandContext, named: String?): Boolean {
+        val arg: String = named ?: parser?.parseNext()?.data ?: return false
+
+        parsed = parse(context, arg)
+
+        return true
+    }
+
+    override suspend fun toSlashOption(arg: Argument<*>): OptionsBuilder =
+        StringChoiceBuilder(arg.displayName, arg.description).apply { required = true }
+
+    override suspend fun parseOption(context: CommandContext, option: OptionValue<*>): Boolean {
+        val optionValue = (option as? StringOptionValue)?.value ?: return false
+
+        parsed = parse(context, optionValue)
+
+        return true
+    }
+
+    private suspend fun parse(context: CommandContext, arg: String): PlaylistData {
+        val id = context.getUser()?.id
+            ?: throw DiscordRelayedException(context.translate("commandContext.userNull"))
+
+        val playlists = playlistManager.getPlaylistsOfUser(id)
+
+        return playlists.firstOrNull { it.name == arg }
+            ?: throw DiscordRelayedException(
+                context.translate(
+                    "converters.playlist.unknownPlaylistName",
+                    arg.escapeMarkdown()
+                )
+            )
     }
 }
 
@@ -258,7 +307,6 @@ class IntRangesConverter(
             }
             return IntRanges(intRanges)
         } catch (ex: Throwable) {
-            ex.printStackTrace()
             throw DiscordRelayedException(context.tr("intRangeConverter.badFormat", arg.escapeMarkdown()))
         }
     }
