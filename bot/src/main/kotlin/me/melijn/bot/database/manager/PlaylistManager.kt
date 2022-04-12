@@ -29,10 +29,10 @@ class PlaylistManager(override val driverManager: DriverManager) : AbstractPlayl
         return scopedTransaction {
             // :) https://blog.jdriven.com/2020/02/kotlin-exposed-aggregate-functions/
             // :) https://www.w3schools.com/sql/sql_groupby.asp
-            Playlist.join(PlaylistTrack, JoinType.INNER) {
+            Playlist.join(PlaylistTrack, JoinType.LEFT) {
                 Playlist.playlistId.eq(PlaylistTrack.playlistId)
             }.slice(
-                Playlist.playlistId, Playlist.userId, Playlist.created, Playlist.name, Playlist.public, Playlist.name.count()
+                Playlist.playlistId, Playlist.userId, Playlist.created, Playlist.name, Playlist.public, PlaylistTrack.playlistId.count()
             ).select {
                 Playlist.userId.eq(id.value)
             }.groupBy(
@@ -40,7 +40,7 @@ class PlaylistManager(override val driverManager: DriverManager) : AbstractPlayl
             ).associate { row ->
                 PlaylistData(
                     row[Playlist.playlistId], row[Playlist.userId], row[Playlist.created], row[Playlist.name], row[Playlist.public]
-                ) to row[Playlist.name.count()]
+                ) to row[PlaylistTrack.playlistId.count()]
             }
         }
     }
