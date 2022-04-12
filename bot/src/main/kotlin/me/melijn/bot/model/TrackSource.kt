@@ -1,12 +1,14 @@
 package me.melijn.bot.model
 
-enum class TrackSource {
-    Youtube,
-    SoundCloud,
-    Twitch,
-    Spotify,
-    Http,
-    Unknown;
+import me.melijn.bot.music.TrackType
+
+enum class TrackSource(val trackType: TrackType) {
+    YOUTUBE(TrackType.FETCHED),
+    SOUNC_CLOUD(TrackType.FETCHED),
+    TWITCH(TrackType.FETCHED),
+    SPOTIFY(TrackType.SPOTIFY),
+    HTTP(TrackType.FETCHED),
+    UNKNOWN(TrackType.FETCHED);
 
     companion object {
         fun bestMatch(value: String): TrackSource {
@@ -14,7 +16,7 @@ enum class TrackSource {
                 it.toString().equals(value, true) ||
                     value.contains(it.toString(), true)
             }
-            return match ?: Unknown
+            return match ?: UNKNOWN
         }
     }
 }

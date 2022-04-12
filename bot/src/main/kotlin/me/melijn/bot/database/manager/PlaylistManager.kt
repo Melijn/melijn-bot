@@ -9,20 +9,20 @@ import me.melijn.gen.PlaylistData
 import me.melijn.gen.database.manager.AbstractPlaylistManager
 import me.melijn.kordkommons.database.DriverManager
 import org.jetbrains.exposed.sql.JoinType
-import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.count
 import org.jetbrains.exposed.sql.select
+import java.util.*
 
 @Inject
 class PlaylistManager(override val driverManager: DriverManager) : AbstractPlaylistManager(driverManager) {
 
     fun getByNameOrDefault(userId: Snowflake, name: String): PlaylistData {
-        return getByName(userId, name) ?: PlaylistData(userId.value, TimeUtil.now(), name, false)
+        return getByName(userId, name) ?: PlaylistData(UUID.randomUUID(), userId.value, TimeUtil.now(), name, false)
     }
 
-    private fun getByName(userId: Snowflake, name: String) = getByIndex1(userId.value, name)
+    private fun getByName(userId: Snowflake, name: String) = getByIndex2(userId.value, name)
     fun getPlaylistsOfUser(id: Snowflake): List<PlaylistData> {
-        return getByIndex0(id.value).sortedBy { it.created }
+        return getByIndex1(id.value).sortedBy { it.created }
     }
 
     fun getPlaylistsOfUserWithTrackCount(id: Snowflake): Map<PlaylistData, Long> {
@@ -30,16 +30,16 @@ class PlaylistManager(override val driverManager: DriverManager) : AbstractPlayl
             // :) https://blog.jdriven.com/2020/02/kotlin-exposed-aggregate-functions/
             // :) https://www.w3schools.com/sql/sql_groupby.asp
             Playlist.join(PlaylistTrack, JoinType.INNER) {
-                Playlist.userId.eq(PlaylistTrack.playlistOwner) and (Playlist.created).eq(PlaylistTrack.playlistCreated)
+                Playlist.playlistId.eq(PlaylistTrack.playlistId)
             }.slice(
-                Playlist.userId, Playlist.created, Playlist.name, Playlist.public, Playlist.name.count()
+                Playlist.playlistId, Playlist.userId, Playlist.created, Playlist.name, Playlist.public, Playlist.name.count()
             ).select {
                 Playlist.userId.eq(id.value)
             }.groupBy(
-                Playlist.userId, Playlist.created, Playlist.name, Playlist.public
+                Playlist.playlistId, Playlist.userId, Playlist.created, Playlist.name, Playlist.public
             ).associate { row ->
                 PlaylistData(
-                    row[Playlist.userId], row[Playlist.created], row[Playlist.name], row[Playlist.public]
+                    row[Playlist.playlistId], row[Playlist.userId], row[Playlist.created], row[Playlist.name], row[Playlist.public]
                 ) to row[Playlist.name.count()]
             }
         }

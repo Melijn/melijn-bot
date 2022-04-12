@@ -12,11 +12,9 @@ import com.kotlindiscord.kord.extensions.types.editingPaginator
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.utils.suggestStringMap
 import dev.kord.common.entity.ChannelType
-import dev.kord.core.behavior.interaction.followup.edit
 import dev.kord.rest.builder.message.create.embed
 import dev.schlaubi.lavakord.audio.Link
 import dev.schlaubi.lavakord.kord.connectAudio
-import kotlinx.datetime.Clock
 import kotlinx.datetime.UtcOffset
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toJavaInstant
@@ -28,13 +26,16 @@ import me.melijn.bot.model.PartialUser
 import me.melijn.bot.model.TrackSource
 import me.melijn.bot.music.*
 import me.melijn.bot.music.MusicManager.getTrackManager
-import me.melijn.bot.utils.*
 import me.melijn.bot.utils.KordExUtils.atLeast
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.StringsUtil.ansiFormat
 import me.melijn.bot.utils.TimeUtil.formatElapsed
+import me.melijn.bot.utils.intRanges
+import me.melijn.bot.utils.optionalIntRanges
+import me.melijn.bot.utils.playlist
+import me.melijn.bot.utils.shortTime
 import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.utils.StringUtils
 import me.melijn.kordkommons.utils.escapeMarkdown
@@ -43,7 +44,6 @@ import org.springframework.boot.ansi.AnsiColor
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 @KordExtension
 class MusicExtension : Extension() {
@@ -95,7 +95,7 @@ class MusicExtension : Extension() {
             name = "playlist"
             description = "New or existing playlist name or existing playlist index"
             autoComplete {
-                val playlists = playlistManager.getByIndex0(user.id.value)
+                val playlists = playlistManager.getByIndex1(user.id.value)
                 suggestStringMap(playlists.associate { it.name to it.name })
             }
         }
@@ -118,7 +118,7 @@ class MusicExtension : Extension() {
             description = "Existing playlist name"
 
             autoComplete {
-                val playlists = playlistManager.getByIndex0(user.id.value)
+                val playlists = playlistManager.getByIndex1(user.id.value)
                 suggestStringMap(playlists.associate { it.name to it.name })
             }
         }
@@ -126,7 +126,7 @@ class MusicExtension : Extension() {
             name = "trackindex"
             description = "Index of a track in the playlist, see `/playlist tracks`"
             validate {
-                val tracks = playlistTrackManager.getTracksInPlaylist(playlist.parsed)
+                val trackCount = playlistTrackManager.getTrackCount(playlist.parsed)
                 value.list.any {
                     val from = it.first
                     val to = it.last
@@ -136,7 +136,7 @@ class MusicExtension : Extension() {
                             from == to, from.toString(), to.toString()
                         )
                     ) {
-                        from >= tracks.size || from < 0 || to >= tracks.size || to < 0
+                        from >= trackCount || from < 0 || to >= trackCount || to < 0
                     }
                 }
             }
@@ -149,7 +149,7 @@ class MusicExtension : Extension() {
             description = "Existing playlist name"
 
             autoComplete {
-                val playlists = playlistManager.getByIndex0(user.id.value)
+                val playlists = playlistManager.getByIndex1(user.id.value)
                 suggestStringMap(playlists.associate { it.name to it.name })
             }
         }
@@ -183,18 +183,14 @@ class MusicExtension : Extension() {
 
                 action {
                     val playlist = this.arguments.playlist.parsed
-                    val tracks = playlistTrackManager.getTracksInPlaylist(playlist)
+                    val requester = PartialUser.fromKordUser(user.asUser())
+                    val tracks = playlistTrackManager.getMelijnTracksInPlaylist(playlist, requester)
                     val guild = this.guild!!.asGuild()
                     val trackManager = guild.getTrackManager()
                     val link = trackManager.link
                     if (tryJoinUser(link)) return@action
 
-                    for (track in tracks) {
-                        val lavakordTrack = dev.schlaubi.lavakord.audio.player.Track.fromLavalink(track.track)
-                        val data = TrackData.fromNow(PartialUser.fromKordUser(user.asUser()), lavakordTrack.identifier)
-                        val fetchedTrack = FetchedTrack.fromLavakordTrackWithData(lavakordTrack, data)
-                        trackManager.queue(fetchedTrack, QueuePosition.BOTTOM)
-                    }
+                    for (track in tracks) trackManager.queue(track, QueuePosition.BOTTOM)
 
                     respond {
                         content = tr("playlist.load.queued", tracks.size, playlist.name.escapeMarkdown())
@@ -208,57 +204,49 @@ class MusicExtension : Extension() {
 
                 action {
                     val guild = guild!!.asGuild()
+                    val playlistName = arguments.playlist.parsed
                     val trackManager = guild.getTrackManager()
+                    val playingTrack = trackManager.playingTrack
+
+                    // intRanges into tracks conversion
                     val hashSet = HashSet<Int>()
                     val trackIndexes = arguments.trackIndexes.parsed
-                    trackIndexes?.list?.forEach { range -> range.forEach { hashSet.add(it) } }
+                    val targetTracks = trackIndexes?.list?.let { ranges ->
+                        for (range in ranges)
+                            for (i in range) hashSet.add(i-1)
 
-                    var i = 0
-                    val msg = respond {
-                        content = tr("playlist.add.fetching", i, hashSet.size - 1)
-                    }
+                        val shouldContainPlayingTrack = hashSet.remove(-1)
+                        val tracks = trackManager.getTracksByIndexes(hashSet).toMutableList()
+                        if (shouldContainPlayingTrack) playingTrack?.let { tracks.add(it) }
+                        tracks
+                    } ?: buildList { playingTrack?.let { add(it) } }
 
-                    val targetTracks =
-                        if (trackIndexes != null) {
-                            trackManager.getTracksByIndexes(trackIndexes.list).mapNotNull {
-                                val fetched = it.getLavakordTrack()
-                                if (TimeUtil.between(Clock.System.now(), msg.message.timestamp) > 5.seconds) {
-                                    msg.edit {
-                                        content = tr("playlist.add.fetching", i, hashSet.size - 1)
-                                    }
-                                }
-                                i++
-                                fetched
-                            }
-                        } else trackManager.player.playingTrack?.let { listOf(it) } ?: emptyList()
-                    if (targetTracks.isEmpty()) {
-                        msg.edit { content = tr("playlist.add.trackNoFetch") }
-                        return@action
-                    }
-
-                    val playlistName = arguments.playlist.parsed
+                    // potentially create non-existant playlist
                     val existingPlaylist = playlistManager.getByNameOrDefault(user.id, playlistName)
                     playlistManager.store(existingPlaylist)
 
-                    for (track in targetTracks) playlistTrackManager.newTrack(existingPlaylist, track.track)
-                    val tracks = playlistTrackManager.getTracksInPlaylist(existingPlaylist)
+                    val oldTrackCount = playlistTrackManager.getTrackCount(existingPlaylist)
+
+                    // add each track to the existing playlist
+                    for (track in targetTracks)
+                        playlistTrackManager.newTrack(existingPlaylist, track)
 
                     if (targetTracks.size == 1) {
                         val targetTrack = targetTracks.first()
-                        msg.edit {
+                        respond {
                             content = tr(
                                 "playlist.add.added", targetTrack.title.escapeMarkdown(),
-                                playlistName.escapeMarkdown(), tracks.size - 1
+                                playlistName.escapeMarkdown(), oldTrackCount
                             )
                         }
                     } else {
-                        msg.edit {
+                        respond {
                             content = tr(
                                 "playlist.add.addedMany",
                                 targetTracks.size,
                                 playlistName.escapeMarkdown(),
-                                tracks.size - 1,
-                                tracks.size - 1 + targetTracks.size
+                                oldTrackCount,
+                                oldTrackCount + targetTracks.size - 1
                             )
                         }
                     }
@@ -277,14 +265,13 @@ class MusicExtension : Extension() {
                     }
                     if (toRemove.size == 1) {
                         val (index, track) = toRemove[0]
-                        val lavakordTrack = dev.schlaubi.lavakord.audio.player.Track.fromLavalink(track.track)
                         playlistTrackManager.delete(track)
                         respond {
                             content = tr(
                                 "playlist.remove.removedTrack",
                                 index,
-                                lavakordTrack.uri.toString(),
-                                lavakordTrack.title.escapeMarkdown(),
+                                track.url,
+                                track.title.escapeMarkdown(),
                                 existingPlaylist.name.escapeMarkdown()
                             )
                         }
@@ -344,11 +331,10 @@ class MusicExtension : Extension() {
                     var description = ""
 
                     tracks.withIndex().forEach { (index, trackData) ->
-                        val lavakordTrack = dev.schlaubi.lavakord.audio.player.Track.fromLavalink(trackData.track)
-                        totalDuration += lavakordTrack.length
+                        totalDuration += trackData.length
                         description += "\n" + tr(
-                            "queue.queueEntry", index, lavakordTrack.uri ?: "", lavakordTrack.title,
-                            lavakordTrack.length.formatElapsed()
+                            "queue.queueEntry", index, trackData.url, trackData.title,
+                            trackData.length.formatElapsed()
                         )
                     }
 
@@ -710,7 +696,7 @@ class MusicExtension : Extension() {
                         }
                         thumbnail {
                             url = when (playing.sourceType) {
-                                TrackSource.Youtube -> "https://img.youtube.com/vi/${playing.identifier}/hqdefault.jpg"
+                                TrackSource.YOUTUBE -> "https://img.youtube.com/vi/${playing.identifier}/hqdefault.jpg"
                                 else -> ""
                             }
                         }

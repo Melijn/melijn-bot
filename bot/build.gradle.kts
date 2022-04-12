@@ -45,10 +45,6 @@ repositories {
     mavenLocal()
     maven("https://duncte123.jfrog.io/artifactory/maven")
     maven("https://nexus.melijn.com/repository/jitpack/")
-    maven {
-        url = uri("https://maven.pkg.jetbrains.space/public/p/ktor/eap")
-        name = "ktor-eap"
-    }
     // pooppack mirror
 }
 
@@ -61,9 +57,9 @@ val scrimage = "4.0.22"
 
 val kord = "0.8.0-M12"
 val kordEx = "1.5.2-SNAPSHOT"
-val kordKommons = "1.1.8"
+val kordKommons = "1.2.1"
+val apKordVersion = "0.1.5"
 val redgresKommons = "0.0.3"
-val apKordVersion = "0.1.0"
 
 dependencies {
     implementation("dev.kord:kord-core:$kord")

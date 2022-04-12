@@ -180,4 +180,7 @@ class TrackManager(val link: Link) {
         ranges.forEach { range -> for (i in range) indexes.add(i) }
         return queue.getAll(indexes)
     }
+    suspend fun getTracksByIndexes(collection: Collection<Int>): List<Track> {
+        return queue.getAll(collection)
+    }
 }

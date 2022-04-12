@@ -20,9 +20,9 @@ repositories {
 val ktorVersion = "1.6.8"
 val logbackVersion = "1.2.11"
 
-val kordKommons = "1.1.1"
-val redgresKommons = "0.0.2"
-val apKord = "0.0.7"
+val kordKommons = "1.2.0"
+val redgresKommons = "0.0.3"
+val apKord = "0.1.2"
 
 dependencies {
     implementation(kotlin("stdlib"))
