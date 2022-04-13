@@ -58,13 +58,14 @@ val scrimage = "4.0.22"
 val kord = "0.8.0-M12"
 val kordEx = "1.5.2-SNAPSHOT"
 val kordKommons = "1.2.1"
-val apKordVersion = "0.1.5"
+val apKordVersion = "0.1.8"
 val redgresKommons = "0.0.3"
 
 dependencies {
     implementation("dev.kord:kord-core:$kord")
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
     ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
+    implementation("org.scilab.forge:jlatexmath:1.0.7")
 
     implementation("dev.schlaubi.lavakord", "kord", "3.5.1")
 

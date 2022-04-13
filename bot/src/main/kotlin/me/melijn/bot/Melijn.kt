@@ -91,6 +91,7 @@ object Melijn {
                     )
                     loadKoinModules(injectorInterface.module)
 
+
                     RestServer // Inits restServer object
 
                     val serviceManager by inject<ServiceManager>(ServiceManager::class.java)
@@ -98,6 +99,11 @@ object Melijn {
                 }
 
                 setup {
+                    val injectorInterface = ReflectUtil.getInstanceOfKspClass<InjectorInterface>(
+                        "me.melijn.gen", "InjectionKoinModule"
+                    )
+                    injectorInterface.initInjects()
+
                     val kord by inject<Kord>(Kord::class.java)
                     lavalink = kord.lavakord {
                         link {
