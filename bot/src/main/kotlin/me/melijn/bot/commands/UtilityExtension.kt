@@ -1,5 +1,8 @@
 package me.melijn.bot.commands
 
+import com.freya02.emojis.Emojis
+import com.freya02.emojis.TwemojiType
+import com.kotlindiscord.kord.extensions.checks.anyGuild
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.ApplicationCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.application.DefaultApplicationCommandRegistry
@@ -15,13 +18,17 @@ import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.utils.canInteract
 import com.kotlindiscord.kord.extensions.utils.selfMember
 import dev.kord.common.DiscordTimestampStyle
+import dev.kord.common.entity.UserFlag
 import dev.kord.common.toMessageFormat
 import dev.kord.core.behavior.interaction.followup.edit
 import dev.kord.core.entity.User
+import dev.kord.core.entity.VoiceState
+import dev.kord.rest.Image
 import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
 import dev.kord.rest.builder.message.create.embed
 import dev.kord.rest.builder.message.modify.embed
 import kotlinx.coroutines.flow.count
+import kotlinx.coroutines.flow.toList
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordUtil.effectiveAvatarUrl
@@ -74,6 +81,54 @@ class UtilityExtension : Extension() {
                         color = role.color
                         role.icon?.url?.let {
                             thumbnail { url = it }
+                        }
+                        role.unicodeEmoji?.let {
+                            thumbnail { url = Emojis.ofUnicode(it).getTwemojiImageUrl(TwemojiType.X72) }
+                        }
+                    }
+                }
+            }
+        }
+
+        publicSlashCommand(::UserInfoArgs) {
+            name = "userInfo"
+            description = "Gives info about user"
+
+            check {
+                anyGuild()
+            }
+
+            action {
+                val user = arguments.user.parsed ?: this.user.asUser()
+                val guild = guild!!
+                val member = user.asMember(guild.id)
+                val isSupporter = false
+                val banner = user.getBannerUrl(Image.Format.PNG)
+                val voiceState = member.getVoiceStateOrNull()
+                val statusIconString = getStatusIcons(voiceState)
+                respond {
+                    embed {
+                        description = tr("userInfo.userInfoSection", user.username, user.discriminator,
+                            user.id, user.isBot, isSupporter, user.effectiveAvatarUrl(),
+                            banner != null, banner.toString(),
+                            user.id.timestamp.toMessageFormat(DiscordTimestampStyle.ShortDateTime),
+                            user.publicFlags?.flags?.joinToString(separator = " ") { getBadge(it) } ?: "")
+                        val roleString = member.roles.toList()
+                            .sortedBy { it.rawPosition }
+                            .reversed()
+                            .joinToString {
+                                it.mention
+                            }
+                        description += tr(
+                            "userInfo.memberInfoSection", roleString,
+                            member.nickname ?: "",
+                            member.isOwner(),
+                            member.joinedAt.toMessageFormat(DiscordTimestampStyle.ShortDateTime),
+                            member.premiumSince?.toMessageFormat(DiscordTimestampStyle.ShortDateTime) ?: "",
+                            voiceState?.channelId != null, statusIconString, guild.selfMember().canInteract(member)
+                        )
+                        thumbnail {
+                            url = user.effectiveAvatarUrl()
                         }
                     }
                 }
@@ -173,6 +228,20 @@ class UtilityExtension : Extension() {
         }
     }
 
+    private fun getStatusIcons(voiceState: VoiceState?): String {
+        if (voiceState == null) {
+            return ""
+        }
+        var list = ""
+        if (voiceState.isSelfDeafened) list += " <:deafened:964134465884553256>"
+        if (voiceState.isMuted) list += " <:server_muted:964134465880342578>"
+        if (voiceState.isDeafened) list += " <:server_deafened:964134465884545094>"
+        if (voiceState.isSelfMuted) list += " <:muted:964134465817440317>"
+        if (voiceState.isSelfVideo) list += " <:video:964140322336698398>"
+        if (voiceState.isSelfStreaming) list += " <:screen_share:964141257595158588>"
+        return list
+    }
+
     private fun FollowupMessageCreateBuilder.avatarEmbed(translationsProvider: TranslationsProvider, target: User) {
         embed {
             title = translationsProvider.tr("avatar.title", target.tag)
@@ -211,4 +280,30 @@ class UtilityExtension : Extension() {
         }
     }
 
+    inner class UserInfoArgs : Arguments() {
+        val user = optionalUser {
+            name = "user"
+            description = "A user"
+        }
+    }
+
+    private fun getBadge(flag: UserFlag): String {
+        return when (flag) {
+            UserFlag.DiscordEmployee -> "<:furry:907322194156224542>"
+            UserFlag.DiscordPartner -> "<:partnered:907322256567447552>"
+            UserFlag.BugHunterLevel1 -> "<:bug_hunter:907322130151141416>"
+            UserFlag.BugHunterLevel2 -> "<:gold_bughunter:907322205917052978>"
+            UserFlag.HypeSquad -> "<:hypesquad_events_v1:907322220056023080>"
+            UserFlag.HouseBravery -> "<:bravery:907322115454300190>"
+            UserFlag.HouseBrilliance -> "<:brilliance:907322122580406332>"
+            UserFlag.HouseBalance -> "<:balance:907321974211108984>"
+            UserFlag.EarlySupporter -> "<:early_supporter:907322161159626753>"
+            UserFlag.TeamUser -> "`team user`"
+            UserFlag.VerifiedBot -> "`verified bot`"
+            UserFlag.VerifiedBotDeveloper -> "<:early_verified_developer:907322174329716818>"
+            UserFlag.DiscordCertifiedModerator -> "<:certified_virgin:907322144109756426>"
+            UserFlag.BotHttpInteractions -> "`http bot`"
+            UserFlag.System -> "`System User`"
+        }
+    }
 }
