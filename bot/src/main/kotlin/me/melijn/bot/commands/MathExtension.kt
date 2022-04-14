@@ -2,6 +2,9 @@ package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.impl.long
+import com.kotlindiscord.kord.extensions.commands.converters.impl.string
+import com.kotlindiscord.kord.extensions.components.components
+import com.kotlindiscord.kord.extensions.components.publicButton
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
 import dev.kord.common.entity.ButtonStyle
@@ -70,13 +73,20 @@ class MathExtension : Extension() {
             }
         }
 
-        chatCommand() {
+        chatCommand(::LaTeXArgs) {
             name = "latex"
+            description = "https://en.wikibooks.org/wiki/LaTeX/Mathematics"
+            allowKeywordArguments = false
 
             action {
-                val latex = message.content.split(" ", limit = 2).last()
+                val latex = arguments.latex.parsed
                 val formula = TeXFormula(latex)
-                val img: BufferedImage = formula.createBufferedImage(TeXConstants.STYLE_DISPLAY, 20f, Color.BLACK, Color.WHITE) as BufferedImage
+                val img: BufferedImage = formula.createBufferedImage(
+                    TeXConstants.STYLE_DISPLAY,
+                    20f,
+                    Color.BLACK,
+                    Color.WHITE
+                ) as BufferedImage
                 val baos = ByteArrayOutputStream()
                 kotlin.runCatching { ImageIO.write(img, "jpeg", baos) }
                 val bis = ByteArrayInputStream(baos.toByteArray())
@@ -86,6 +96,15 @@ class MathExtension : Extension() {
                     actionRow {
                         interactionButton(ButtonStyle.Danger, "DESTROYY") {
                             label = "Destroy"
+                        }
+                    }
+                    components {
+                        publicButton {
+                            label = "Destroy"
+                            style = ButtonStyle.Danger
+                            this.action {
+                                this.message
+                            }
                         }
                     }
                 }
@@ -111,7 +130,16 @@ class MathExtension : Extension() {
         return a / gcd(a, b) * b
     }
 
+    inner class LaTeXArgs : Arguments() {
+
+        val latex = string {
+            name = "mathTex"
+            description = "put math here to render"
+        }
+    }
+
     inner class VkVglArgs : Arguments() {
+
         val b = long {
             name = "b"
             description = "number 2"
@@ -123,6 +151,7 @@ class MathExtension : Extension() {
     }
 
     inner class TwoNumberArgs : Arguments() {
+
         val a = long {
             name = "a"
             description = "number 1"

@@ -12,8 +12,8 @@ class ButtonInteractionListener {
     init {
         val kord by inject<Kord>()
         kord.on<ButtonInteractionCreateEvent> {
-            if (this.interaction.componentId == "DESTROYY") {
-                this.interaction.message.delete("DESTROYY latex")
+            if (interaction.componentId == "DESTROYY") {
+                interaction.message.delete("DESTROYY latex")
             }
         }
     }
