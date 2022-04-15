@@ -7,6 +7,7 @@ import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.ApplicationCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.application.DefaultApplicationCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandRegistry
+import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalSnowflake
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalUser
 import com.kotlindiscord.kord.extensions.commands.converters.impl.role
 import com.kotlindiscord.kord.extensions.commands.converters.impl.snowflake
@@ -23,15 +24,23 @@ import dev.kord.common.toMessageFormat
 import dev.kord.core.behavior.interaction.followup.edit
 import dev.kord.core.entity.User
 import dev.kord.core.entity.VoiceState
+import dev.kord.core.entity.channel.Category
+import dev.kord.core.entity.channel.TextChannel
+import dev.kord.core.entity.channel.VoiceChannel
+import dev.kord.core.supplier.EntitySupplyStrategy
 import dev.kord.rest.Image
 import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
 import dev.kord.rest.builder.message.create.embed
 import dev.kord.rest.builder.message.modify.embed
 import kotlinx.coroutines.flow.count
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.toList
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.utils.KordExUtils.tr
+import me.melijn.bot.utils.KordUtil.bannerUrl
 import me.melijn.bot.utils.KordUtil.effectiveAvatarUrl
+import me.melijn.bot.utils.KordUtil.iconUrl
+import me.melijn.bot.utils.KordUtil.splashUrl
 import org.koin.core.component.inject
 
 
@@ -103,7 +112,8 @@ class UtilityExtension : Extension() {
                 val guild = guild!!
                 val member = user.asMember(guild.id)
                 val isSupporter = false
-                val banner = user.getBannerUrl(Image.Format.PNG)
+                val banner = user.withStrategy(EntitySupplyStrategy.rest).fetchUser().getBannerUrl(Image.Format.PNG)
+                    ?.plus("?size=2048")
                 val voiceState = member.getVoiceStateOrNull()
                 val statusIconString = getStatusIcons(voiceState)
                 respond {
@@ -130,6 +140,53 @@ class UtilityExtension : Extension() {
                         thumbnail {
                             url = user.effectiveAvatarUrl()
                         }
+                    }
+                }
+            }
+        }
+
+        publicSlashCommand(::ServerInfoArgs) {
+            name = "serverInfo"
+            description = "gives information about the server"
+            action {
+                val guild =
+                    arguments.serverId.parsed?.let { this@UtilityExtension.kord.getGuild(it) } ?: this.guild?.asGuild()
+                if (guild == null) {
+                    respond { content = tr("serverInfo.guildOnlyOrArgumentPassed") }
+                    return@action
+                }
+                val memberCount = guild.memberCount ?: 0
+                val userCount = guild.members.filter { !it.isBot }.count()
+                val botCount = guild.members.count() - userCount
+                val iconUrl = guild.iconUrl()
+                val bannerUrl = guild.bannerUrl()
+                val splashUrl = guild.splashUrl()
+                respond {
+                    embed {
+                        thumbnail {
+                            url = iconUrl.toString()
+                        }
+                        description = tr(
+                            "serverInfo.responseDescription", guild.name, guild.id,
+                            guild.owner.asUser().tag,
+                            guild.id.timestamp.toMessageFormat(DiscordTimestampStyle.ShortDateTime),
+                            tr("serverVerificationLevel", guild.verificationLevel.value),
+                            tr("serverMFATier", guild.mfaLevel.value),
+                            tr("serverContentFilterLevel", guild.contentFilter.value),
+                            tr("serverNSFWLevel", guild.nsfw.value),
+                            true,
+                            memberCount,
+                            userCount, userCount.toFloat() / memberCount * 100,
+                            botCount, botCount.toFloat() / memberCount * 100,
+                            guild.premiumSubscriptionCount ?: 0,
+                            tr("serverBoostTier", guild.premiumTier.value),
+                            guild.roles.count(),
+                            guild.channels.filter { it is TextChannel }.count(),
+                            guild.channels.filter { it is VoiceChannel }.count(),
+                            guild.channels.filter { it is Category }.count(),
+                            iconUrl != null, iconUrl.toString(), bannerUrl != null, bannerUrl.toString(),
+                            splashUrl != null, splashUrl.toString()
+                        )
                     }
                 }
             }
@@ -212,7 +269,7 @@ class UtilityExtension : Extension() {
                     embed {
                         title = tr("ping.title")
                         description = msg.message.embeds.first().description + "\n" +
-                                tr("ping.sendMessagePing", sendMessagePing)
+                            tr("ping.sendMessagePing", sendMessagePing)
                     }
                 }
                 val timeStamp3 = System.currentTimeMillis()
@@ -221,12 +278,13 @@ class UtilityExtension : Extension() {
                     embed {
                         title = tr("ping.title")
                         description = edited.message.embeds.first().description + "\n" +
-                                tr("ping.editMessagePing", editMessagePing)
+                            tr("ping.editMessagePing", editMessagePing)
                     }
                 }
             }
         }
     }
+
 
     private fun getStatusIcons(voiceState: VoiceState?): String {
         if (voiceState == null) {
@@ -247,13 +305,13 @@ class UtilityExtension : Extension() {
             title = translationsProvider.tr("avatar.title", target.tag)
             description = translationsProvider.tr(
                 "avatar.description", " **" +
-                        "[direct](${target.effectiveAvatarUrl()}) • " +
-                        "[x64](${target.effectiveAvatarUrl()}?size=64) • " +
-                        "[x128](${target.effectiveAvatarUrl()}?size=128) • " +
-                        "[x256](${target.effectiveAvatarUrl()}?size=256) • " +
-                        "[x512](${target.effectiveAvatarUrl()}?size=512) • " +
-                        "[x1024](${target.effectiveAvatarUrl()}?size=1024) • " +
-                        "[x2048](${target.effectiveAvatarUrl()}?size=2048)**"
+                    "[direct](${target.effectiveAvatarUrl()}) • " +
+                    "[x64](${target.effectiveAvatarUrl()}?size=64) • " +
+                    "[x128](${target.effectiveAvatarUrl()}?size=128) • " +
+                    "[x256](${target.effectiveAvatarUrl()}?size=256) • " +
+                    "[x512](${target.effectiveAvatarUrl()}?size=512) • " +
+                    "[x1024](${target.effectiveAvatarUrl()}?size=1024) • " +
+                    "[x2048](${target.effectiveAvatarUrl()}?size=2048)**"
             )
             image = target.effectiveAvatarUrl() + "?size=2048"
         }
@@ -263,6 +321,19 @@ class UtilityExtension : Extension() {
         val target = optionalUser {
             name = "user"
             description = "Gives the avatar of the user"
+        }
+    }
+
+    inner class ServerInfoArgs() : Arguments() {
+        val serverId = optionalSnowflake {
+            name = "serverId"
+            description = "Id of the server"
+            validate {
+                val betterValue = value ?: return@validate
+                failIf(translations.tr("arguments.guildId.noGuild")) {
+                    kord.getGuild(betterValue) == null
+                }
+            }
         }
     }
 
