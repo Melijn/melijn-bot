@@ -1,6 +1,6 @@
 package snippet
 
-import io.ktor.application.*
+import io.ktor.server.application.*
 import org.koin.core.component.KoinComponent
 
 abstract class AbstractSnippet<T> : KoinComponent {

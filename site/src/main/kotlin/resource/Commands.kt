@@ -1,9 +1,10 @@
 package resource
 
 import httpClient
-import io.ktor.application.*
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import io.ktor.server.application.*
 import io.ktor.util.*
 import kotlinx.serialization.json.*
 import me.melijn.siteannotationprocessors.page.Page
@@ -46,7 +47,7 @@ class Commands : AbstractPage("/commands", ContentType.Text.Html) {
     """.trimIndent()
 
     override suspend fun render(call: ApplicationCall): String {
-        val json = httpClient.get<JsonObject>("https://vps2-melijn.bitflow.dev/commands")
+        val json = httpClient.get("https://vps2-melijn.bitflow.dev/commands").body<JsonObject>()
         val query = call.request.queryParameters["q"]?.escapeHTML()?.takeIf { it.isNotBlank() }
         val categoryQuery = call.request.queryParameters["c"]?.escapeHTML()?.takeIf { it.isNotBlank() }
         val sb = StringBuilder()

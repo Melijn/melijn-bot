@@ -52,13 +52,13 @@ repositories {
 }
 
 val jackson = "2.13.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
-val ktor = "1.6.8"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
+val ktor = "2.0.0"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 val apollo = "2.5.11" // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
 val kotlinX = "1.6.0" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
 val kotlin = "1.6.20"
 val scrimage = "4.0.22"
 
-val kord = "0.8.0-M12"
+val kord = "0.8.0-M13"
 val kordEx = "1.5.2-SNAPSHOT"
 val kordKommons = "1.1.0"
 
@@ -133,10 +133,15 @@ dependencies {
 
     // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
     implementation("io.ktor:ktor:$ktor")
+    implementation("io.ktor:ktor-serialization-jackson:$ktor")
+
+    // Ktor Client
     implementation("io.ktor:ktor-client-okhttp:$ktor")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktor")
+
+    // Ktor Server
     implementation("io.ktor:ktor-server-netty:$ktor")
-    implementation("io.ktor:ktor-jackson:$ktor")
-    implementation("io.ktor:ktor-client-jackson:$ktor")
+    implementation("io.ktor:ktor-server-content-negotiation:$ktor")
 
     // https://nexus.melijn.com/#browse/browse:maven-public:me%2Fmelijn%2Fgifdecoder
     implementation("com.github.zh79325:open-gif:1.0.4")

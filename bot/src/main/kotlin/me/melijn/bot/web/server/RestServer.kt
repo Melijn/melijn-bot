@@ -1,9 +1,9 @@
 package me.melijn.bot.web.server
 
-import io.ktor.response.*
-import io.ktor.routing.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import me.melijn.bot.model.PodInfo
 import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.bot.utils.Log
