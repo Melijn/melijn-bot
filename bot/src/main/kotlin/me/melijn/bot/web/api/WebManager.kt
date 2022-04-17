@@ -4,8 +4,9 @@ import com.apollographql.apollo.ApolloClient
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
-import io.ktor.client.features.*
-import io.ktor.client.features.json.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.jackson.*
 import me.melijn.ap.injector.Inject
 import me.melijn.gen.Settings
 import okhttp3.OkHttpClient
@@ -21,8 +22,8 @@ class WebManager {
 
     val commonClientConfig: HttpClientConfig<OkHttpConfig>.() -> Unit = {
         expectSuccess = false
-        install(JsonFeature) {
-            serializer = JacksonSerializer(objectMapper)
+        install(ContentNegotiation) {
+            jackson()
         }
         install(UserAgent) {
             agent = "Melijn / 3.0.0 Discord bot"

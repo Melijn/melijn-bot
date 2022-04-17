@@ -3,9 +3,9 @@ package resource
 import api.discord.DiscordApi
 import database.manager.UserCookieManager
 import database.manager.UserDataManager
-import io.ktor.application.*
 import io.ktor.http.*
-import io.ktor.response.*
+import io.ktor.server.application.*
+import io.ktor.server.response.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime

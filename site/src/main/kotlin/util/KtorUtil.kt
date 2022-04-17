@@ -1,7 +1,7 @@
 package util
 
-import io.ktor.request.*
-import io.ktor.response.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
 
 object KtorUtil {
 

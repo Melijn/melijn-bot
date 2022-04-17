@@ -1,8 +1,8 @@
 package resource
 
-import io.ktor.application.*
 import io.ktor.http.*
-import io.ktor.response.*
+import io.ktor.server.application.*
+import io.ktor.server.response.*
 import me.melijn.siteannotationprocessors.page.Page
 import model.AbstractPage
 import model.CustomResponseException

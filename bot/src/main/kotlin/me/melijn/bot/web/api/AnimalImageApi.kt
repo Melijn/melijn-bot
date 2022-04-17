@@ -1,6 +1,7 @@
 package me.melijn.bot.web.api
 
 import io.ktor.client.*
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import me.melijn.bot.model.AnimalSource
 import me.melijn.bot.model.AnimalType
@@ -35,14 +36,14 @@ class AnimalImageApi(private val httpClient: HttpClient) : KoinComponent {
 
     private suspend fun getRandomTheCatApiUrl(): String? {
         return try {
-            httpClient.get<List<TheCatApiRandomImages.TheCatApiRandomImage>>("https://api.thecatapi.com/v1/images/search") {
+            httpClient.get("https://api.thecatapi.com/v1/images/search") {
                 header("x-api-key", settings.api.theCatApi.apiKey)
                 parametersOf(
                     "limit" to "1",
                     "format" to "json",
                     "order" to "RANDOM"
                 )
-            }.first().url
+            }.body<List<TheCatApiRandomImages.TheCatApiRandomImage>>().first().url
         } catch (t: Throwable) {
             logger.warn(t) { "TheCatApi failed to respond properly" }
             null
@@ -51,7 +52,7 @@ class AnimalImageApi(private val httpClient: HttpClient) : KoinComponent {
 
     private suspend fun getRandomSomeRandomApiUrl(tag: String): String? {
         return try {
-            httpClient.get<SomeRandomApiRandomImage>("https://some-random-api.ml/img/$tag").link
+            httpClient.get("https://some-random-api.ml/img/$tag").body<SomeRandomApiRandomImage>().link
         } catch (t: Throwable) {
             logger.warn(t) { "SomeRandomApi failed to respond properly" }
             null
@@ -60,7 +61,7 @@ class AnimalImageApi(private val httpClient: HttpClient) : KoinComponent {
 
     private suspend fun getRandomDuncte123Url(tag: String): String? {
         return try {
-            httpClient.get<Duncte123RandomImage>("https://apis.duncte123.me/animal/$tag").data.file
+            httpClient.get("https://apis.duncte123.me/animal/$tag").body<Duncte123RandomImage>().data.file
         } catch (t: Throwable) {
             logger.warn(t) { "Duncte123 failed to respond properly" }
             null
@@ -69,7 +70,7 @@ class AnimalImageApi(private val httpClient: HttpClient) : KoinComponent {
 
     private suspend fun getRandomRandomDukUrl(): String? {
         return try {
-            httpClient.get<RandomDukRandomImage>("https://random-d.uk/api/v2/random").url
+            httpClient.get("https://random-d.uk/api/v2/random").body<RandomDukRandomImage>().url
         } catch (t: Throwable) {
             logger.warn(t) { "RandomDukApi failed to respond properly" }
             null
@@ -78,9 +79,9 @@ class AnimalImageApi(private val httpClient: HttpClient) : KoinComponent {
 
     private suspend fun getRandomImgHoardUrl(tag: String): String? {
         return try {
-            httpClient.get<ImgHoardRandomImage>("https://api.miki.bot/images/random?tags=$tag") {
+            httpClient.get("https://api.miki.bot/images/random?tags=$tag") {
                 header("Authorization", settings.api.imgHoard.token)
-            }.url
+            }.body<ImgHoardRandomImage>().url
         } catch (t: Throwable) {
             logger.warn(t) { "ImgHoard failed to respond properly" }
             null
