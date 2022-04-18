@@ -14,6 +14,7 @@ import me.melijn.bot.music.MusicManager.getTrackManager
 import me.melijn.bot.utils.EnumUtil.lcc
 import me.melijn.bot.utils.EnumUtil.ucc
 import me.melijn.bot.utils.InferredChoiceEnum
+import me.melijn.bot.utils.KordExUtils.atLeast
 import me.melijn.bot.utils.KordExUtils.inRange
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
@@ -250,9 +251,18 @@ class EffectsExtension : Extension() {
                     }
                 }
             }
+//
+//            publicSubCommand(::LowPassArgs) {
+//                name = "lowPass"
+//                description = "suppresses higher frequencies"
+//
+//                action {
+//
+//                }
+//            }
 
             for (common in FreqDepthFilters.values()) {
-                publicSubCommand(::TremoloArgs) {
+                publicSubCommand({ TremoloVibratoCommonArgs(common.ucc()) }) {
                     name = common.lcc()
                     description = "musicPlayer $name effects"
 
@@ -289,7 +299,9 @@ class EffectsExtension : Extension() {
                         var new = currentFreqDepth(trackManager.player)
                         arguments.frequency.parsed?.let { new = it / 100.0f to new.second }
                         arguments.depth.parsed?.let { new = new.first to it / 100.0f }
-                        trackManager.player.applyFilters { common.set(this, new.first, new.second) }
+                        trackManager.player.applyFilters {
+                            common.set(this, new.first, new.second)
+                        }
 
                         respond {
                             content = tr(
@@ -335,20 +347,18 @@ class EffectsExtension : Extension() {
         val frequency = optionalInt {
             name = "frequency"
             description = "$name frequency"
+            validate { atLeast(name, 1) }
         }
         val depth = optionalInt {
             name = "depth"
             description = "$name depth"
+            validate { inRange(name, 1, 100) }
         }
         val reset = optionalBoolean {
             name = "reset"
             description = "Resets the ${name.lowercase()} effect"
         }
     }
-
-    inner class TremoloArgs : TremoloVibratoCommonArgs("Tremolo")
-
-    inner class VibratoArgs : TremoloVibratoCommonArgs("Vibrato")
 
     inner class DistortionArgs : Arguments() {
 
