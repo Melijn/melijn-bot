@@ -251,15 +251,52 @@ class EffectsExtension : Extension() {
                     }
                 }
             }
-//
-//            publicSubCommand(::LowPassArgs) {
-//                name = "lowPass"
-//                description = "suppresses higher frequencies"
-//
-//                action {
-//
-//                }
-//            }
+
+            publicSubCommand(::LowPassArgs) {
+                name = "lowpass"
+                description = "suppresses higher frequencies"
+
+                action {
+                    val guild = guild!!.asGuild()
+                    val trackManager = guild.getTrackManager()
+
+                    if (arguments.reset.parsed == true) {
+                        trackManager.player.applyFilters { unsetLowPass() }
+                        respond { content = tr("effect.lowpass.reset") }
+                        return@action
+                    }
+
+                    val currentSmoothing: suspend Player.() -> Float = {
+                        var tupple = 1f
+                        applyFilters {
+                            tupple = lowPass?.smoothing ?: 1f
+                        }
+                        tupple
+                    }
+
+                    if (arguments.args.isEmpty()) {
+                        val current = currentSmoothing(trackManager.player)
+                        respond {
+                            content = tr("effect.lowpass.show", current * 100)
+                        }
+                        return@action
+                    }
+
+
+                    arguments.smoothing.parsed?.let {
+                        trackManager.player.applyFilters {
+                            lowPass {
+                                smoothing = it / 100.0f
+                            }
+                        }
+                    }
+                    val new = currentSmoothing(trackManager.player)
+
+                    respond {
+                        content = tr("effect.lowpass.changed", new * 100)
+                    }
+                }
+            }
 
             for (common in FreqDepthFilters.values()) {
                 publicSubCommand({ TremoloVibratoCommonArgs(common.ucc()) }) {
@@ -313,6 +350,18 @@ class EffectsExtension : Extension() {
                     }
                 }
             }
+        }
+    }
+
+    class LowPassArgs : Arguments() {
+
+        val smoothing = optionalInt {
+            name = "smoothing"
+            description = "smoothing value idk"
+        }
+        val reset = optionalBoolean {
+            name = "reset"
+            description = "Resets the lowpass effect"
         }
     }
 
