@@ -10,13 +10,20 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.types.editingPaginator
 import com.kotlindiscord.kord.extensions.types.respond
+import dev.kord.common.entity.ButtonStyle
 import dev.kord.common.entity.ChannelType
+import dev.kord.rest.builder.message.create.actionRow
 import dev.kord.rest.builder.message.create.embed
 import dev.schlaubi.lavakord.audio.Link
 import dev.schlaubi.lavakord.kord.connectAudio
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.Melijn
+import me.melijn.bot.cache.SearchPlayMenuCache
+import me.melijn.bot.events.buttons.SPlayMenuButtonHandler.Companion.splayBtnCancel
+import me.melijn.bot.events.buttons.SPlayMenuButtonHandler.Companion.splayBtnIdPrefix
+import me.melijn.bot.model.OwnedGuildMessage
 import me.melijn.bot.model.PartialUser
+import me.melijn.bot.model.SearchPlayMenu
 import me.melijn.bot.model.TrackSource
 import me.melijn.bot.music.*
 import me.melijn.bot.music.MusicManager.getTrackManager
@@ -307,10 +314,11 @@ class MusicExtension : Extension() {
                     )
                 }
 
+                val locale = getLocale()
                 queue.indexedForEach { index, track ->
                     totalDuration += track.length
-                    description += "\n" + tr(
-                        "queue.queueEntry", index + 1, track.url, track.title,
+                    description += "\n" + translationsProvider.tr(
+                        "queue.queueEntry", locale, index + 1, track.url, track.title,
                         track.length.formatElapsed()
                     )
                 }
@@ -453,7 +461,83 @@ class MusicExtension : Extension() {
             }
         }
 
-        publicGuildSlashCommand(MusicExtension::PlayArgs) {
+        val searchPlayMenuCache by inject<SearchPlayMenuCache>()
+        publicGuildSlashCommand(::SearchPlayArgs) {
+            name = "searchplay"
+            description = "Search the first 5 tracks and lets you choose the best one"
+
+            action {
+                val guild = guild!!.asGuild()
+                val user = user.asUser()
+                val trackManager = guild.getTrackManager()
+                val link = trackManager.link
+
+                val query = arguments.song.parsed
+                val queuePosition = arguments.queuePosition.parsed ?: QueuePosition.BOTTOM
+
+                if (tryJoinUser(link)) return@action
+
+                val requester = PartialUser.fromKordUser(user)
+                val tracks = trackLoader.searchTracks(link.node, query, requester, trackSearchKeep = 5)
+                val locale = getLocale()
+                val entries = tracks.withIndex().joinToString("\n") { (index, track) ->
+                    translationsProvider.tr(
+                        "splay.entry",
+                        locale,
+                        index,
+                        track.url,
+                        track.title,
+                        track.length.formatElapsed()
+                    )
+                }
+
+                val msg = respond {
+                    when {
+                        tracks.size == 1 -> {
+                            val track = tracks.first()
+
+                            embed {
+                                title = tr("play.title", user.tag)
+                                description = tr(
+                                    "play.addedOne",
+                                    trackManager.queue.size,
+                                    entries,
+                                    track.title,
+                                    track.length.formatElapsed()
+                                )
+                            }
+                        }
+                        tracks.size > 1 -> {
+                            embed {
+                                title = tr("splay.menuTitle", user.tag)
+                                description = entries
+                            }
+                            actionRow {
+                                for (i in tracks.indices) {
+                                    interactionButton(ButtonStyle.Secondary, "${splayBtnIdPrefix}$i") {
+                                        label = "$i"
+                                    }
+                                }
+                            }
+                            actionRow {
+                                interactionButton(ButtonStyle.Danger, "${splayBtnIdPrefix}${splayBtnCancel}") {
+                                    label = tr("cancelButton")
+                                }
+                            }
+                        }
+                        else -> content = tr("play.noMatches")
+                    }
+                }
+
+                searchPlayMenuCache.cache[OwnedGuildMessage.from(guild, user, msg.message)] = SearchPlayMenu(
+                    tracks.toTypedArray(),
+                    queuePosition
+                )
+            }
+        }
+
+
+        publicGuildSlashCommand(::PlayArgs) {
             name = "play"
             description = "bot joins your channel and plays moosic"
 
@@ -628,7 +712,20 @@ class MusicExtension : Extension() {
         }
     }
 
-    private class PlayArgs : Arguments() {
+    inner class PlayArgs : Arguments() {
+
+        val song = string {
+            name = "song"
+            description = "songName or link"
+        }
+        val queuePosition = optionalEnumChoice<QueuePosition> {
+            name = "queuePosition"
+            description = "Position the queued track will take"
+            typeName = "queuePosition"
+        }
+    }
+
+    inner class SearchPlayArgs : Arguments() {
 
         val song = string {
             name = "song"

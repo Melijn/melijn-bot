@@ -111,6 +111,9 @@ dependencies {
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
     implementation("org.postgresql:postgresql:42.3.3")
 
+    // expiring map, https://search.maven.org/artifact/net.jodah/expiringmap
+    implementation("net.jodah:expiringmap:0.5.10")
+
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinX")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:$kotlinX")

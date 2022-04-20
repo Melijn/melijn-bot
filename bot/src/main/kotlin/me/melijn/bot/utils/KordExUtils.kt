@@ -34,6 +34,7 @@ import me.melijn.kordkommons.utils.SPACE_PATTERN
 import me.melijn.kordkommons.utils.escapeMarkdown
 import org.jetbrains.annotations.PropertyKey
 import org.koin.core.component.inject
+import java.util.*
 
 object KordExUtils {
 
@@ -106,22 +107,24 @@ object KordExUtils {
     }
 
     fun TranslationsProvider.tr(
-        @PropertyKey(resourceBundle = "translations.melijn.strings") key: String,
+        @PropertyKey(resourceBundle = MELIJN_RESOURCE_BUNDLE) key: String,
+        locale: Locale,
         vararg replacements: Any
     ): String =
-        translate(key, "melijn.strings", replacements.asList().toTypedArray())
+        translate(key, locale, MELIJN_RESOURCE_BUNDLE_KORDEX, replacements.asList().toTypedArray())
 
-    fun CommandContext.tr(
-        @PropertyKey(resourceBundle = "translations.melijn.strings") key: String,
+    suspend fun CommandContext.tr(
+        @PropertyKey(resourceBundle = MELIJN_RESOURCE_BUNDLE) key: String,
         vararg replacements: Any
     ): String =
-        translationsProvider.translate(key, "melijn.strings", replacements.asList().toTypedArray())
+        translationsProvider.translate(key, getLocale(), MELIJN_RESOURCE_BUNDLE_KORDEX, replacements.asList().toTypedArray())
 
-    fun CommandContext.trArr(
-        @PropertyKey(resourceBundle = "translations.melijn.strings") key: String,
-        replacements: Array<Any?>
+    suspend fun ValidationContext<*>.tr(
+        @PropertyKey(resourceBundle = MELIJN_RESOURCE_BUNDLE) key: String,
+        vararg replacements: Any
     ): String =
-        translationsProvider.translate(key, "melijn.strings", replacements)
+        translations.translate(key, context.getLocale(), MELIJN_RESOURCE_BUNDLE_KORDEX, replacements.asList().toTypedArray())
+
 
 
     /**
@@ -164,6 +167,7 @@ object KordExUtils {
 }
 
 interface InferredChoiceEnum : ChoiceEnum {
+
     override val readableName: String
         get() = this.toString().ucc()
 }
@@ -175,6 +179,7 @@ interface InferredChoiceEnum : ChoiceEnum {
 class ShortTimeConverter(
     override var validator: Validator<Long> = null
 ) : SingleConverter<Long>() {
+
     override val signatureTypeString: String = "converters.shortTime.signatureType"
     override val showTypeInSignature: Boolean = false
 
@@ -197,7 +202,7 @@ class ShortTimeConverter(
         return true
     }
 
-    private fun parse(context: CommandContext, arg: String): Long {
+    private suspend fun parse(context: CommandContext, arg: String): Long {
         if (!arg.matches("(?:\\d{1,2}:)?\\d{1,2}:\\d{1,2}".toRegex())) {
             throw DiscordRelayedException(context.tr("shortTimeConverter.badFormatDetected", arg.escapeMarkdown()))
         }
@@ -228,6 +233,7 @@ class ShortTimeConverter(
 class PlaylistConverter(
     override var validator: Validator<PlaylistData> = null
 ) : SingleConverter<PlaylistData>() {
+
     override val signatureTypeString: String = "converters.playlist.signatureType"
     override val showTypeInSignature: Boolean = false
     private val playlistManager by inject<PlaylistManager>()
@@ -274,6 +280,7 @@ class PlaylistConverter(
 class IntRangesConverter(
     override var validator: Validator<IntRanges> = null
 ) : SingleConverter<IntRanges>() {
+
     override val signatureTypeString: String = "converters.ints.signatureType"
     override val showTypeInSignature: Boolean = false
 
@@ -296,7 +303,7 @@ class IntRangesConverter(
         return true
     }
 
-    private fun parse(context: CommandContext, arg: String): IntRanges {
+    private suspend fun parse(context: CommandContext, arg: String): IntRanges {
         try {
             val intRanges = mutableListOf<IntRange>()
             val parts = arg.split("\\s*,\\s*".toRegex())
