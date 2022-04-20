@@ -26,6 +26,7 @@ import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.StringsUtil.ansiFormat
 import me.melijn.bot.utils.TimeUtil.formatElapsed
+import me.melijn.bot.utils.TimeUtil.formatRelative
 import me.melijn.bot.utils.intRanges
 import me.melijn.bot.utils.shortTime
 import me.melijn.bot.web.api.WebManager
@@ -36,6 +37,8 @@ import org.springframework.boot.ansi.AnsiColor
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 @KordExtension
 class MusicExtension : Extension() {
@@ -45,6 +48,7 @@ class MusicExtension : Extension() {
     private val trackLoader by inject<TrackLoader>()
 
     companion object {
+
         suspend fun ValidationContext<*>.failIfInvalidTrackIndex(
             index: Int?,
             trackManagerFun: suspend ValidationContext<*>.() -> TrackManager = {
@@ -549,10 +553,41 @@ class MusicExtension : Extension() {
                 }
             }
         }
+
+        publicGuildSlashCommand {
+            name = "musicplayer"
+            description = "Shows detailed information about the current node"
+
+            action {
+                val guild = guild!!.asGuild()
+                val trackManager = guild.getTrackManager()
+                val stats = trackManager.link.node.lastStatsEvent
+                respond {
+                    content = tr(
+                        "musicPlayer.playerInfo",
+                        trackManager.player.playingTrack?.title ?: "",
+                        trackManager.queue.size,
+                        trackManager.looped, trackManager.loopedQueue, trackManager.player.paused
+                    )
+
+                    if (stats != null)
+                        content += tr(
+                            "musicPlayer.nodeStats",
+                            stats.playingPlayers, stats.players,
+                            stats.cpu.cores, stats.cpu.lavalinkLoad,
+                            StringUtils.humanReadableByteCountBin(stats.memory.used, getLocale()),
+                            StringUtils.humanReadableByteCountBin(stats.memory.allocated, getLocale()),
+                            stats.frameStats?.deficit ?: 0, stats.frameStats?.nulled ?: 0, stats.frameStats?.sent ?: 0,
+                            stats.uptime.toDuration(DurationUnit.MILLISECONDS).formatRelative()
+                        )
+                }
+            }
+        }
     }
 
 
     inner class FollowUserArgs : Arguments() {
+
         val target = optionalUser {
             name = "target"
             description = "MusicPlayer will follow spotify status"
@@ -560,6 +595,7 @@ class MusicExtension : Extension() {
     }
 
     inner class SeekArgs : Arguments() {
+
         val time = shortTime {
             name = "timeStamp"
             description = "format mm:ss or hh:mm:ss (e.g. 1:35 for 1 minute 35 seconds)"
@@ -567,6 +603,7 @@ class MusicExtension : Extension() {
     }
 
     inner class MoveArgs : Arguments() {
+
         val from = int {
             name = "from"
             description = "Index of the track you want to move (see queue command for viewing indexes)"
@@ -584,6 +621,7 @@ class MusicExtension : Extension() {
     }
 
     inner class RemoveArgs : Arguments() {
+
         val positions = intRanges {
             name = "positions"
             description = "Number ranges or numbers seperated by commas (e.g. 1,5,9-15)"
@@ -591,6 +629,7 @@ class MusicExtension : Extension() {
     }
 
     private class PlayArgs : Arguments() {
+
         val song = string {
             name = "song"
             description = "songName"
@@ -603,6 +642,7 @@ class MusicExtension : Extension() {
     }
 
     inner class SkipArgs : Arguments() {
+
         val number = optionalInt {
             name = "trackAmount"
             description =
@@ -620,6 +660,7 @@ class MusicExtension : Extension() {
     }
 
     private class VCArgs : Arguments() {
+
         val channel = optionalChannel {
             name = "voiceChannel"
             description = "Used for advanced summoning spells"

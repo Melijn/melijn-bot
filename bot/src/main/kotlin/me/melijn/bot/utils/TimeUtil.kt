@@ -1,5 +1,7 @@
 package me.melijn.bot.utils
 
+import dev.kord.common.DiscordTimestampStyle
+import dev.kord.common.toMessageFormat
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.toJavaInstant
@@ -22,6 +24,11 @@ object TimeUtil {
             days == 0L -> String.format("%d:%02d:%02d", hours, minutes, seconds)
             else -> String.format("%d days %d:%02d:%02d", days, hours, minutes, seconds)
         }
+    }
+    fun java.time.Duration.formatRelative(): String = this.toKotlinDuration().formatRelative()
+    fun Duration.formatRelative(): String {
+        val lastPoint = System.currentTimeMillis() - inWholeMilliseconds
+        return Instant.fromEpochMilliseconds(lastPoint).toMessageFormat(DiscordTimestampStyle.RelativeTime)
     }
 
     fun now(): LocalDateTime = java.time.LocalDateTime.now().toKotlinLocalDateTime()
