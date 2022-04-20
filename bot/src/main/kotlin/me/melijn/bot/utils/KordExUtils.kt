@@ -117,6 +117,12 @@ object KordExUtils {
     ): String =
         translationsProvider.translate(key, "melijn.strings", replacements.asList().toTypedArray())
 
+    fun CommandContext.trArr(
+        @PropertyKey(resourceBundle = "translations.melijn.strings") key: String,
+        replacements: Array<Any?>
+    ): String =
+        translationsProvider.translate(key, "melijn.strings", replacements)
+
 
     /**
      * DSL function for easily registering a public slash command, with arguments.

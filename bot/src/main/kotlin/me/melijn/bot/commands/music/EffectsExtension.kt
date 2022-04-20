@@ -252,6 +252,98 @@ class EffectsExtension : Extension() {
                 }
             }
 
+            publicSubCommand(::RotationArgs) {
+                name = "rotation"
+                description = "stereo rotation effect"
+
+                action {
+                    val guild = guild!!.asGuild()
+                    val trackManager = guild.getTrackManager()
+
+                    if (arguments.reset.parsed == true) {
+                        trackManager.player.applyFilters { unsetRotation() }
+                        respond { content = tr("effect.rotation.reset") }
+                        return@action
+                    }
+
+                    val currentRotation: suspend Player.() -> Float = {
+                        var array = 1f
+                        applyFilters {
+                            array = rotation?.rotationHz ?: 1f
+                        }
+                        array
+                    }
+
+                    if (arguments.args.isEmpty()) {
+                        val current = currentRotation(trackManager.player)
+                        respond {
+                            content = tr("effect.rotation.show", current * 1000)
+                        }
+                        return@action
+                    }
+
+                    trackManager.player.applyFilters {
+                        rotation {
+                            rotationHz = arguments.hertz.parsed?.toFloat()?.div(1000) ?: 0.2f
+                        }
+                    }
+                    val new = currentRotation(trackManager.player)
+
+                    respond {
+                        content = tr("effect.rotation.changed", new * 1000)
+                    }
+                }
+            }
+
+            publicSubCommand(::KaraokeArgs) {
+                name = "karaoke"
+                description = "muffles vocal frequencies to make it easier to sing along"
+
+                action {
+                    val guild = guild!!.asGuild()
+                    val trackManager = guild.getTrackManager()
+
+                    if (arguments.reset.parsed == true) {
+                        trackManager.player.applyFilters { unsetKaraoke() }
+                        respond { content = tr("effect.karaoke.reset") }
+                        return@action
+                    }
+
+                    val currentKaraoke: suspend Player.() -> Array<Float> = {
+                        val array = Array(4) { 0f }
+                        applyFilters {
+                            array[0] = karaoke?.level ?: 1f
+                            array[1] = karaoke?.monoLevel ?: 1f
+                            array[2] = karaoke?.filterBand ?: 220f
+                            array[3] = karaoke?.filterWidth ?: 100f
+                        }
+                        array
+                    }
+
+                    if (arguments.args.isEmpty()) {
+                        val current = currentKaraoke(trackManager.player)
+                        respond {
+                            content = tr("effect.karaoke.show", current[0] * 100, current[1] * 100, current[2], current[3])
+                        }
+                        return@action
+                    }
+
+                    trackManager.player.applyFilters {
+                        karaoke {
+                            level = arguments.level.parsed?.toFloat()?.div(100) ?: 1f
+                            monoLevel = arguments.monoLevel.parsed?.toFloat()?.div(100) ?: 1f
+                            filterBand = arguments.filterBand.parsed?.toFloat() ?: 220f
+                            filterWidth = arguments.filterWidth.parsed?.toFloat() ?: 100f
+                        }
+                    }
+                    val new = currentKaraoke(trackManager.player)
+
+                    respond {
+                        content = tr("effect.karaoke.changed", new[0] * 100, new[1] * 100, new[2], new[3])
+                    }
+                }
+            }
+
             publicSubCommand(::LowPassArgs) {
                 name = "lowpass"
                 description = "suppresses higher frequencies"
@@ -281,7 +373,6 @@ class EffectsExtension : Extension() {
                         }
                         return@action
                     }
-
 
                     arguments.smoothing.parsed?.let {
                         trackManager.player.applyFilters {
@@ -350,6 +441,43 @@ class EffectsExtension : Extension() {
                     }
                 }
             }
+        }
+    }
+
+    class RotationArgs : Arguments() {
+
+        val hertz = optionalInt {
+            name = "hertz"
+            description = "1000% = 1hz"
+        }
+        val reset = optionalBoolean {
+            name = "reset"
+            description = "Resets the rotation effect"
+        }
+    }
+
+    class KaraokeArgs : Arguments() {
+
+        val level = optionalInt {
+            name = "level"
+            description = "karaoke level"
+        }
+        val monoLevel = optionalInt {
+            name = "monolevel"
+            description = "mono karaoke level"
+        }
+        val filterBand = optionalInt {
+            name = "filterband"
+            description = "frequency band"
+        }
+
+        val filterWidth = optionalInt {
+            name = "filterwidth"
+            description = "frequency band width"
+        }
+        val reset = optionalBoolean {
+            name = "reset"
+            description = "Resets the karaoke effect"
         }
     }
 
