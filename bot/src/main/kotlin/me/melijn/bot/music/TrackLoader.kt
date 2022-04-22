@@ -49,6 +49,37 @@ class TrackLoader : KoinComponent {
     }
 
     /**
+     * General search methods, all internal results (pre [trackSearchKeep]) are cached automatically for the given [query]
+     *
+     * @param restNode used for search requests to lavalink server
+     * @param query query text, can be song title, http url, yt link or spotify link
+     * @param requester requester data to be appended to each result item
+     * @param trackSearchKeep limits the results for song title input
+     *
+     * @return list of tracks
+     */
+    suspend fun searchFetchedTracks(
+        restNode: RestNode,
+        query: String,
+        requester: PartialUser,
+        trackSearchKeep: Int = 5
+    ): List<FetchedTrack> {
+        val spotifyApi = webManager.spotifyApi
+        val isHttpQuery = query.startsWith("http://") || query.startsWith("https://")
+        val search = if (isHttpQuery && (query.contains("open.spotify.com") && spotifyApi != null)) {
+            val spotifyTrack = spotifyApi.getTracksFromSpotifyUrl(query, requester)
+                .firstOrNull() ?: return emptyList()
+            "ytsearch:${spotifyTrack.getSearchValue()}"
+        } else {
+            if (isHttpQuery) query else "ytsearch:$query"
+        }
+        val item = restNode.loadItem(search)
+
+        val tracks = handleTrackResponse(item, requester, query)
+        return tracks.take(trackSearchKeep)
+    }
+
+    /**
      * Specific search method for yt
      *
      * @param restNode used for search requests to lavalink server

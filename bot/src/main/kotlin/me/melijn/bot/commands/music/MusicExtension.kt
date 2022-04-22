@@ -19,8 +19,8 @@ import dev.schlaubi.lavakord.kord.connectAudio
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.Melijn
 import me.melijn.bot.cache.SearchPlayMenuCache
-import me.melijn.bot.events.buttons.SPlayMenuButtonHandler.Companion.splayBtnCancel
-import me.melijn.bot.events.buttons.SPlayMenuButtonHandler.Companion.splayBtnIdPrefix
+import me.melijn.bot.events.buttons.SPlayMenuButtonHandler.Companion.SPLAY_BTN_CANCEL
+import me.melijn.bot.events.buttons.SPlayMenuButtonHandler.Companion.SPLAY_BTN_ID_PREFIX
 import me.melijn.bot.model.OwnedGuildMessage
 import me.melijn.bot.model.PartialUser
 import me.melijn.bot.model.SearchPlayMenu
@@ -478,7 +478,7 @@ class MusicExtension : Extension() {
                 if (tryJoinUser(link)) return@action
 
                 val requester = PartialUser.fromKordUser(user)
-                val tracks = trackLoader.searchTracks(link.node, query, requester, trackSearchKeep = 5)
+                val tracks = trackLoader.searchFetchedTracks(link.node, query, requester, trackSearchKeep = 5)
                 val locale = getLocale()
                 val entries = tracks.withIndex().joinToString("\n") { (index, track) ->
                     translationsProvider.tr(
@@ -495,13 +495,14 @@ class MusicExtension : Extension() {
                     when {
                         tracks.size == 1 -> {
                             val track = tracks.first()
+                            trackManager.queue(track, queuePosition)
 
                             embed {
                                 title = tr("play.title", user.tag)
                                 description = tr(
                                     "play.addedOne",
                                     trackManager.queue.size,
-                                    entries,
+                                    track.url,
                                     track.title,
                                     track.length.formatElapsed()
                                 )
@@ -514,13 +515,13 @@ class MusicExtension : Extension() {
                             }
                             actionRow {
                                 for (i in tracks.indices) {
-                                    interactionButton(ButtonStyle.Secondary, "${splayBtnIdPrefix}$i") {
+                                    interactionButton(ButtonStyle.Secondary, "${SPLAY_BTN_ID_PREFIX}$i") {
                                         label = "$i"
                                     }
                                 }
                             }
                             actionRow {
-                                interactionButton(ButtonStyle.Danger, "${splayBtnIdPrefix}${splayBtnCancel}") {
+                                interactionButton(ButtonStyle.Danger, "${SPLAY_BTN_ID_PREFIX}${SPLAY_BTN_CANCEL}") {
                                     label = tr("cancelButton")
                                 }
                             }

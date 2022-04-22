@@ -29,6 +29,10 @@ class FetchedTrack(
         )
     }
 
+    override fun getSearchValue(): String {
+        return identifier ?: (title + (author?.let { " $it" } ?: ""))
+    }
+
     companion object {
         fun fromLavakordTrackWithData(newTrack: dev.schlaubi.lavakord.audio.player.Track, trackData: TrackData): FetchedTrack {
             newTrack.run {

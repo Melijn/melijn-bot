@@ -22,4 +22,5 @@ abstract class Track {
     abstract val trackInfoVersion: Byte // default 2
 
     abstract suspend fun getLavakordTrack(): dev.schlaubi.lavakord.audio.player.Track?
+    abstract fun getSearchValue(): String
 }

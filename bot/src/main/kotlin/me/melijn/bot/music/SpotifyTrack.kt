@@ -29,8 +29,12 @@ class SpotifyTrack(
 
     private val trackLoader: TrackLoader by inject(TrackLoader::class.java)
 
+    override fun getSearchValue(): String {
+        return "\"$title ${author.remove(",")}\"".replace("-", "")
+    }
+
     override suspend fun getLavakordTrack(): dev.schlaubi.lavakord.audio.player.Track? {
-        val tracks = trackLoader.searchYT(Melijn.lavalink.nodes.first(), "\"$title ${author.remove(",")}\"".replace("-", ""), data.requester)
+        val tracks = trackLoader.searchYT(Melijn.lavalink.nodes.first(), getSearchValue(), data.requester)
         val fetched = tracks.withIndex().minByOrNull {
             (it.index * 5_000) + abs(it.value.length.inWholeMilliseconds - length.inWholeMilliseconds)
         }?.value ?: return null

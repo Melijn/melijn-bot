@@ -24,14 +24,14 @@ class SPlayMenuButtonHandler {
     init {
         val kord by inject<Kord>()
         kord.on<GuildButtonInteractionCreateEvent> {
-            if (!interaction.componentId.startsWith(splayBtnIdPrefix)) return@on
+            if (!interaction.componentId.startsWith(SPLAY_BTN_ID_PREFIX)) return@on
             handle(this)
         }
     }
 
     companion object {
-        val splayBtnIdPrefix = "splay-"
-        val splayBtnCancel = "cancel"
+        const val SPLAY_BTN_ID_PREFIX = "splay-"
+        const val SPLAY_BTN_CANCEL = "cancel"
     }
 
     private suspend fun handle(event: GuildButtonInteractionCreateEvent) {
@@ -44,8 +44,8 @@ class SPlayMenuButtonHandler {
 
         val title: String
         val description: String
-        when (val option = interaction.componentId.drop(splayBtnIdPrefix.length)) {
-            splayBtnCancel -> {
+        when (val option = interaction.componentId.drop(SPLAY_BTN_ID_PREFIX.length)) {
+            SPLAY_BTN_CANCEL -> {
                 title = translationsProvider.tr("splay.cancelledTitle", locale)
                 description = translationsProvider.tr("splay.cancelledDesc", locale)
             }
