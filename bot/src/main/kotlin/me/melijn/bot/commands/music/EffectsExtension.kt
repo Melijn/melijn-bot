@@ -28,7 +28,7 @@ class EffectsExtension : Extension() {
 
     override val name: String = "effects"
 
-    class TimeScaleEffectArgs(val uCamelName: String, val lowerName: String) : Arguments() {
+    class TimeScaleEffectArgs(private val uCamelName: String, private val lowerName: String) : Arguments() {
 
         val percent = optionalInt {
             name = "player${uCamelName}"
@@ -86,6 +86,31 @@ class EffectsExtension : Extension() {
                 }
             }
 
+            publicSubCommand(::BandsArgs) {
+                name = "bands"
+                description = "configures audio bands"
+
+                action {
+                    respond {
+                        content = "band0: ${arguments.band0.parsed}\n" +
+                            "band1: ${arguments.band1.parsed}\n" +
+                            "band2: ${arguments.band2.parsed}\n" +
+                            "band3: ${arguments.band3.parsed}\n" +
+                            "band4: ${arguments.band4.parsed}\n" +
+                            "band5: ${arguments.band5.parsed}\n" +
+                            "band6: ${arguments.band6.parsed}\n" +
+                            "band7: ${arguments.band7.parsed}\n" +
+                            "band8: ${arguments.band8.parsed}\n" +
+                            "band9: ${arguments.band9.parsed}\n" +
+                            "band10: ${arguments.band10.parsed}\n" +
+                            "band11: ${arguments.band11.parsed}\n" +
+                            "band12: ${arguments.band12.parsed}\n" +
+                            "band13: ${arguments.band13.parsed}\n" +
+                            "band14: ${arguments.band14.parsed}\n"
+                    }
+                }
+            }
+
             publicSubCommand(::ChannelMixArgs) {
                 name = "channelmix"
                 description = "change the music player channel mix"
@@ -106,7 +131,7 @@ class EffectsExtension : Extension() {
                         }
                         ChannelMixPreset.MONO -> {
                             trackManager.player.applyFilters {
-                                this.channelMix {
+                                channelMix {
                                     leftToRight = 0.5f
                                     rightToLeft = 0.5f
                                     leftToLeft = 0.5f
@@ -144,7 +169,7 @@ class EffectsExtension : Extension() {
                     }
 
                     trackManager.player.applyFilters {
-                        this.channelMix {
+                        channelMix {
                             arguments.rightToLeft.parsed?.let { rightToLeft = it / 100.0f }
                             arguments.leftToRight.parsed?.let { leftToRight = it / 100.0f }
                             arguments.leftToLeft.parsed?.let { leftToLeft = it / 100.0f }
@@ -323,7 +348,8 @@ class EffectsExtension : Extension() {
                     if (arguments.args.isEmpty()) {
                         val current = currentKaraoke(trackManager.player)
                         respond {
-                            content = tr("effect.karaoke.show", current[0] * 100, current[1] * 100, current[2], current[3])
+                            content =
+                                tr("effect.karaoke.show", current[0] * 100, current[1] * 100, current[2], current[3])
                         }
                         return@action
                     }
@@ -562,6 +588,74 @@ class EffectsExtension : Extension() {
         val tanScale = directionalArg(options[0], function[3])
         val tanOffset = directionalArg(options[1], function[3])
 
+        val reset = optionalBoolean {
+            name = "reset"
+            description = "Resets the distortion effect"
+        }
+    }
+
+    inner class BandsArgs : Arguments() {
+
+        val band0 = optionalInt {
+            name = "band0"
+            description = "band0"
+        }
+        val band1 = optionalInt {
+            name = "band1"
+            description = "band1"
+        }
+        val band2 = optionalInt {
+            name = "band2"
+            description = "band2"
+        }
+        val band3 = optionalInt {
+            name = "band3"
+            description = "band3"
+        }
+        val band4 = optionalInt {
+            name = "band4"
+            description = "band4"
+        }
+        val band5 = optionalInt {
+            name = "band5"
+            description = "band5"
+        }
+        val band6 = optionalInt {
+            name = "band6"
+            description = "band6"
+        }
+        val band7 = optionalInt {
+            name = "band7"
+            description = "band7"
+        }
+        val band8 = optionalInt {
+            name = "band8"
+            description = "band8"
+        }
+        val band9 = optionalInt {
+            name = "band9"
+            description = "band9"
+        }
+        val band10 = optionalInt {
+            name = "band10"
+            description = "band10"
+        }
+        val band11 = optionalInt {
+            name = "band11"
+            description = "band11"
+        }
+        val band12 = optionalInt {
+            name = "band12"
+            description = "band12"
+        }
+        val band13 = optionalInt {
+            name = "band13"
+            description = "band13"
+        }
+        val band14 = optionalInt {
+            name = "band14"
+            description = "band14"
+        }
         val reset = optionalBoolean {
             name = "reset"
             description = "Resets the distortion effect"
