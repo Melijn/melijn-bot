@@ -59,7 +59,7 @@ val kotlin = "1.6.20"
 val scrimage = "4.0.22"
 
 val kord = "0.8.0-M13"
-val kordEx = "1.5.2-SNAPSHOT"
+val kordEx = "1.5.3-SNAPSHOT"
 val kordKommons = "1.1.0"
 
 dependencies {
