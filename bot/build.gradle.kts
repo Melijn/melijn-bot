@@ -60,15 +60,17 @@ val kordKommons = "1.2.2"
 val apKordVersion = "0.1.8"
 val redgresKommons = "0.0.3"
 
-
-
 dependencies {
     implementation("dev.kord:kord-core:$kord")
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
     ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
     implementation("org.scilab.forge:jlatexmath:1.0.7")
 
-    implementation("dev.schlaubi.lavakord:kord:3.6.0")
+    implementation("dev.schlaubi.lavakord", "kord") {
+        version {
+            branch = "main"
+        }
+    }
 
     implementation("me.melijn.kordkommons:kommons:$kordKommons")
     implementation("me.melijn.kordkommons:redgres-kommons:$redgresKommons")

@@ -63,10 +63,9 @@ class EffectsExtension : Extension() {
                         val trackManager = guild.getTrackManager()
 
                         if (final == null) { // show current value
-                            var currentValue = 1.0f
-                            trackManager.player.applyFilters {
-                                currentValue = timeScaleType.get(this) // get current value
-                            }
+                            val currentValue =
+                                timeScaleType.get(trackManager.player.filters.timescale) // get current value
+
                             respond {
                                 content = tr("effect.${lowerName}.show", (currentValue * 100).roundToInt())
                             }
@@ -91,22 +90,72 @@ class EffectsExtension : Extension() {
                 description = "configures audio bands"
 
                 action {
+                    val guild = guild!!.asGuild()
+                    val trackManager = guild.getTrackManager()
+                    if (arguments.args.isEmpty()) {
+                        respond {
+                            val filters = trackManager.player.filters
+                            content = "band0: ${filters.bands[0].gain}\n" +
+                                "band1: ${filters.bands[1].gain}\n" +
+                                "band2: ${filters.bands[2].gain}\n" +
+                                "band3: ${filters.bands[3].gain}\n" +
+                                "band4: ${filters.bands[4].gain}\n" +
+                                "band5: ${filters.bands[5].gain}\n" +
+                                "band6: ${filters.bands[6].gain}\n" +
+                                "band7: ${filters.bands[7].gain}\n" +
+                                "band8: ${filters.bands[8].gain}\n" +
+                                "band9: ${filters.bands[9].gain}\n" +
+                                "band10: ${filters.bands[10].gain}\n" +
+                                "band11: ${filters.bands[11].gain}\n" +
+                                "band12: ${filters.bands[12].gain}\n" +
+                                "band13: ${filters.bands[13].gain}\n" +
+                                "band14: ${filters.bands[14].gain}\n"
+                        }
+                        return@action
+                    }
+
+                    if (arguments.reset.parsed == true) {
+                        trackManager.player.applyFilters {
+                            bands.indices.forEach { band(it).reset() }
+                        }
+                        respond { content = "reset all bands" }
+                        return@action
+                    }
+
+                    trackManager.player.applyFilters {
+                        arguments.band0.parsed?.let { band(0).gain((it - 100) / 400.0f) }
+                        arguments.band1.parsed?.let { band(1).gain((it - 100) / 400.0f) }
+                        arguments.band2.parsed?.let { band(2).gain((it - 100) / 400.0f) }
+                        arguments.band3.parsed?.let { band(3).gain((it - 100) / 400.0f) }
+                        arguments.band4.parsed?.let { band(4).gain((it - 100) / 400.0f) }
+                        arguments.band5.parsed?.let { band(5).gain((it - 100) / 400.0f) }
+                        arguments.band6.parsed?.let { band(6).gain((it - 100) / 400.0f) }
+                        arguments.band7.parsed?.let { band(7).gain((it - 100) / 400.0f) }
+                        arguments.band8.parsed?.let { band(8).gain((it - 100) / 400.0f) }
+                        arguments.band9.parsed?.let { band(9).gain((it - 100) / 400.0f) }
+                        arguments.band10.parsed?.let { band(10).gain((it - 100) / 400.0f) }
+                        arguments.band11.parsed?.let { band(11).gain((it - 100) / 400.0f) }
+                        arguments.band12.parsed?.let { band(12).gain((it - 100) / 400.0f) }
+                        arguments.band13.parsed?.let { band(13).gain((it - 100) / 400.0f) }
+                        arguments.band14.parsed?.let { band(14).gain((it - 100) / 400.0f) }
+                    }
                     respond {
-                        content = "band0: ${arguments.band0.parsed}\n" +
-                            "band1: ${arguments.band1.parsed}\n" +
-                            "band2: ${arguments.band2.parsed}\n" +
-                            "band3: ${arguments.band3.parsed}\n" +
-                            "band4: ${arguments.band4.parsed}\n" +
-                            "band5: ${arguments.band5.parsed}\n" +
-                            "band6: ${arguments.band6.parsed}\n" +
-                            "band7: ${arguments.band7.parsed}\n" +
-                            "band8: ${arguments.band8.parsed}\n" +
-                            "band9: ${arguments.band9.parsed}\n" +
-                            "band10: ${arguments.band10.parsed}\n" +
-                            "band11: ${arguments.band11.parsed}\n" +
-                            "band12: ${arguments.band12.parsed}\n" +
-                            "band13: ${arguments.band13.parsed}\n" +
-                            "band14: ${arguments.band14.parsed}\n"
+                        val filters = trackManager.player.filters
+                        content = "band0: ${filters.bands[0].gain}\n" +
+                            "band1: ${filters.bands[1].gain}\n" +
+                            "band2: ${filters.bands[2].gain}\n" +
+                            "band3: ${filters.bands[3].gain}\n" +
+                            "band4: ${filters.bands[4].gain}\n" +
+                            "band5: ${filters.bands[5].gain}\n" +
+                            "band6: ${filters.bands[6].gain}\n" +
+                            "band7: ${filters.bands[7].gain}\n" +
+                            "band8: ${filters.bands[8].gain}\n" +
+                            "band9: ${filters.bands[9].gain}\n" +
+                            "band10: ${filters.bands[10].gain}\n" +
+                            "band11: ${filters.bands[11].gain}\n" +
+                            "band12: ${filters.bands[12].gain}\n" +
+                            "band13: ${filters.bands[13].gain}\n" +
+                            "band14: ${filters.bands[14].gain}\n"
                     }
                 }
             }
@@ -148,10 +197,8 @@ class EffectsExtension : Extension() {
 
                     val currentChannelMix: suspend Player.() -> Tuple4<Float, Float, Float, Float> = {
                         var tupple: Tuple4<Float, Float, Float, Float> = Tuples.of(0f, 0f, 0f, 0f)
-                        applyFilters {
-                            channelMix {
-                                tupple = Tuples.of(rightToLeft, leftToRight, leftToLeft, rightToRight)
-                            }
+                        filters.channelMix?.run {
+                            tupple = Tuples.of(rightToLeft, leftToRight, leftToLeft, rightToRight)
                         }
                         tupple
                     }
@@ -213,19 +260,17 @@ class EffectsExtension : Extension() {
                         {
                             var tupple: Tuple8<Float, Float, Float, Float, Float, Float, Float, Float> =
                                 Tuples.of(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f)
-                            applyFilters {
-                                distortion {
-                                    tupple = Tuples.of(
-                                        scale,
-                                        offset,
-                                        sinScale,
-                                        sinOffset,
-                                        cosScale,
-                                        cosOffset,
-                                        tanScale,
-                                        tanOffset
-                                    )
-                                }
+                            filters.distortion?.run {
+                                tupple = Tuples.of(
+                                    scale,
+                                    offset,
+                                    sinScale,
+                                    sinOffset,
+                                    cosScale,
+                                    cosOffset,
+                                    tanScale,
+                                    tanOffset
+                                )
                             }
                             tupple
                         }
@@ -292,11 +337,7 @@ class EffectsExtension : Extension() {
                     }
 
                     val currentRotation: suspend Player.() -> Float = {
-                        var array = 1f
-                        applyFilters {
-                            array = rotation?.rotationHz ?: 1f
-                        }
-                        array
+                        filters.rotation?.run { rotationHz } ?: 1f
                     }
 
                     if (arguments.args.isEmpty()) {
@@ -336,11 +377,11 @@ class EffectsExtension : Extension() {
 
                     val currentKaraoke: suspend Player.() -> Array<Float> = {
                         val array = Array(4) { 0f }
-                        applyFilters {
-                            array[0] = karaoke?.level ?: 1f
-                            array[1] = karaoke?.monoLevel ?: 1f
-                            array[2] = karaoke?.filterBand ?: 220f
-                            array[3] = karaoke?.filterWidth ?: 100f
+                        filters.karaoke?.run {
+                            array[0] = level
+                            array[1] = monoLevel
+                            array[2] = filterBand
+                            array[3] = filterWidth
                         }
                         array
                     }
@@ -385,11 +426,7 @@ class EffectsExtension : Extension() {
                     }
 
                     val currentSmoothing: suspend Player.() -> Float = {
-                        var tupple = 1f
-                        applyFilters {
-                            tupple = lowPass?.smoothing ?: 1f
-                        }
-                        tupple
+                        filters.lowPass?.run { smoothing } ?: 1f
                     }
 
                     if (arguments.args.isEmpty()) {
@@ -431,11 +468,7 @@ class EffectsExtension : Extension() {
                         }
 
                         val currentFreqDepth: suspend Player.() -> Pair<Float, Float> = {
-                            var tupple: Pair<Float, Float> = 1f to 1f
-                            applyFilters {
-                                tupple = common.get(this)
-                            }
-                            tupple
+                            common.get(filters)
                         }
 
                         if (arguments.args.isEmpty()) {
@@ -531,8 +564,7 @@ class EffectsExtension : Extension() {
                 this.depth = depth
             }
         }, {
-            var v1 = 1.0f
-            var v2 = 1.0f; tremolo { v1 = frequency; v2 = depth }; v1 to v2
+            (tremolo?.frequency ?: 1.0f) to (tremolo?.depth ?: 1.0f)
         }),
         VIBRATO({ frequency, depth ->
             vibrato {
@@ -540,8 +572,7 @@ class EffectsExtension : Extension() {
                 this.depth = depth
             }
         }, {
-            var v1 = 1.0f
-            var v2 = 1.0f; vibrato { v1 = frequency; v2 = depth }; v1 to v2
+            (vibrato?.frequency ?: 1.0f) to (vibrato?.depth ?: 1.0f)
         }),
     }
 
@@ -690,8 +721,8 @@ class EffectsExtension : Extension() {
     }
 }
 
-enum class TimeScaleType(val set: Filters.Timescale.(Float) -> Unit, val get: Filters.() -> Float) {
-    PITCH({ this.pitch = it }, { var pitch = 1.0f;this.timescale { pitch = this.pitch }; pitch }),
-    SPEED({ this.speed = it }, { var speed = 1.0f;this.timescale { speed = this.speed }; speed }),
-    RATE({ this.rate = it }, { var rate = 1.0f; this.timescale { rate = this.rate }; rate })
+enum class TimeScaleType(val set: Filters.Timescale.(Float) -> Unit, val get: (Filters.Timescale?) -> Float) {
+    PITCH({ this.pitch = it }, { it?.pitch ?: 1.0f }),
+    SPEED({ this.speed = it }, { it?.speed ?: 1.0f }),
+    RATE({ this.rate = it }, { it?.rate ?: 1.0f })
 }
