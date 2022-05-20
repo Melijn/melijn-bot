@@ -454,7 +454,7 @@ class EffectsExtension : Extension() {
 
             for (common in FreqDepthFilters.values()) {
                 publicSubCommand({ TremoloVibratoCommonArgs(common.ucc()) }) {
-                    name = common.lcc()
+                    name = common.lcc().lowercase()
                     description = "musicPlayer $name effects"
 
                     action {

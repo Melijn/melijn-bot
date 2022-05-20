@@ -16,6 +16,7 @@ import dev.kord.rest.builder.message.create.actionRow
 import dev.kord.rest.builder.message.create.embed
 import dev.schlaubi.lavakord.audio.Link
 import dev.schlaubi.lavakord.kord.connectAudio
+import kotlinx.coroutines.delay
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.Melijn
 import me.melijn.bot.cache.SearchPlayMenuCache
@@ -245,7 +246,7 @@ class MusicExtension : Extension() {
         }
 
         publicGuildSlashCommand {
-            name = "clearQueue"
+            name = "clearqueue"
             description = "Clears the queue"
 
             action {
@@ -259,7 +260,7 @@ class MusicExtension : Extension() {
         }
 
         publicGuildSlashCommand(::FollowUserArgs) {
-            name = "followUser"
+            name = "followuser"
             description = "MusicPlayer will follow user's spotify status, skip to fetch again"
 
             check {
@@ -658,6 +659,7 @@ class MusicExtension : Extension() {
                     if (stats != null)
                         content += tr(
                             "musicPlayer.nodeStats",
+                            trackManager.link.node.available,
                             stats.playingPlayers, stats.players,
                             stats.cpu.cores, stats.cpu.lavalinkLoad,
                             StringUtils.humanReadableByteCountBin(stats.memory.used, getLocale()),
