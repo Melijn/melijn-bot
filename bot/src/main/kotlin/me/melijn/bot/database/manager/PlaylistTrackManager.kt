@@ -2,50 +2,53 @@ package me.melijn.bot.database.manager
 
 import kotlinx.datetime.LocalDateTime
 import me.melijn.ap.injector.Inject
-import me.melijn.bot.database.model.PlaylistFetchedTrack
-import me.melijn.bot.database.model.PlaylistSpotifyTrack
 import me.melijn.bot.database.model.PlaylistTrack
 import me.melijn.bot.model.PartialUser
 import me.melijn.bot.music.*
 import me.melijn.bot.utils.KoinUtil.inject
+import me.melijn.gen.FetchedTrackData
 import me.melijn.gen.PlaylistData
-import me.melijn.gen.PlaylistFetchedTrackData
-import me.melijn.gen.PlaylistSpotifyTrackData
 import me.melijn.gen.PlaylistTrackData
-import me.melijn.gen.database.manager.AbstractPlaylistFetchedTrackManager
-import me.melijn.gen.database.manager.AbstractPlaylistSpotifyTrackManager
+import me.melijn.gen.SpotifyTrackData
+import me.melijn.gen.database.manager.AbstractFetchedTrackManager
 import me.melijn.gen.database.manager.AbstractPlaylistTrackManager
+import me.melijn.gen.database.manager.AbstractSpotifyTrackManager
+import me.melijn.gen.database.manager.AbstractTrackManager
 import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.utils.TimeUtil
 import org.jetbrains.exposed.sql.*
 import java.util.*
+import me.melijn.bot.database.model.FetchedTrack as DBFetchedTrack
+import me.melijn.bot.database.model.SpotifyTrack as DBSpotifyTrack
+import me.melijn.bot.database.model.Track as DBTrack
 
 @Inject
 class PlaylistTrackManager(override val driverManager: DriverManager) : AbstractPlaylistTrackManager(driverManager) {
 
+    private val trackManager by inject<TrackManager>()
     private val playlistFetchedTrackManager by inject<PlaylistFetchedTrackManager>()
     private val playlistSpotifyTrackManager by inject<PlaylistSpotifyTrackManager>()
 
     fun newTrack(playlist: PlaylistData, track: Track) {
-        val trackId = UUID.randomUUID()
-        store(
-            PlaylistTrackData(
-                playlist.playlistId,
-                trackId,
-                track.title,
-                track.url,
-                track.isStream,
-                track.length,
-                track.sourceType.trackType,
-                TimeUtil.localDateTimeNow()
-            )
-        )
+        val trackId = track.run {
+            trackManager.getByIndex1(title, url, isStream, length, track.sourceType.trackType)
+        }?.trackId ?: UUID.randomUUID()
+
+        trackManager.store(me.melijn.gen.TrackData(
+            trackId,
+            track.title,
+            track.url,
+            track.isStream,
+            track.length,
+            track.sourceType.trackType
+        ))
+
         when (track) {
             is SpotifyTrack -> playlistSpotifyTrackManager.store(
-                PlaylistSpotifyTrackData(trackId, track.author, track.identifier)
+                SpotifyTrackData(trackId, track.author, track.identifier)
             )
             is FetchedTrack -> playlistFetchedTrackManager.store(
-                PlaylistFetchedTrackData(
+                FetchedTrackData(
                     trackId,
                     track.track,
                     track.author,
@@ -55,59 +58,72 @@ class PlaylistTrackManager(override val driverManager: DriverManager) : Abstract
                 )
             )
         }
+
+        store(
+            PlaylistTrackData(
+                playlist.playlistId,
+                TimeUtil.localDateTimeNow(),
+                trackId
+            )
+        )
     }
 
-    fun getTracksInPlaylist(playlist: PlaylistData): List<PlaylistTrackData> {
+    fun getTracksInPlaylist(playlist: PlaylistData): List<Pair<PlaylistTrackData, me.melijn.gen.TrackData>> {
         return scopedTransaction {
-            PlaylistTrack.select {
+            PlaylistTrack.join(DBTrack, JoinType.INNER) {
+                PlaylistTrack.trackId.eq(DBTrack.trackId)
+            }.select {
                 PlaylistTrack.playlistId.eq(playlist.playlistId)
             }.map {
-                PlaylistTrackData.fromResRow(it)
-            }.sortedBy { it.trackId }.sortedBy { it.addedTime }
+                PlaylistTrackData.fromResRow(it) to me.melijn.gen.TrackData.fromResRow(it)
+            }.sortedBy { it.first.trackId }.sortedBy { it.first.addedTime }
         }
     }
 
     fun getMelijnTracksInPlaylist(playlist: PlaylistData, requester: PartialUser): List<Track> {
         val sortableTracks = mutableListOf<Triple<UUID, LocalDateTime, Track>>()
         scopedTransaction {
-            PlaylistTrack.join(PlaylistFetchedTrack, JoinType.INNER) {
-                PlaylistTrack.trackType.eq(TrackType.FETCHED)
-                    .and(PlaylistTrack.trackId.eq(PlaylistFetchedTrack.trackId))
+            PlaylistTrack.join(DBTrack, JoinType.INNER) {
+                DBTrack.trackType.eq(TrackType.FETCHED)
+                    .and(PlaylistTrack.trackId.eq(DBTrack.trackId))
                     .and(PlaylistTrack.playlistId.eq(playlist.playlistId))
+            }.join(DBFetchedTrack, JoinType.INNER) {
+                DBTrack.trackId.eq(DBFetchedTrack.trackId)
             }.selectAll().forEach {
                 sortableTracks.add(
                     Triple(
                         it[PlaylistTrack.trackId], it[PlaylistTrack.addedTime], FetchedTrack(
-                            it[PlaylistFetchedTrack.trackBase64],
-                            it[PlaylistTrack.title],
-                            it[PlaylistFetchedTrack.author],
-                            it[PlaylistTrack.url],
-                            it[PlaylistFetchedTrack.identifier],
-                            it[PlaylistTrack.isStream],
-                            TrackData.fromNow(requester, it[PlaylistFetchedTrack.identifier]),
-                            it[PlaylistTrack.length],
-                            it[PlaylistFetchedTrack.trackSource],
-                            it[PlaylistFetchedTrack.trackInfoVersion].toByte(),
+                            it[DBFetchedTrack.trackBase64],
+                            it[DBTrack.title],
+                            it[DBFetchedTrack.author],
+                            it[DBTrack.url],
+                            it[DBFetchedTrack.identifier],
+                            it[DBTrack.isStream],
+                            TrackData.fromNow(requester, it[DBFetchedTrack.identifier]),
+                            it[DBTrack.length],
+                            it[DBFetchedTrack.trackSource],
+                            it[DBFetchedTrack.trackInfoVersion].toByte(),
                         )
                     )
                 )
             }
-            PlaylistTrack.join(PlaylistSpotifyTrack, JoinType.INNER) {
-                PlaylistTrack.trackId.eq(PlaylistSpotifyTrack.trackId)
-            }.select {
-                PlaylistTrack.playlistId.eq(playlist.playlistId)
-                    .and(PlaylistTrack.trackType.eq(TrackType.SPOTIFY))
-            }.forEach {
+            PlaylistTrack.join(DBTrack, JoinType.INNER) {
+                DBTrack.trackType.eq(TrackType.SPOTIFY)
+                    .and(PlaylistTrack.trackId.eq(DBTrack.trackId))
+                    .and(PlaylistTrack.playlistId.eq(playlist.playlistId))
+            }.join(DBSpotifyTrack, JoinType.INNER) {
+                DBTrack.trackId.eq(DBSpotifyTrack.trackId)
+            }.selectAll().forEach {
                 sortableTracks.add(
                     Triple(
-                        it[PlaylistTrack.trackId], it[PlaylistTrack.addedTime], SpotifyTrack(
-                            it[PlaylistTrack.title],
-                            it[PlaylistSpotifyTrack.author],
-                            it[PlaylistTrack.url],
-                            it[PlaylistSpotifyTrack.identifier],
-                            it[PlaylistTrack.isStream],
-                            TrackData.fromNow(requester, it[PlaylistSpotifyTrack.identifier]),
-                            it[PlaylistTrack.length]
+                        it[DBTrack.trackId], it[PlaylistTrack.addedTime], SpotifyTrack(
+                            it[DBTrack.title],
+                            it[DBSpotifyTrack.author],
+                            it[DBTrack.url],
+                            it[DBSpotifyTrack.identifier],
+                            it[DBTrack.isStream],
+                            TrackData.fromNow(requester, it[DBSpotifyTrack.identifier]),
+                            it[DBTrack.length]
                         )
                     )
                 )
@@ -133,7 +149,10 @@ class PlaylistTrackManager(override val driverManager: DriverManager) : Abstract
 }
 
 @Inject
-class PlaylistSpotifyTrackManager(driverManager: DriverManager) : AbstractPlaylistSpotifyTrackManager(driverManager)
+class TrackManager(driverManager: DriverManager) : AbstractTrackManager(driverManager)
 
 @Inject
-class PlaylistFetchedTrackManager(driverManager: DriverManager) : AbstractPlaylistFetchedTrackManager(driverManager)
+class PlaylistSpotifyTrackManager(driverManager: DriverManager) : AbstractSpotifyTrackManager(driverManager)
+
+@Inject
+class PlaylistFetchedTrackManager(driverManager: DriverManager) : AbstractFetchedTrackManager(driverManager)

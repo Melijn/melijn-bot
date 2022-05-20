@@ -131,19 +131,20 @@ class PlaylistCommand : Extension() {
                         arguments.trackIndexes.parsed.list.any { it.contains(i) }
                     }
                     if (toRemove.size == 1) {
-                        val (index, track) = toRemove[0]
-                        playlistTrackManager.delete(track)
+                        val (index, infoPair) = toRemove[0]
+                        val (playlistTrackData, trackData) = infoPair
+                        playlistTrackManager.delete(playlistTrackData)
                         respond {
                             content = tr(
                                 "playlist.remove.removedTrack",
                                 index,
-                                track.url,
-                                track.title.escapeMarkdown(),
+                                trackData.url,
+                                trackData.title.escapeMarkdown(),
                                 existingPlaylist.name.escapeMarkdown()
                             )
                         }
                     } else {
-                        playlistTrackManager.deleteAll(toRemove.map { it.value })
+                        playlistTrackManager.deleteAll(toRemove.map { it.value.first })
                         respond {
                             content = tr(
                                 "playlist.remove.removedTracks",
@@ -197,7 +198,8 @@ class PlaylistCommand : Extension() {
                     var totalDuration = Duration.ZERO
                     var description = ""
 
-                    tracks.withIndex().forEach { (index, trackData) ->
+                    tracks.withIndex().forEach { (index, infoPair) ->
+                        val (_, trackData) = infoPair
                         totalDuration += trackData.length
                         description += "\n" + tr(
                             "queue.queueEntry", index, trackData.url, trackData.title,

@@ -20,7 +20,7 @@ class FetchedTrack(
 
     override var sourceType: TrackSource,
     override var trackInfoVersion: Byte = 2
-) : Track( ) {
+) : Track() {
 
     override suspend fun getLavakordTrack(): dev.schlaubi.lavakord.audio.player.Track {
         return dev.schlaubi.lavakord.audio.player.Track(
