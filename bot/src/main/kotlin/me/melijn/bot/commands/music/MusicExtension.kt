@@ -105,6 +105,34 @@ class MusicExtension : Extension() {
         }
 
         publicGuildSlashCommand {
+            name = "fix"
+            description = "try to fix broken player"
+
+            action {
+                val guild = guild!!.asGuild()
+                val trackManager = guild.getTrackManager()
+                if (!trackManager.link.node.available) {
+                    respond {
+                        content = "Your audio node is currently not available, try again later."
+                    }
+                    return@action
+                }
+
+                val playingTrack = trackManager.playingTrack ?: return@action
+                trackManager.link.disconnectAudio()
+
+                delay(1000)
+                if (tryJoinUser(trackManager.link)) return@action
+                delay(1000)
+                trackManager.play(playingTrack)
+
+                respond {
+                    content = tr("fix.fixed")
+                }
+            }
+        }
+
+        publicGuildSlashCommand {
             name = "loop"
             description = "Loop commands"
 
