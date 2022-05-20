@@ -2,7 +2,6 @@ package me.melijn.bot.commands.music
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalEnumChoice
-import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.commands.converters.OptionalConverter
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalBoolean
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalInt
@@ -17,6 +16,7 @@ import me.melijn.bot.utils.InferredChoiceEnum
 import me.melijn.bot.utils.KordExUtils.atLeast
 import me.melijn.bot.utils.KordExUtils.inRange
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
+import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import reactor.util.function.Tuple4
 import reactor.util.function.Tuple8
@@ -53,7 +53,7 @@ class EffectsExtension : Extension() {
             for (timeScaleType in TimeScaleType.values()) {
                 val lowerName = timeScaleType.lcc()
                 val uCamelName = timeScaleType.ucc()
-                publicSubCommand({ TimeScaleEffectArgs(uCamelName, lowerName) }) {
+                publicGuildSubCommand({ TimeScaleEffectArgs(uCamelName, lowerName) }) {
                     name = lowerName
                     description = "change the music player $lowerName"
 
@@ -85,7 +85,7 @@ class EffectsExtension : Extension() {
                 }
             }
 
-            publicSubCommand(::BandsArgs) {
+            publicGuildSubCommand(::BandsArgs) {
                 name = "bands"
                 description = "configures audio bands"
 
@@ -160,7 +160,7 @@ class EffectsExtension : Extension() {
                 }
             }
 
-            publicSubCommand(::ChannelMixArgs) {
+            publicGuildSubCommand(::ChannelMixArgs) {
                 name = "channelmix"
                 description = "change the music player channel mix"
 
@@ -238,7 +238,7 @@ class EffectsExtension : Extension() {
                 }
             }
 
-            publicSubCommand(::DistortionArgs) {
+            publicGuildSubCommand(::DistortionArgs) {
                 name = "distortion"
                 description = "change the music player distortion"
 
@@ -322,7 +322,7 @@ class EffectsExtension : Extension() {
                 }
             }
 
-            publicSubCommand(::RotationArgs) {
+            publicGuildSubCommand(::RotationArgs) {
                 name = "rotation"
                 description = "stereo rotation effect"
 
@@ -361,7 +361,7 @@ class EffectsExtension : Extension() {
                 }
             }
 
-            publicSubCommand(::KaraokeArgs) {
+            publicGuildSubCommand(::KaraokeArgs) {
                 name = "karaoke"
                 description = "muffles vocal frequencies to make it easier to sing along"
 
@@ -411,7 +411,7 @@ class EffectsExtension : Extension() {
                 }
             }
 
-            publicSubCommand(::LowPassArgs) {
+            publicGuildSubCommand(::LowPassArgs) {
                 name = "lowpass"
                 description = "suppresses higher frequencies"
 
@@ -453,7 +453,7 @@ class EffectsExtension : Extension() {
             }
 
             for (common in FreqDepthFilters.values()) {
-                publicSubCommand({ TremoloVibratoCommonArgs(common.ucc()) }) {
+                publicGuildSubCommand({ TremoloVibratoCommonArgs(common.ucc()) }) {
                     name = common.lcc().lowercase()
                     description = "musicPlayer $name effects"
 

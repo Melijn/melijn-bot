@@ -4,7 +4,6 @@ import com.kotlindiscord.kord.extensions.checks.guildFor
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalEnumChoice
-import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
@@ -30,6 +29,7 @@ import me.melijn.bot.music.*
 import me.melijn.bot.music.MusicManager.getTrackManager
 import me.melijn.bot.utils.KordExUtils.atLeast
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
+import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.StringsUtil.ansiFormat
@@ -136,7 +136,7 @@ class MusicExtension : Extension() {
             name = "loop"
             description = "Loop commands"
 
-            publicSubCommand {
+            publicGuildSubCommand {
                 name = "queue"
                 description = "Loops the queue"
                 action {
@@ -148,7 +148,7 @@ class MusicExtension : Extension() {
                     }
                 }
             }
-            publicSubCommand {
+            publicGuildSubCommand {
                 name = "single"
                 description = "Loops the playing track"
                 action {
@@ -211,7 +211,7 @@ class MusicExtension : Extension() {
             name = "seek"
             description = "Seek to another timestamp in the track"
 
-            publicSubCommand(::SeekArgs) {
+            publicGuildSubCommand(::SeekArgs) {
                 name = "position"
                 description = "Seek to a position in the track"
 
@@ -230,7 +230,7 @@ class MusicExtension : Extension() {
                     }
                 }
             }
-            publicSubCommand(::SeekArgs) {
+            publicGuildSubCommand(::SeekArgs) {
                 name = "forward"
                 description = "Forward to a position in the track"
 
@@ -250,7 +250,7 @@ class MusicExtension : Extension() {
                     }
                 }
             }
-            publicSubCommand(::SeekArgs) {
+            publicGuildSubCommand(::SeekArgs) {
                 name = "rewind"
                 description = "Rewind to a position in the track"
 

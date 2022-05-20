@@ -1,7 +1,6 @@
 package me.melijn.bot.commands.music
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
-import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.commands.converters.SingleConverter
 import com.kotlindiscord.kord.extensions.commands.converters.impl.string
 import com.kotlindiscord.kord.extensions.extensions.Extension
@@ -20,6 +19,7 @@ import me.melijn.bot.model.PartialUser
 import me.melijn.bot.music.MusicManager.getTrackManager
 import me.melijn.bot.music.QueuePosition
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
+import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.TimeUtil.formatElapsed
 import me.melijn.bot.utils.intRanges
@@ -44,7 +44,7 @@ class PlaylistCommand : Extension() {
             name = "playlist"
             description = "Manage playlist things"
 
-            publicSubCommand(::PlaylistListArgs) {
+            publicGuildSubCommand(::PlaylistListArgs) {
                 name = "load"
                 description = "Loads all tracks of the playlist into the queue"
 
@@ -65,7 +65,7 @@ class PlaylistCommand : Extension() {
                 }
             }
 
-            publicSubCommand(::PlaylistAddArgs) {
+            publicGuildSubCommand(::PlaylistAddArgs) {
                 name = "add"
                 description = "Adds a track to your playlist"
 
@@ -120,7 +120,7 @@ class PlaylistCommand : Extension() {
                 }
             }
 
-            publicSubCommand(::PlaylistRemoveArgs) {
+            publicGuildSubCommand(::PlaylistRemoveArgs) {
                 name = "remove"
                 description = "Removes tracks from your playlist"
 
@@ -158,7 +158,7 @@ class PlaylistCommand : Extension() {
                 }
             }
 
-            publicSubCommand {
+            publicGuildSubCommand {
                 name = "playlists"
                 description = "Lists all your playlists"
 
@@ -188,7 +188,7 @@ class PlaylistCommand : Extension() {
                 }
             }
 
-            publicSubCommand(::PlaylistListArgs) {
+            publicGuildSubCommand(::PlaylistListArgs) {
                 name = "tracks"
                 description = "Lists your playlist tracks"
 

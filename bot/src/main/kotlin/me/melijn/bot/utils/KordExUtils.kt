@@ -8,7 +8,9 @@ import com.kotlindiscord.kord.extensions.commands.Argument
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.CommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommand
+import com.kotlindiscord.kord.extensions.commands.application.slash.SlashCommand
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.ChoiceEnum
+import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandContext
 import com.kotlindiscord.kord.extensions.commands.converters.SingleConverter
 import com.kotlindiscord.kord.extensions.commands.converters.Validator
@@ -137,7 +139,7 @@ object KordExUtils {
      * @param body Builder lambda used for setting up the slash command object.
      */
     @ExtensionDSL
-    public suspend fun <T : Arguments> Extension.publicGuildSlashCommand(
+    suspend fun <T : Arguments> Extension.publicGuildSlashCommand(
         arguments: () -> T,
         body: suspend PublicSlashCommand<T>.() -> Unit
     ): PublicSlashCommand<T> = publicSlashCommand(arguments) {
@@ -156,9 +158,46 @@ object KordExUtils {
      * @param body Builder lambda used for setting up the slash command object.
      */
     @ExtensionDSL
-    public suspend fun Extension.publicGuildSlashCommand(
+    suspend fun Extension.publicGuildSlashCommand(
         body: suspend PublicSlashCommand<Arguments>.() -> Unit
     ): PublicSlashCommand<Arguments> = publicSlashCommand {
+        check {
+            anyGuild()
+        }
+        body()
+    }
+
+    /**
+     * DSL function for easily registering a public slash sub command, without arguments.
+     * Includes a check for anyGuild
+     *
+     * Use this in your setup function to register a slash sub command that may be executed on Discord.
+     *
+     * @param body Builder lambda used for setting up the slash command object.
+     */
+    @ExtensionDSL
+    suspend fun <T: Arguments> SlashCommand<*, *>.publicGuildSubCommand(
+        arguments: () -> T,
+        body: suspend PublicSlashCommand<T>.() -> Unit
+    ): PublicSlashCommand<T> = publicSubCommand(arguments) {
+        check {
+            anyGuild()
+        }
+        body()
+    }
+
+    /**
+     * DSL function for easily registering a public slash sub command, without arguments.
+     * Includes a check for anyGuild
+     *
+     * Use this in your setup function to register a slash sub command that may be executed on Discord.
+     *
+     * @param body Builder lambda used for setting up the slash command object.
+     */
+    @ExtensionDSL
+    suspend fun SlashCommand<*, *>.publicGuildSubCommand(
+        body: suspend PublicSlashCommand<Arguments>.() -> Unit
+    ) = publicSubCommand {
         check {
             anyGuild()
         }

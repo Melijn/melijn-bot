@@ -27,7 +27,7 @@ class AnimalExtension : Extension() {
             description = "shows many animals"
 
             action {
-                val arg = this.arguments.animal.parsed
+                val arg = arguments.animal.parsed
                 respond {
                     animalEmbed(arg)
                 }

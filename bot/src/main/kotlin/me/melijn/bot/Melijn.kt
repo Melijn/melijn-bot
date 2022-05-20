@@ -141,6 +141,10 @@ object Melijn {
                     return@callback settings.bot.prefix
                 }
             }
+
+            i18n {
+                interactionUserLocaleResolver()
+            }
         }
         botInstance.start()
     }
