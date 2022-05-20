@@ -83,6 +83,14 @@ private class Template {
         val requestQueueLimit by int("requestQueueLimit", 3)
     }
 
+    // K8s probeserver
+    class ProbeServer : BotSettings("probeserver") {
+        val enabled by boolean("enabled", true)
+        val port by int("port", 1180)
+        val runningLimit by int("runningLimit", 3)
+        val requestQueueLimit by int("requestQueueLimit", 3)
+    }
+
     class Sentry : BotSettings("sentry") {
         val url by string("url")
     }

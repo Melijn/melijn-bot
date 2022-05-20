@@ -20,7 +20,7 @@ import me.melijn.bot.model.PodInfo
 import me.melijn.bot.services.ServiceManager
 import me.melijn.bot.utils.EnumUtil.lcc
 import me.melijn.bot.utils.RealLinearRetry
-import me.melijn.bot.web.server.RestServer
+import me.melijn.bot.web.server.HttpServer
 import me.melijn.gen.Settings
 import me.melijn.kordkommons.database.ConfigUtil
 import me.melijn.kordkommons.database.DriverManager
@@ -86,19 +86,20 @@ object Melijn {
                         single { driverManager } bind DriverManager::class
                     }
 
+                    HttpServer.startProbeServer()
+
                     val injectorInterface = ReflectUtil.getInstanceOfKspClass<InjectorInterface>(
                         "me.melijn.gen", "InjectionKoinModule"
                     )
                     loadKoinModules(injectorInterface.module)
-
-
-                    RestServer // Inits restServer object
 
                     val serviceManager by inject<ServiceManager>(ServiceManager::class.java)
                     serviceManager.startAll()
                 }
 
                 setup {
+                    HttpServer.startHttpServer()
+
                     val injectorInterface = ReflectUtil.getInstanceOfKspClass<InjectorInterface>(
                         "me.melijn.gen", "InjectionKoinModule"
                     )
