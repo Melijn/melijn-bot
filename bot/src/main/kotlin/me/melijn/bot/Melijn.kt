@@ -8,6 +8,7 @@ import com.kotlindiscord.kord.extensions.utils.loadModule
 import dev.kord.core.Kord
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
+import dev.kord.gateway.builder.Shards
 import dev.schlaubi.lavakord.LavaKord
 import dev.schlaubi.lavakord.kord.lavakord
 import io.sentry.Sentry
@@ -144,6 +145,12 @@ object Melijn {
                 }
             }
 
+            kord {
+                sharding {
+                    Shards(shardCount, PodInfo.shardList)
+                }
+            }
+
             i18n {
                 interactionUserLocaleResolver()
             }
@@ -170,7 +177,7 @@ object Melijn {
             logger.info("[hostName] {}", hostName)
 
             if (podCount == 1) 0
-            else hostName.split("-").last().toInt()
+            else 1 // hostName.split("-").last().toInt()
         } catch (t: Throwable) {
             logger.warn("Cannot parse podId from hostname", t)
             if (podCount == 1) 0
