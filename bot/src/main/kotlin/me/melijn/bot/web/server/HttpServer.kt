@@ -8,10 +8,13 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import me.melijn.bot.database.manager.BotRestartTrackEntryManager
+import me.melijn.bot.database.manager.BotRestartTrackQueueManager
 import me.melijn.bot.model.PodInfo
 import me.melijn.bot.music.MusicManager
 import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.bot.utils.Log
+import me.melijn.gen.BotRestartTrackQueueData
 import me.melijn.gen.Settings
 import java.util.concurrent.TimeUnit
 
@@ -43,18 +46,38 @@ object HttpServer {
             get("/shutdown") {
                 logger.info { "ProbeServer: shutdown received!" }
                 val kord = getKoin().getOrNull<Kord>()
-                kord?.shutdown()
-                MusicManager.guildMusicPlayers.forEach { (guildId, trackManager) ->
-                    if (trackManager.link.state in arrayOf(Link.State.CONNECTED, Link.State.CONNECTING)
-                        && (trackManager.playingTrack != null || trackManager.queue.size != 0)
-                    ) {
-                        // save stuff
-                        val playingTrack = trackManager.playingTrack
-                        val queue = trackManager.queue
 
-                        trackManager.link.destroy()
+                val botRestartTrackQueueManager = getKoin().getOrNull<BotRestartTrackQueueManager>()
+                val botRestartTrackEntryManager = getKoin().getOrNull<BotRestartTrackEntryManager>()
+
+                if (botRestartTrackEntryManager != null && botRestartTrackQueueManager != null) {
+                    MusicManager.guildMusicPlayers.forEach { (guildId, trackManager) ->
+                        if (trackManager.link.state in arrayOf(Link.State.CONNECTED, Link.State.CONNECTING)
+                            && (trackManager.playingTrack != null || trackManager.queue.size != 0)
+                        ) {
+                            // save stuff
+                            val playingTrack = trackManager.playingTrack
+                            val queue = trackManager.queue
+                            val vc = trackManager.link.lastChannelId ?: throw IllegalStateException(":thonk:")
+                            botRestartTrackQueueManager.store(
+                                BotRestartTrackQueueData(
+                                    guildId, vc, trackManager.player.position, trackManager.player.paused,
+                                    trackManager.looped, trackManager.loopedQueue
+                                )
+                            )
+                            if (playingTrack != null) {
+                                botRestartTrackEntryManager.newTrack(guildId, 0, playingTrack)
+                            }
+                            queue.indexedForEach { i, track ->
+                                botRestartTrackEntryManager.newTrack(guildId, i + 1, track)
+                            }
+
+                            trackManager.link.destroy()
+                        }
                     }
                 }
+
+                kord?.shutdown()
                 logger.info { "ProbeServer: shutdown complete!" }
                 context.respond(HttpStatusCode.OK, "Shutdown complete!")
                 stopAll()

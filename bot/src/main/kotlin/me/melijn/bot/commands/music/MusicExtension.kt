@@ -438,7 +438,7 @@ class MusicExtension : Extension() {
                 val green = ansiFormat(AnsiColor.GREEN)
                 val reset = ansiFormat(AnsiColor.DEFAULT)
 
-                val bar = "${blue}${"━".repeat(progress)}${green}${"━".repeat(count - progress)}${reset}"
+                val bar = "${blue}${"━".repeat(progress)}${green}${"━".repeat(max(0, count - progress))}${reset}"
                 val status = if (player.paused) "paused" else "playing"
 
                 respond {

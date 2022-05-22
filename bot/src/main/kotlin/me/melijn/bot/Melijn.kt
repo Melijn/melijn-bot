@@ -115,6 +115,8 @@ object Melijn {
                     for (i in 0 until Settings.lavalink.url.size)
                         lavalink.addNode(Settings.lavalink.url[i], Settings.lavalink.password[i], "node$i")
                 }
+
+                created {  }
             }
 
 

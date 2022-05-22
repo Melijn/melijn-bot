@@ -11,6 +11,7 @@ object BotRestartTrackQueue : Table("bot_restart_track_queue") {
 
     val guildId = ulong("guild_id")
     val voiceChannelId = ulong("voice_channel_id")
+    val playerPosition = long("position")
     val paused = bool("paused")
     val looped = bool("looped")
     val loopedQueue = bool("looped_queue")
@@ -27,7 +28,8 @@ object BotRestartTrackQueue : Table("bot_restart_track_queue") {
 object BotRestartTrackEntry : Table("bot_restart_track_entry") {
 
     val guildId = ulong("guild_id")
-    val trackId = ulong("track_id")
+    val trackId = uuid("track_id")
+    val position = integer("position")
 
     val userId = ulong("user_id")
 
@@ -36,8 +38,7 @@ object BotRestartTrackEntry : Table("bot_restart_track_entry") {
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, trackId)
 
     init {
-        index(true, guildId, trackId)
-        index(false, trackId)
+        index(false, guildId)
     }
 }
 

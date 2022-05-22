@@ -149,7 +149,7 @@ class PlaylistTrackManager(override val driverManager: DriverManager) : Abstract
 }
 
 @Inject
-class TrackManager(driverManager: DriverManager) : AbstractTrackManager(driverManager)
+class  TrackManager(driverManager: DriverManager) : AbstractTrackManager(driverManager)
 
 @Inject
 class PlaylistSpotifyTrackManager(driverManager: DriverManager) : AbstractSpotifyTrackManager(driverManager)

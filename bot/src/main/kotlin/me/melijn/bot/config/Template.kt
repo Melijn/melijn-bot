@@ -9,6 +9,8 @@ private class Template {
 
     class Bot : BotSettings("bot") {
         val prefix by string("prefix", ">")
+        val username by string("prefix", "Melijn")
+        val discriminator by string("discrim", "0001")
         val ownerIds by string("ownerIds", "")
         val id by string("id", "")
         val version by string("version")
