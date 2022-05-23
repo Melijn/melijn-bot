@@ -26,20 +26,20 @@ class PageProcessor(
             .filter { it is KSClassDeclaration && it.validate() }
 
         if (process.isNotEmpty()) {
-            val injectKoinModuleFile =
+            val pagesFile =
                 codeGenerator.createNewFile(Dependencies(false), "me.melijn.gen", "Pages${count}")
 
-            injectKoinModuleFile.appendLine("package me.melijn.gen\n")
-            injectKoinModuleFile.appendLine("import model.PageInterface")
-            injectKoinModuleFile.appendLine("class Pages$count : PageInterface {")
-            injectKoinModuleFile.appendLine("    override val pages = listOf(")
+            pagesFile.appendLine("package me.melijn.gen\n")
+            pagesFile.appendLine("import model.PageInterface")
+            pagesFile.appendLine("class Pages$count : PageInterface {")
+            pagesFile.appendLine("    override val pages = listOf(")
 
             process.forEach { it.accept(InjectorVisitor(lines), Unit) }
-            injectKoinModuleFile.appendLine(lines.joinToString(",\n"))
+            pagesFile.appendLine(lines.joinToString(",\n"))
 
-            injectKoinModuleFile.appendLine("    )\n")
-            injectKoinModuleFile.appendLine("}")
-            injectKoinModuleFile.close()
+            pagesFile.appendLine("    )\n")
+            pagesFile.appendLine("}")
+            pagesFile.close()
             count++
         }
 

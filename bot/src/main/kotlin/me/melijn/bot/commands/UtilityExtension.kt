@@ -42,6 +42,7 @@ import me.melijn.bot.utils.KordUtil.effectiveAvatarUrl
 import me.melijn.bot.utils.KordUtil.iconUrl
 import me.melijn.bot.utils.KordUtil.splashUrl
 import org.koin.core.component.inject
+import java.util.*
 
 
 @KordExtension
@@ -56,7 +57,7 @@ class UtilityExtension : Extension() {
             action {
                 val target = (arguments.target.parsed ?: this.user).asUser()
                 respond {
-                    avatarEmbed(translationsProvider, target)
+                    avatarEmbed(translationsProvider, getLocale(), target)
                 }
             }
         }
@@ -65,13 +66,13 @@ class UtilityExtension : Extension() {
             action {
                 val target = this.targetUsers.first()
                 respond {
-                    avatarEmbed(translationsProvider, target)
+                    avatarEmbed(translationsProvider, getLocale(), target)
                 }
             }
         }
 
         publicSlashCommand(::RoleInfoArgs) {
-            name = "roleInfo"
+            name = "roleinfo"
             description = "gives roleInfo"
             action {
                 val role = arguments.role.parsed
@@ -100,7 +101,7 @@ class UtilityExtension : Extension() {
         }
 
         publicSlashCommand(::UserInfoArgs) {
-            name = "userInfo"
+            name = "userinfo"
             description = "Gives info about user"
 
             check {
@@ -146,7 +147,7 @@ class UtilityExtension : Extension() {
         }
 
         publicSlashCommand(::ServerInfoArgs) {
-            name = "serverInfo"
+            name = "serverinfo"
             description = "gives information about the server"
             action {
                 val guild =
@@ -193,7 +194,7 @@ class UtilityExtension : Extension() {
         }
 
         publicSlashCommand(::IdInfoArgs) {
-            name = "idInfo"
+            name = "idinfo"
             description = "Shows timestamp"
             action {
                 val id = this.arguments.id.parsed
@@ -300,11 +301,15 @@ class UtilityExtension : Extension() {
         return list
     }
 
-    private fun FollowupMessageCreateBuilder.avatarEmbed(translationsProvider: TranslationsProvider, target: User) {
+    private fun FollowupMessageCreateBuilder.avatarEmbed(
+        translationsProvider: TranslationsProvider,
+        locale: Locale,
+        target: User
+    ) {
         embed {
-            title = translationsProvider.tr("avatar.title", target.tag)
+            title = translationsProvider.tr("avatar.title", locale, target.tag)
             description = translationsProvider.tr(
-                "avatar.description", " **" +
+                "avatar.description", locale, " **" +
                     "[direct](${target.effectiveAvatarUrl()}) • " +
                     "[x64](${target.effectiveAvatarUrl()}?size=64) • " +
                     "[x128](${target.effectiveAvatarUrl()}?size=128) • " +
@@ -318,19 +323,21 @@ class UtilityExtension : Extension() {
     }
 
     inner class AvatarArgs : Arguments() {
+
         val target = optionalUser {
             name = "user"
             description = "Gives the avatar of the user"
         }
     }
 
-    inner class ServerInfoArgs() : Arguments() {
+    inner class ServerInfoArgs : Arguments() {
+
         val serverId = optionalSnowflake {
             name = "serverId"
             description = "Id of the server"
             validate {
                 val betterValue = value ?: return@validate
-                failIf(translations.tr("arguments.guildId.noGuild")) {
+                failIf(message = tr("arguments.guildId.noGuild")) {
                     kord.getGuild(betterValue) == null
                 }
             }
@@ -338,6 +345,7 @@ class UtilityExtension : Extension() {
     }
 
     inner class IdInfoArgs : Arguments() {
+
         val id = snowflake {
             name = "id"
             description = "id"
@@ -345,6 +353,7 @@ class UtilityExtension : Extension() {
     }
 
     inner class RoleInfoArgs : Arguments() {
+
         val role = role {
             name = "role"
             description = "gives information about the role"
@@ -352,6 +361,7 @@ class UtilityExtension : Extension() {
     }
 
     inner class UserInfoArgs : Arguments() {
+
         val user = optionalUser {
             name = "user"
             description = "A user"

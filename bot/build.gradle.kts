@@ -43,12 +43,9 @@ repositories {
     maven("https://nexus.melijn.com/repository/jcenter-mirror/")
     mavenLocal()
     maven("https://duncte123.jfrog.io/artifactory/maven")
-    maven("https://nexus.melijn.com/repository/jitpack/")
-    maven {
-        url = uri("https://maven.pkg.jetbrains.space/public/p/ktor/eap")
-        name = "ktor-eap"
-    }
+    
     // pooppack mirror
+    maven("https://nexus.melijn.com/repository/jitpack/")
 }
 
 val jackson = "2.13.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
@@ -58,18 +55,29 @@ val kotlinX = "1.6.0" // https://mvnrepository.com/artifact/org.jetbrains.kotlin
 val kotlin = "1.6.20"
 val scrimage = "4.0.22"
 
-val kord = "0.8.0-M13"
+// val kord = "0.8.0-M13"
 val kordEx = "1.5.3-SNAPSHOT"
-val kordKommons = "1.1.0"
+val kordKommons = "1.2.2"
+val apKordVersion = "0.1.8"
+val redgresKommons = "0.0.3"
 
 dependencies {
-    implementation("dev.kord:kord-core:$kord")
+    // implementation("dev.kord:kord-core:$kord")   let kord-ex handle kord version
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
+    ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
+    implementation("org.scilab.forge:jlatexmath:1.0.7")
+
+    implementation("dev.schlaubi.lavakord", "kord") {
+        version {
+            branch = "main"
+        }
+    }
 
     implementation("me.melijn.kordkommons:kommons:$kordKommons")
-    implementation("me.melijn.kordkommons:redgres-kommons:0.0.2")
+    implementation("me.melijn.kordkommons:redgres-kommons:$redgresKommons")
 
-    val apKord = "me.melijn.kordkommons:ap:0.0.4"
+
+    val apKord = "me.melijn.kordkommons:ap:$apKordVersion"
     val apKordex = "me.melijn.kordkommons:apkordex:0.0.1"
     implementation(apKord)
     implementation(apKordex)
@@ -83,10 +91,7 @@ dependencies {
     // https://github.com/freya022/JEmojis
     implementation("com.github.ToxicMushroom:JEmojis:a8c82848f166893f67251c741579c74c80fbb2dd")
 
-    // Annotation preprocessors
-//    implementation(project(":annotation-processors"))
-//    ksp(project(":annotation-processors"))
-
+    // Annotation processors
     api("org.jetbrains.kotlin:kotlin-script-util:$kotlin")
     api("org.jetbrains.kotlin:kotlin-compiler:$kotlin")
     api("org.jetbrains.kotlin:kotlin-scripting-compiler:$kotlin")
@@ -100,6 +105,7 @@ dependencies {
     // Database
     // https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-core
     implementation("org.jetbrains.exposed:exposed-core:0.37.3")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.37.3")
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.37.3")
 
     // https://search.maven.org/artifact/com.zaxxer/HikariCP
@@ -107,6 +113,9 @@ dependencies {
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
     implementation("org.postgresql:postgresql:42.3.3")
+
+    // expiring map, https://search.maven.org/artifact/net.jodah/expiringmap
+    implementation("net.jodah:expiringmap:0.5.10")
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinX")
@@ -119,7 +128,7 @@ dependencies {
     implementation("me.duncte123:weebJava:3.0.1_4")
 
     // https://mvnrepository.com/artifact/se.michaelthelin.spotify/spotify-web-api-java
-    implementation("se.michaelthelin.spotify:spotify-web-api-java:7.0.0")
+    implementation("se.michaelthelin.spotify:spotify-web-api-java:7.1.0")
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
     implementation("ch.qos.logback:logback-classic:1.2.11")

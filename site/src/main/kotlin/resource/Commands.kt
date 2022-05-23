@@ -16,6 +16,7 @@ class Commands : AbstractPage("/commands", ContentType.Text.Html) {
 
     @Language("html")
     override val src: String = """
+<!DOCTYPE html>
 <html lang="uk">
     <head>
         <title>Melijn Homepage</title>
@@ -76,7 +77,15 @@ class Commands : AbstractPage("/commands", ContentType.Text.Html) {
             for (command in commands) {
                 addChild("", command, extraInfo, category, sb)
             }
-            optionBuilder.appendLine("<option value='${category}' ${if (category.equals(extraInfo.categoryQuery, true)) "selected='selected'" else ""}>${category.lowercase()}</option>")
+            optionBuilder.appendLine(
+                "<option value='${category}' ${
+                    if (category.equals(
+                            extraInfo.categoryQuery,
+                            true
+                        )
+                    ) "selected='selected'" else ""
+                }>${category.lowercase()}</option>"
+            )
         }
 
         val commands = sb.toString().replaceFirst("%count$random%", "${extraInfo.counter}")
@@ -195,6 +204,7 @@ data class ExtraInfo(
     val categoryQuery: String?,
     var counter: Int = 0
 ) {
+
     data class RunCondition(
         val name: String,
         val description: String
