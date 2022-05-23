@@ -31,9 +31,9 @@ object Track : Table("track") {
 
 @CreateTable
 @Cacheable
-object FetchedTrack : Table("fetched_track") {
+object FetchedTrack : TrackJoinTable("fetched_track") {
 
-    val trackId = reference("track_id", Track.trackId)
+    override val trackId = reference("track_id", Track.trackId)
 
     val trackBase64 = text("track_base64")
     val author= text("author").nullable()
@@ -50,9 +50,9 @@ object FetchedTrack : Table("fetched_track") {
 
 @CreateTable
 @Cacheable
-object SpotifyTrack : Table("spotify_track") {
+object SpotifyTrack : TrackJoinTable("spotify_track") {
 
-    val trackId = reference("track_id", Track.trackId)
+    override val trackId = reference("track_id", Track.trackId)
 
     val author= text("author")
     val identifier= text("identifier")

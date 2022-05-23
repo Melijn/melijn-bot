@@ -5,7 +5,6 @@ import kotlinx.datetime.toLocalDateTime
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.database.model.BotRestartTrackEntry
 import me.melijn.bot.database.model.BotRestartTrackQueue
-import me.melijn.bot.database.model.PlaylistTrack
 import me.melijn.bot.model.PartialUser
 import me.melijn.bot.model.PodInfo
 import me.melijn.bot.music.Track
@@ -59,7 +58,7 @@ class BotRestartTrackEntryManager(driverManager: DriverManager) : AbstractBotRes
             }
             sortableTracks.add(entryData to track)
         }
-        trackManager.joinAllTypesInto(PlaylistTrack, where, trackCollector)
+        trackManager.joinAllTypesInto(BotRestartTrackEntry, where, trackCollector)
         return sortableTracks.sortedBy { it.first.position }.map { it.second }
     }
 

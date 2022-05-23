@@ -127,10 +127,14 @@ class TrackManager(
     ) {
         scopedTransaction {
             for (trackType in TrackType.values()) {
+                val trackTypeTable: TrackJoinTable = when (trackType) {
+                    TrackType.SPOTIFY -> DBSpotifyTrack
+                    TrackType.FETCHED -> DBFetchedTrack
+                }
                 table.join(DBTrack, JoinType.INNER) {
                     where(trackType)
-                }.join(table, JoinType.INNER) {
-                    DBTrack.trackId.eq(table.trackId)
+                }.join(trackTypeTable, JoinType.INNER) {
+                    DBTrack.trackId.eq(trackTypeTable.trackId)
                 }.selectAll().forEach {
                     trackCollector(it, trackType)
                 }

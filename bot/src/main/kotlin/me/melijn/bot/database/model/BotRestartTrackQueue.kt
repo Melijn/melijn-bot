@@ -25,10 +25,10 @@ object BotRestartTrackQueue : Table("bot_restart_track_queue") {
 
 @CreateTable
 @Cacheable
-object BotRestartTrackEntry : Table("bot_restart_track_entry") {
+object BotRestartTrackEntry : TrackJoinTable("bot_restart_track_entry") {
 
     val guildId = ulong("guild_id")
-    val trackId = uuid("track_id").references(Track.trackId)
+    override val trackId = uuid("track_id").references(Track.trackId)
     val position = integer("position")
 
     val userId = ulong("user_id")
