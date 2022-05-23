@@ -306,7 +306,7 @@ class PlaylistConverter(
             ?: throw DiscordRelayedException(
                 context.translate(
                     "converters.playlist.unknownPlaylistName",
-                    arg.escapeMarkdown()
+                    arrayOf(arg.escapeMarkdown())
                 )
             )
     }
