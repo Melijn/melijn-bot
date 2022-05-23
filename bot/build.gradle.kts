@@ -104,15 +104,16 @@ dependencies {
 
     // Database
     // https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-core
-    implementation("org.jetbrains.exposed:exposed-core:0.37.3")
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.37.3")
-    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.37.3")
+    val exposed = "0.38.2"
+    implementation("org.jetbrains.exposed:exposed-core:$exposed")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposed")
+    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:$exposed")
 
     // https://search.maven.org/artifact/com.zaxxer/HikariCP
     implementation("com.zaxxer:HikariCP:5.0.1")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.3.3")
+    implementation("org.postgresql:postgresql:42.3.5")
 
     // expiring map, https://search.maven.org/artifact/net.jodah/expiringmap
     implementation("net.jodah:expiringmap:0.5.10")
@@ -138,7 +139,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-core:$jackson")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jackson")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$jackson")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
 
     // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
     implementation("io.ktor:ktor:$ktor")
@@ -163,7 +164,7 @@ dependencies {
     implementation("me.melijn.jikankt:JikanKt:1.3.2")
 
     // https://mvnrepository.com/artifact/org.mariuszgromada.math/MathParser.org-mXparser
-    implementation("org.mariuszgromada.math:MathParser.org-mXparser:4.4.2")
+    implementation("org.mariuszgromada.math:MathParser.org-mXparser:5.0.3")
 
     // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
     implementation("com.apollographql.apollo:apollo-runtime:$apollo")
