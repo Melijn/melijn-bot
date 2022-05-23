@@ -5,137 +5,61 @@ import kotlinx.datetime.toLocalDateTime
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.database.model.BotRestartTrackEntry
 import me.melijn.bot.database.model.BotRestartTrackQueue
+import me.melijn.bot.database.model.PlaylistTrack
 import me.melijn.bot.model.PartialUser
 import me.melijn.bot.model.PodInfo
-import me.melijn.bot.music.FetchedTrack
-import me.melijn.bot.music.SpotifyTrack
 import me.melijn.bot.music.Track
 import me.melijn.bot.music.TrackType
 import me.melijn.bot.utils.KoinUtil.inject
-import me.melijn.gen.*
+import me.melijn.gen.BotRestartTrackEntryData
+import me.melijn.gen.BotRestartTrackQueueData
+import me.melijn.gen.Settings
 import me.melijn.gen.database.manager.AbstractBotRestartTrackEntryManager
 import me.melijn.gen.database.manager.AbstractBotRestartTrackQueueManager
 import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.utils.TimeUtil
 import org.jetbrains.exposed.sql.*
-import java.util.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import me.melijn.bot.database.model.Track as DBTrack
 
 @Inject
 class BotRestartTrackEntryManager(driverManager: DriverManager) : AbstractBotRestartTrackEntryManager(driverManager) {
 
     private val trackManager by inject<TrackManager>()
-    private val playlistFetchedTrackManager by inject<PlaylistFetchedTrackManager>()
-    private val playlistSpotifyTrackManager by inject<PlaylistSpotifyTrackManager>()
-    private val setttings by inject<Settings>()
+    private val settings by inject<Settings>()
 
     fun newTrack(guildId: ULong, position: Int, track: Track) {
-        val trackId = track.run {
-            trackManager.getByIndex1(title, url, isStream, length, track.sourceType.trackType)
-        }?.trackId ?: UUID.randomUUID()
+        val trackId = trackManager.storeMusicTrack(track)
 
-        trackManager.store(
-            TrackData(
-                trackId,
-                track.title,
-                track.url,
-                track.isStream,
-                track.length,
-                track.sourceType.trackType
-            )
-        )
+        val userId = track.data?.requester?.idULong ?: settings.bot.id.toULong()
+        val utc = kotlinx.datetime.TimeZone.UTC
+        val addedAt = track.data?.requestedAt?.toLocalDateTime(utc) ?: TimeUtil.localDateTimeNow()
 
-        when (track) {
-            is SpotifyTrack -> playlistSpotifyTrackManager.store(
-                SpotifyTrackData(trackId, track.author, track.identifier)
-            )
-            is FetchedTrack -> playlistFetchedTrackManager.store(
-                FetchedTrackData(
-                    trackId,
-                    track.track,
-                    track.author,
-                    track.identifier,
-                    track.sourceType,
-                    track.trackInfoVersion.toInt()
-                )
-            )
-        }
-
-        store(
-            BotRestartTrackEntryData(
-                guildId,
-                trackId,
-                position,
-                track.data?.requester?.idULong ?: setttings.bot.id.toULong(),
-                track.data?.requestedAt?.toLocalDateTime(kotlinx.datetime.TimeZone.UTC) ?: TimeUtil.localDateTimeNow()
-            )
-        )
+        store(BotRestartTrackEntryData(guildId, trackId, position, userId, addedAt))
     }
 
     fun getMelijnTracks(guildId: ULong): List<Track> {
-        val settings by inject<Settings>()
         val sortableTracks = mutableListOf<Pair<BotRestartTrackEntryData, Track>>()
-        scopedTransaction {
-            BotRestartTrackEntry.join(me.melijn.bot.database.model.Track, JoinType.INNER) {
-                me.melijn.bot.database.model.Track.trackType.eq(TrackType.FETCHED)
-                    .and(BotRestartTrackEntry.trackId.eq(me.melijn.bot.database.model.Track.trackId))
-                    .and(BotRestartTrackEntry.guildId.eq(guildId))
-            }.join(me.melijn.bot.database.model.FetchedTrack, JoinType.INNER) {
-                me.melijn.bot.database.model.Track.trackId.eq(me.melijn.bot.database.model.FetchedTrack.trackId)
-            }.selectAll().forEach {
-                val entryData = BotRestartTrackEntryData.fromResRow(it)
-
-                sortableTracks.add(
-                    entryData to FetchedTrack(
-                        it[me.melijn.bot.database.model.FetchedTrack.trackBase64],
-                        it[me.melijn.bot.database.model.Track.title],
-                        it[me.melijn.bot.database.model.FetchedTrack.author],
-                        it[me.melijn.bot.database.model.Track.url],
-                        it[me.melijn.bot.database.model.FetchedTrack.identifier],
-                        it[me.melijn.bot.database.model.Track.isStream],
-                        me.melijn.bot.music.TrackData.fromNow(
-                            PartialUser(
-                                Snowflake(settings.bot.id),
-                                Settings.bot.username,
-                                Settings.bot.discriminator,
-                                null
-                            ),
-                            it[me.melijn.bot.database.model.FetchedTrack.identifier]
-                        ),
-                        it[me.melijn.bot.database.model.Track.length],
-                        it[me.melijn.bot.database.model.FetchedTrack.trackSource],
-                        it[me.melijn.bot.database.model.FetchedTrack.trackInfoVersion].toByte(),
-                    )
-                )
-            }
-            BotRestartTrackEntry.join(me.melijn.bot.database.model.Track, JoinType.INNER) {
-                me.melijn.bot.database.model.Track.trackType.eq(TrackType.SPOTIFY)
-                    .and(BotRestartTrackEntry.trackId.eq(me.melijn.bot.database.model.Track.trackId))
-                    .and(BotRestartTrackEntry.guildId.eq(guildId))
-            }.join(me.melijn.bot.database.model.SpotifyTrack, JoinType.INNER) {
-                me.melijn.bot.database.model.Track.trackId.eq(me.melijn.bot.database.model.SpotifyTrack.trackId)
-            }.selectAll().forEach {
-                val entryData = BotRestartTrackEntryData.fromResRow(it)
-                sortableTracks.add(
-                    entryData to SpotifyTrack(
-                            it[me.melijn.bot.database.model.Track.title],
-                            it[me.melijn.bot.database.model.SpotifyTrack.author],
-                            it[me.melijn.bot.database.model.Track.url],
-                            it[me.melijn.bot.database.model.SpotifyTrack.identifier],
-                            it[me.melijn.bot.database.model.Track.isStream],
-                            me.melijn.bot.music.TrackData.fromNow(
-                                PartialUser(
-                                    Snowflake(settings.bot.id),
-                                    Settings.bot.username,
-                                    Settings.bot.discriminator,
-                                    null
-                                ),
-                                it[me.melijn.bot.database.model.SpotifyTrack.identifier]
-                            ),
-                            it[me.melijn.bot.database.model.Track.length]
-                        )
-                    )
-            }
+        val where = { trackType: TrackType ->
+            DBTrack.trackType.eq(trackType)
+                .and(BotRestartTrackEntry.trackId.eq(DBTrack.trackId))
+                .and(BotRestartTrackEntry.guildId.eq(guildId))
         }
+        val trackCollector = { it: ResultRow, trackType: TrackType ->
+            val entryData = BotRestartTrackEntryData.fromResRow(it)
+            val requester = PartialUser(
+                Snowflake(settings.bot.id),
+                Settings.bot.username,
+                Settings.bot.discriminator,
+                null
+            )
+            val track = when (trackType) {
+                TrackType.SPOTIFY -> trackManager.spotifyTrackFromResRow(it, requester)
+                TrackType.FETCHED -> trackManager.fetchedTrackFromResRow(it, requester)
+            }
+            sortableTracks.add(entryData to track)
+        }
+        trackManager.joinAllTypesInto(PlaylistTrack, where, trackCollector)
         return sortableTracks.sortedBy { it.first.position }.map { it.second }
     }
 
@@ -168,12 +92,11 @@ class BotRestartTrackQueueManager(driverManager: DriverManager) : AbstractBotRes
             }
         }
     }
-
 }
 
 class PodCheckOp(
-    val guildIdColumn: ExpressionWithColumnType<ULong>,
-    val shardId: Int
+    private val guildIdColumn: ExpressionWithColumnType<ULong>,
+    private val shardId: Int
 ) : Op<Boolean>() {
 
     override fun toQueryBuilder(queryBuilder: QueryBuilder) {
