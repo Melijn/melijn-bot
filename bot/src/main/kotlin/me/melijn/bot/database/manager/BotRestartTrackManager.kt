@@ -11,7 +11,6 @@ import me.melijn.bot.music.FetchedTrack
 import me.melijn.bot.music.SpotifyTrack
 import me.melijn.bot.music.Track
 import me.melijn.bot.music.TrackType
-import me.melijn.bot.utils.KoinUtil
 import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.gen.*
 import me.melijn.gen.database.manager.AbstractBotRestartTrackEntryManager
@@ -24,10 +23,10 @@ import java.util.*
 @Inject
 class BotRestartTrackEntryManager(driverManager: DriverManager) : AbstractBotRestartTrackEntryManager(driverManager) {
 
-    private val trackManager by KoinUtil.inject<TrackManager>()
-    private val playlistFetchedTrackManager by KoinUtil.inject<PlaylistFetchedTrackManager>()
-    private val playlistSpotifyTrackManager by KoinUtil.inject<PlaylistSpotifyTrackManager>()
-    private val setttings by KoinUtil.inject<Settings>()
+    private val trackManager by inject<TrackManager>()
+    private val playlistFetchedTrackManager by inject<PlaylistFetchedTrackManager>()
+    private val playlistSpotifyTrackManager by inject<PlaylistSpotifyTrackManager>()
+    private val setttings by inject<Settings>()
 
     fun newTrack(guildId: ULong, position: Int, track: Track) {
         val trackId = track.run {
