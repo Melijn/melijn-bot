@@ -43,8 +43,9 @@ repositories {
     maven("https://nexus.melijn.com/repository/jcenter-mirror/")
     mavenLocal()
     maven("https://duncte123.jfrog.io/artifactory/maven")
-    maven("https://nexus.melijn.com/repository/jitpack/")
+    
     // pooppack mirror
+    maven("https://nexus.melijn.com/repository/jitpack/")
 }
 
 val jackson = "2.13.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
@@ -54,14 +55,14 @@ val kotlinX = "1.6.0" // https://mvnrepository.com/artifact/org.jetbrains.kotlin
 val kotlin = "1.6.20"
 val scrimage = "4.0.22"
 
-//val kord = "0.8.0-M13"
+// val kord = "0.8.0-M13"
 val kordEx = "1.5.3-SNAPSHOT"
 val kordKommons = "1.2.2"
 val apKordVersion = "0.1.8"
 val redgresKommons = "0.0.3"
 
 dependencies {
-//    implementation("dev.kord:kord-core:$kord")   let kord-ex handle kord version
+    // implementation("dev.kord:kord-core:$kord")   let kord-ex handle kord version
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
     ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
     implementation("org.scilab.forge:jlatexmath:1.0.7")
