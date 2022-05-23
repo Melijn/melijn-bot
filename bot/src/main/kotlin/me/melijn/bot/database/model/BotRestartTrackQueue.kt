@@ -28,7 +28,7 @@ object BotRestartTrackQueue : Table("bot_restart_track_queue") {
 object BotRestartTrackEntry : Table("bot_restart_track_entry") {
 
     val guildId = ulong("guild_id")
-    val trackId = uuid("track_id")
+    val trackId = uuid("track_id").references(Track.trackId)
     val position = integer("position")
 
     val userId = ulong("user_id")
