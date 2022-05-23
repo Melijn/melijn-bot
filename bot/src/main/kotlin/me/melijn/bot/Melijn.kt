@@ -18,6 +18,7 @@ import me.melijn.apkordex.command.ExtensionInterface
 import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.model.Environment
 import me.melijn.bot.model.PodInfo
+import me.melijn.bot.music.MusicManager
 import me.melijn.bot.services.ServiceManager
 import me.melijn.bot.utils.EnumUtil.lcc
 import me.melijn.bot.utils.RealLinearRetry
@@ -115,6 +116,9 @@ object Melijn {
                     }
                     for (i in 0 until Settings.lavalink.url.size)
                         lavalink.addNode(Settings.lavalink.url[i], Settings.lavalink.password[i], "node$i")
+                    for (node in lavalink.nodes) {
+                        MusicManager.setupReconnects(node)
+                    }
                 }
 
                 created {  }

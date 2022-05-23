@@ -5,10 +5,14 @@ import dev.kord.core.entity.User
 import dev.schlaubi.lavakord.audio.Link
 import dev.schlaubi.lavakord.audio.TrackEndEvent
 import dev.schlaubi.lavakord.audio.on
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.melijn.bot.commands.SpotifyCommand
 import me.melijn.bot.model.PartialUser
+import me.melijn.bot.model.PremiumIntLimit
+import me.melijn.bot.model.enums.IntLimit
+import me.melijn.bot.model.enums.PremiumTier
 import me.melijn.bot.web.api.MySpotifyApi
 import me.melijn.bot.web.api.MySpotifyApi.Companion.toTrack
 import me.melijn.bot.web.api.WebManager
@@ -32,6 +36,15 @@ class TrackManager(val link: Link) {
 
     init {
         player.on(consumer = ::onTrackEnd)
+    }
+
+    companion object {
+        private val MAX_QUEUE_SIZE = PremiumIntLimit(500) {
+            when (it) {
+                PremiumTier.TIER_1 -> IntLimit(10000)
+                PremiumTier.TIER_2 -> IntLimit(20000)
+            }
+        }
     }
 
     private suspend fun onTrackEnd(event: TrackEndEvent) {
@@ -180,7 +193,41 @@ class TrackManager(val link: Link) {
         ranges.forEach { range -> for (i in range) indexes.add(i) }
         return queue.getAll(indexes)
     }
+
     suspend fun getTracksByIndexes(collection: Collection<Int>): List<Track> {
         return queue.getAll(collection)
+    }
+
+    var lastBackup = 0L
+    var trackBackup: Track? = null
+    var positionBackup: Long? = null
+    var pausedBackup: Boolean? = null
+
+    fun onPotentialNodeRestart() {
+        lastBackup = System.currentTimeMillis()
+        trackBackup = playingTrack
+        positionBackup = player.position
+        pausedBackup = player.paused
+    }
+
+    suspend fun onNodeRestarted() {
+        val track = trackBackup
+        val position = positionBackup
+        val paused = pausedBackup
+
+        if (track != null && position != null && paused != null) {
+            val vc = link.lastChannelId ?: return
+
+            // reset vc session so the new ll instance can use it
+            link.disconnectAudio()
+            delay(1000)
+            link.connectAudio(vc)
+            delay(1000)
+
+            // recover player state
+            play(track)
+            player.pause(paused)
+            player.seekTo(position)
+        }
     }
 }
