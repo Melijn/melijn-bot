@@ -179,7 +179,7 @@ object Melijn {
             logger.info("[hostName] {}", hostName)
 
             if (podCount == 1) 0
-            else 1 // hostName.split("-").last().toInt()
+            else hostName.split("-").last().toInt()
         } catch (t: Throwable) {
             logger.warn("Cannot parse podId from hostname", t)
             if (podCount == 1) 0
