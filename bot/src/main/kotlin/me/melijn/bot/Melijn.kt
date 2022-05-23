@@ -120,8 +120,6 @@ object Melijn {
                         MusicManager.setupReconnects(node)
                     }
                 }
-
-                created {  }
             }
 
 

@@ -6,6 +6,7 @@ import kotlin.time.Duration
 
 @kotlinx.serialization.Serializable
 abstract class Track {
+
     abstract val title: String
     abstract val author: String?
     abstract val url: String
@@ -13,6 +14,7 @@ abstract class Track {
     abstract val isStream: Boolean
 
     abstract val data: TrackData?
+
     @kotlinx.serialization.Serializable(with = TimeUtil.DurationSerializer::class)
     abstract val length: Duration
 
