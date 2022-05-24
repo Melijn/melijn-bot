@@ -11,7 +11,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ lowercase(github.repository) }}
   RAM_LIMIT: 4GB
   VERSION_HASH: ${{ github.sha }}
 
