@@ -37,12 +37,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # fix casing issue with repo name
-      - name: downcase REPO
-        run: |
-          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${IMAGE_NAME}
-      - name: use REPO
-        run: |
-          echo "The value of IMAGE_NAME is: ${IMAGE_NAME}"
+#      - name: downcase REPO
+#        run: |
+#          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${IMAGE_NAME}
+#      - name: use REPO
+#        run: |
+#          echo "The value of IMAGE_NAME is: ${IMAGE_NAME}"
 
       - name: Cache Docker layers
         uses: actions/cache@v2
@@ -68,6 +68,9 @@ jobs:
         uses: docker/metadata-action@v4.0.1
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value={{sha}}
+            type=raw,value=latest
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v3.0.0
@@ -76,7 +79,7 @@ jobs:
           file: ./Bot.Dockerfile
           builder: ${{ steps.buildx.outputs.name }}
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION_HASH }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
