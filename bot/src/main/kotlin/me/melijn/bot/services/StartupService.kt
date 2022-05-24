@@ -39,6 +39,8 @@ class StartupService {
                     tracks.forEach {
                         tm.queue(it, QueuePosition.BOTTOM)
                     }
+                    tm.player.pause(queueData.paused)
+                    tm.player.seekTo(queueData.playerPosition)
                 }
                 botRestartTrackQueueManager.deleteAll(shardId)
                 botRestartTrackEntryManager.deleteAll(shardId)
