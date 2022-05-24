@@ -9,8 +9,8 @@ import java.util.concurrent.TimeUnit
 @Inject
 class SearchPlayMenuCache {
 
-    val cache = ExpiringMap.builder()
+    val cache: ExpiringMap<OwnedGuildMessage, SearchPlayMenu> = ExpiringMap.builder()
         .expiration(60, TimeUnit.SECONDS)
-        .build<OwnedGuildMessage, SearchPlayMenu>()
+        .build()
 
 }
