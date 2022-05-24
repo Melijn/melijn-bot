@@ -7,10 +7,10 @@ import dev.kord.core.entity.interaction.GuildButtonInteraction
 
 data class OwnedGuildMessage(
     val guildId: Long,
-    val channelId: Long,
-    val userId: Long,
-    val messageId: Long
-) {
+    override val channelId: Long,
+    override val ownerId: Long,
+    override val messageId: Long
+) : AbstractOwnedMessage(ownerId, channelId, messageId) {
 
     companion object {
         fun from(interaction: GuildButtonInteraction): OwnedGuildMessage {
@@ -28,3 +28,4 @@ data class OwnedGuildMessage(
         }
     }
 }
+

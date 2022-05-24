@@ -86,11 +86,11 @@ private typealias SortableTracks = MutableList<Triple<UUID, LocalDateTime, Track
 @Inject
 class TrackManager(
     driverManager: DriverManager,
-    val spotifyTrackManager: SpotifyTrackManager,
-    val fetchedTrackManager: FetchedTrackManager
+    private val spotifyTrackManager: SpotifyTrackManager,
+    private val fetchedTrackManager: FetchedTrackManager
 ) : AbstractTrackManager(driverManager) {
 
-    fun storeMusicTrack(musicTrack: Track) = musicTrack.run {
+    fun storeMusicTrack(musicTrack: Track): UUID = musicTrack.run {
         val trackId = getByIndex1(title, url, isStream, length, sourceType.trackType)?.trackId ?: UUID.randomUUID()
 
         store(GenTrackData(trackId, title, url, isStream, length, sourceType.trackType))

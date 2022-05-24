@@ -3,8 +3,6 @@ package me.melijn.bot.commands
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.impl.long
 import com.kotlindiscord.kord.extensions.commands.converters.impl.string
-import com.kotlindiscord.kord.extensions.components.components
-import com.kotlindiscord.kord.extensions.components.publicButton
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
 import dev.kord.common.entity.ButtonStyle
@@ -12,6 +10,10 @@ import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.rest.builder.message.create.actionRow
 import me.melijn.apkordex.command.KordExtension
+import me.melijn.bot.cache.ButtonCache
+import me.melijn.bot.events.LATEX_DESTROY_BUTTON_ID
+import me.melijn.bot.model.AbstractOwnedMessage
+import org.koin.core.component.inject
 import org.scilab.forge.jlatexmath.TeXConstants
 import org.scilab.forge.jlatexmath.TeXFormula
 import java.awt.Color
@@ -73,13 +75,14 @@ class MathExtension : Extension() {
             }
         }
 
+        val buttonCache by inject<ButtonCache>()
         chatCommand(::LaTeXArgs) {
             name = "latex"
             description = "https://en.wikibooks.org/wiki/LaTeX/Mathematics"
             allowKeywordArguments = false
 
             action {
-                val latex = arguments.latex.parsed
+                val latex = argString
                 val formula = TeXFormula(latex)
                 val img: BufferedImage = formula.createBufferedImage(
                     TeXConstants.STYLE_DISPLAY,
@@ -91,23 +94,16 @@ class MathExtension : Extension() {
                 kotlin.runCatching { ImageIO.write(img, "jpeg", baos) }
                 val bis = ByteArrayInputStream(baos.toByteArray())
 
-                channel.createMessage {
+                val sent = channel.createMessage {
                     addFile("img.png", bis)
                     actionRow {
-                        interactionButton(ButtonStyle.Danger, "DESTROYY") {
+                        interactionButton(ButtonStyle.Danger, LATEX_DESTROY_BUTTON_ID) {
                             label = "Destroy"
-                        }
-                    }
-                    components {
-                        publicButton {
-                            label = "Destroy"
-                            style = ButtonStyle.Danger
-                            this.action {
-                                this.message
-                            }
                         }
                     }
                 }
+
+                buttonCache.latexButtonOwners[AbstractOwnedMessage.from(guild, user!!, sent)] = true
             }
         }
     }
