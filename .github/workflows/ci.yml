@@ -36,21 +36,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # fix casing issue with repo name
-#      - name: downcase REPO
-#        run: |
-#          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${IMAGE_NAME}
-#      - name: use REPO
-#        run: |
-#          echo "The value of IMAGE_NAME is: ${IMAGE_NAME}"
-
       - name: Cache Docker layers
-        uses: actions/cache@v2
+        uses: actions/cache@v3.0.2
         with:
-          path: /tmp/.buildx-cache
+          path: |
+            /tmp/.buildx-cache
+            ./bot/build
+            ./build
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-
+
       - name: Log in to the Container registry
         uses: docker/login-action@v2
         with:
