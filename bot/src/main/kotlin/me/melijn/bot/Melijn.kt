@@ -51,7 +51,7 @@ object Melijn {
             settings.process.environment == Environment.PRODUCTION
         )
         PodInfo.init(podCount, shardCount, podId)
-        //initSentry(settings)
+        // initSentry(settings)
 
         val botInstance = ExtensibleBot(settings.api.discord.token) {
             @OptIn(PrivilegedIntent::class)
