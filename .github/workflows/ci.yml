@@ -11,7 +11,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ lowercase(github.repository) }}
+  IMAGE_NAME: ${{ github.repository }}
   RAM_LIMIT: 4GB
   VERSION_HASH: ${{ github.sha }}
 
@@ -35,6 +35,14 @@ jobs:
         run: gradle :bot:shadowJar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # fix casing issue with repo name
+      - name: downcase REPO
+        run: |
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${IMAGE_NAME}
+      - name: use REPO
+        run: |
+          echo "The value of IMAGE_NAME is: ${IMAGE_NAME}"
 
       - name: Cache Docker layers
         uses: actions/cache@v2
