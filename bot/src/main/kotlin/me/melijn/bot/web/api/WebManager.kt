@@ -1,7 +1,7 @@
 package me.melijn.bot.web.api
 
 import com.apollographql.apollo.ApolloClient
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.DeserializationFeature
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.*
@@ -18,12 +18,14 @@ import java.net.Proxy
 class WebManager {
 
     val settings by inject<Settings>(Settings::class.java)
-    val objectMapper by inject<ObjectMapper>(ObjectMapper::class.java)
 
     val commonClientConfig: HttpClientConfig<OkHttpConfig>.() -> Unit = {
         expectSuccess = false
         install(ContentNegotiation) {
-            jackson()
+            jackson {
+                disable(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES)
+                disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            }
         }
         install(UserAgent) {
             agent = "Melijn / 3.0.0 Discord bot"
