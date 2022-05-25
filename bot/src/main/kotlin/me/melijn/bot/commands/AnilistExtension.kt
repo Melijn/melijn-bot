@@ -97,7 +97,6 @@ class AnilistExtension : Extension() {
                 description = "View AniList profile of user"
 
                 action {
-                    // todo: no ping user
                     val id = (arguments.user.parsed
                         ?.let { linkManager.get(it.id) ?: bail(tr("anilist.profile.other.nolink", it.mention)) }
                         ?: (linkManager.get(getUser().id) ?: bail(tr("anilist.profile.you.nolink"))))
@@ -453,7 +452,6 @@ class AnilistExtension : Extension() {
 
     internal class UsernameArg : Arguments() {
         val username = string {
-            // TODO: validate
             name = "username"
             description = "AniList profile URL or username"
         }
