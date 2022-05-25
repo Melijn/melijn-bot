@@ -4,7 +4,7 @@
   "extensions": {
     "endpoints": {
       "Default GraphQL Endpoint": {
-        "url": "https://anilist.co/graphiql",
+        "url": "https://graphql.anilist.co/",
         "headers": {
           "user-agent": "JS GraphQL"
         },
