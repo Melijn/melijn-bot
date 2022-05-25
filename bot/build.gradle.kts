@@ -175,6 +175,9 @@ dependencies {
 
     // https://github.com/cdimascio/dotenv-kotlin
     implementation("io.github.cdimascio:dotenv-kotlin:6.2.2")
+
+    // https://github.com/furstenheim/copy-down
+    implementation("io.github.furstenheim:copy_down:1.0")
 }
 
 ksp {
