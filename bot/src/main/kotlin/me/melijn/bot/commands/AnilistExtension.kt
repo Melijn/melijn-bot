@@ -324,11 +324,13 @@ class AnilistExtension : Extension() {
         media.status?.name?.let { v ->
             field(tr("anilist.lookup.embed.status"), inline = true) { v.ucc() }
         }
-        media.startDate?.let { (_, y, m, d) ->
-            field(tr("anilist.lookup.embed.sDate"), inline = true) { "${y!!}-${m!!}-${d!!}" }
+        if (media.startDate?.year != null) {
+            val (_, y, m, d) = media.startDate
+            field(tr("anilist.lookup.embed.startDate"), inline = true) { "${y!!}-${m!!}-${d!!}" }
         }
-        media.endDate?.let { (_, y, m, d) ->
-            field(tr("anilist.lookup.embed.eDate"), inline = true) { "${y!!}-${m!!}-${d!!}" }
+        if (media.endDate?.year != null) {
+            val (_, y, m, d) = media.endDate
+            field(tr("anilist.lookup.embed.endDate"), inline = true) { "${y!!}-${m!!}-${d!!}" }
         }
 
         media.coverImage?.let { coverImage ->
