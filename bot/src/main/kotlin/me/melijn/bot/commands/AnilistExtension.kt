@@ -73,7 +73,7 @@ class AnilistExtension : Extension() {
                     respond {
                         when {
                             response.hasErrors() && response.errors?.any { it.message == "Not found." } == true -> {
-                                content = tr("anilist.link.nouser")
+                                content = tr("anilist.link.noUser")
                             }
                             response.hasErrors() -> {
                                 logger.error { "AniList user lookup failed: " + response.errors?.joinToString { it.message } }
@@ -83,7 +83,7 @@ class AnilistExtension : Extension() {
                                 val anilistId = response.data?.user?.fragments?.userFragment?.id
                                     ?: bail(tr("anilist.link.failed"))
 
-                                linkManager.store(AnilistLinkData(user.id.value, anilistId))
+                                linkManager.store(AnilistLinkData(user.id.value, anilistId, AniListLanguagePreference.ROMAJI))
 
                                 content = tr("anilist.link.succeeded")
                             }
@@ -98,8 +98,8 @@ class AnilistExtension : Extension() {
 
                 action {
                     val id = (arguments.user.parsed
-                        ?.let { linkManager.get(it.id) ?: bail(tr("anilist.profile.other.nolink", it.mention)) }
-                        ?: (linkManager.get(getUser().id) ?: bail(tr("anilist.profile.you.nolink"))))
+                        ?.let { linkManager.get(it.id) ?: bail(tr("anilist.profile.other.noLink", it.mention)) }
+                        ?: (linkManager.get(getUser().id) ?: bail(tr("anilist.profile.you.noLink"))))
                         .anilistId
 
                     respond {
@@ -251,9 +251,9 @@ class AnilistExtension : Extension() {
                 }
             }
 
-            field(tr("anilist.lookup.embed.fName"), inline = true) { name?.first ?: "/" }
-            field(tr("anilist.lookup.embed.lName"), inline = true) { name?.last ?: "/" }
-            field(tr("anilist.lookup.embed.nName"), inline = true) { name?.native_ ?: "/" }
+            field(tr("anilist.lookup.embed.firstName"), inline = true) { name?.first ?: "/" }
+            field(tr("anilist.lookup.embed.lastName"), inline = true) { name?.last ?: "/" }
+            field(tr("anilist.lookup.embed.nativeName"), inline = true) { name?.native_ ?: "/" }
             media?.edges?.let { edge ->
                 edge.filterNotNull().batchingJoinToString(1024, "\n") {
                     val tit = (it.node?.title?.romaji ?: "No title").escapeMarkdown()
@@ -365,7 +365,7 @@ class AnilistExtension : Extension() {
             statistics?.anime?.genres?.filterNotNull()?.mapNotNull { it.genre }?.let { genres ->
                 if (genres.isNotEmpty()) {
                     field(
-                        tr("anilist.lookup.embed.topAnimeG"),
+                        tr("anilist.lookup.embed.topAnimeGenres"),
                         inline = true
                     ) { genres.mapIndexed { index, s -> "`$index.` $s" }.joinToString("\n") }
                 }
@@ -373,7 +373,7 @@ class AnilistExtension : Extension() {
             statistics?.manga?.genres?.filterNotNull()?.mapNotNull { it.genre }?.let { genres ->
                 if (genres.isNotEmpty()) {
                     field(
-                        tr("anilist.lookup.embed.topMangaG"),
+                        tr("anilist.lookup.embed.topMangaGenres"),
                         inline = true
                     ) { genres.mapIndexed { index, s -> "`$index.` $s" }.joinToString("\n") }
                 }
