@@ -89,30 +89,39 @@ class AnimalImageApi(private val httpClient: HttpClient) : KoinComponent {
     }
 }
 
+@kotlinx.serialization.Serializable
 data class Duncte123RandomImage(
     val data: Data
 ) {
+
+    @kotlinx.serialization.Serializable
     data class Data(
         val file: String
     )
 }
 
+@kotlinx.serialization.Serializable
 data class RandomDukRandomImage(
     val url: String
 )
 
+@kotlinx.serialization.Serializable
 data class TheCatApiRandomImages(
     val images: List<TheCatApiRandomImage>
 ) {
+
+    @kotlinx.serialization.Serializable
     data class TheCatApiRandomImage(
         val url: String
     )
 }
 
+@kotlinx.serialization.Serializable
 data class SomeRandomApiRandomImage(
     val link: String
 )
 
+@kotlinx.serialization.Serializable
 data class ImgHoardRandomImage(
     val url: String
 )

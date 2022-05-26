@@ -148,6 +148,7 @@ dependencies {
     // Ktor Client
     implementation("io.ktor:ktor-client-okhttp:$ktor")
     implementation("io.ktor:ktor-client-content-negotiation:$ktor")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor")
 
     // Ktor Server
     implementation("io.ktor:ktor-server-netty:$ktor")
