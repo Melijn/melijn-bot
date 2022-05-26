@@ -103,7 +103,7 @@ class AnilistExtension : Extension() {
 
                 action {
                     val pref = arguments.preference.parsed
-                    val userId = getUser().id
+                    val userId = user.id
                     when (val storage = linkManager.get(userId)) {
                         null -> linkManager.store(AnilistLinkData(userId.value, null, pref))
                         else -> linkManager.store(storage.apply {
@@ -205,7 +205,7 @@ class AnilistExtension : Extension() {
             }
         }
 
-        val preference = linkManager.get(getUser().id)?.preference ?: AniListLanguagePreference.ROMAJI
+        val preference = linkManager.get(user.id)?.preference ?: AniListLanguagePreference.ROMAJI
 
         // if media (anime or manga)
         val mediaType = type.mediaType
