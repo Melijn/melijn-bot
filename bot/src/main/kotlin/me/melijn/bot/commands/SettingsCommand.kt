@@ -1,24 +1,31 @@
 package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
-import com.kotlindiscord.kord.extensions.commands.application.slash.converters.ChoiceEnum
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.enumChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.group
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
-import com.kotlindiscord.kord.extensions.commands.converters.impl.*
+import com.kotlindiscord.kord.extensions.commands.converters.impl.color
+import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalInt
+import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalString
+import com.kotlindiscord.kord.extensions.commands.converters.impl.string
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
+import dev.kord.common.Color
 import dev.kord.common.entity.Permission
+import dev.kord.rest.builder.message.EmbedBuilder
+import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
 import dev.kord.rest.builder.message.create.embed
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.CommandEmbedColorManager
 import me.melijn.bot.database.manager.PrefixManager
+import me.melijn.bot.utils.ImageUtil
+import me.melijn.bot.utils.ImageUtil.toInputStream
 import me.melijn.bot.utils.InferredChoiceEnum
 import me.melijn.bot.utils.KordExUtils.inRange
 import me.melijn.bot.utils.KordExUtils.lengthBetween
-import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
 import me.melijn.bot.utils.KordExUtils.tr
+import me.melijn.bot.utils.KordUtil.toHex
 import me.melijn.bot.utils.embedWithColor
 import me.melijn.gen.CommandEmbedColorData
 import me.melijn.gen.PrefixesData
@@ -45,15 +52,16 @@ class SettingsCommand : Extension() {
                     description = "sets the embedcolor in the provided scope"
 
                     action {
-                        val scope = this.arguments.scope
-                        val color = this.arguments.color
+                        val scope = arguments.scope
+                        val color = arguments.color
                         val colorManager by inject<CommandEmbedColorManager>()
                         val entityId = if (scope == Scope.PRIVATE) user.id else guild?.id ?: return@action
                         colorManager.store(CommandEmbedColorData(entityId.value, color.rgb))
                         respond {
                             embedWithColor {
                                 title = tr("settings.embedColor.menuTitle")
-                                description = tr("settings.embedColor.set", scope, color.toString())
+                                description = tr("settings.embedColor.set", scope, color.toHex())
+                                addSquareThumbnail(color)
                             }
                         }
                     }
@@ -70,7 +78,8 @@ class SettingsCommand : Extension() {
                         respond {
                             embedWithColor {
                                 title = tr("settings.embedColor.menuTitle")
-                                description = tr("settings.embedColor.view", scope, color.toString())
+                                description = tr("settings.embedColor.view", scope, color.toHex())
+                                addSquareThumbnail(color)
                             }
                         }
                     }
@@ -132,6 +141,17 @@ class SettingsCommand : Extension() {
                         respond { content = "Deleted `${prefixArg.value.prefix}` from the server prefixes" }
                     }
                 }
+            }
+        }
+    }
+
+    context(FollowupMessageCreateBuilder, EmbedBuilder)
+    private fun addSquareThumbnail(color: Color?) {
+        color?.let {
+            val ins = ImageUtil.createSquare(64, it).toInputStream()
+            val file = this@FollowupMessageCreateBuilder.addFile("file.png", ins)
+            this@EmbedBuilder.thumbnail {
+                url = "attachment://${file.name}"
             }
         }
     }

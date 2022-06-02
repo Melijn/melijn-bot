@@ -1,5 +1,6 @@
 package me.melijn.bot.utils
 
+import dev.kord.common.Color
 import dev.kord.core.entity.Guild
 import dev.kord.core.entity.User
 import dev.kord.rest.Image
@@ -35,6 +36,11 @@ object KordUtil {
         val hash = data.splash.value ?: return null
         val format = hashToImageFormat(hash)
         return getSplashUrl(format) + size.getParam()
+    }
+
+    fun Color?.toHex(): String {
+        if (this == null) return "null"
+        return "#" + this.rgb.toString(16).uppercase()
     }
 
     private fun hashToImageFormat(hash: String) = if (hash.startsWith("a_")) Image.Format.GIF else Image.Format.PNG

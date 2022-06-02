@@ -53,7 +53,7 @@ val ktor = "2.0.0"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-c
 val apollo = "2.5.11" // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
 val kotlinX = "1.6.0" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
 val kotlin = "1.6.20"
-val scrimage = "4.0.22"
+val scrimage = "4.0.31"
 
 // val kord = "0.8.0-M13"
 val kordEx = "1.5.3-SNAPSHOT"
