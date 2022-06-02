@@ -1,17 +1,18 @@
 package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
+import com.kotlindiscord.kord.extensions.commands.CommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.enumChoice
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.common.Color
-import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
-import dev.kord.rest.builder.message.create.embed
+import dev.kord.rest.builder.message.create.MessageCreateBuilder
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.model.AnimalType
 import me.melijn.bot.utils.EnumUtil.ucc
 import me.melijn.bot.utils.MISSING_IMAGE_URL
+import me.melijn.bot.utils.embedWithColor
 import me.melijn.bot.web.api.WebManager
 import org.koin.core.component.inject
 
@@ -43,10 +44,10 @@ class AnimalExtension : Extension() {
         }
     }
 
-    private suspend fun FollowupMessageCreateBuilder.animalEmbed(animal: AnimalType) {
-        embed {
+    context(CommandContext, MessageCreateBuilder)
+    private suspend fun animalEmbed(animal: AnimalType) {
+        embedWithColor(Color(100, 100, 220)) {
             title = animal.ucc()
-            color = Color(100, 100, 220)
             image = webManager.animalImageApi.getRandomAnimalImage(animal) ?: MISSING_IMAGE_URL
         }
     }

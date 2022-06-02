@@ -122,7 +122,6 @@ object Melijn {
                 }
             }
 
-
             cache {
                 cachedMessages = 0
             }
