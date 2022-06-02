@@ -6,7 +6,6 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.converters.i
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
-import dev.kord.common.Color
 import dev.kord.rest.builder.message.create.MessageCreateBuilder
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.model.AnimalType
@@ -46,7 +45,7 @@ class AnimalExtension : Extension() {
 
     context(CommandContext, MessageCreateBuilder)
     private suspend fun animalEmbed(animal: AnimalType) {
-        embedWithColor(Color(100, 100, 220)) {
+        embedWithColor {
             title = animal.ucc()
             image = webManager.animalImageApi.getRandomAnimalImage(animal) ?: MISSING_IMAGE_URL
         }
