@@ -6,6 +6,7 @@ import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.logging.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import me.melijn.ap.injector.Inject
@@ -22,13 +23,17 @@ class WebManager {
     val commonClientConfig: HttpClientConfig<OkHttpConfig>.() -> Unit = {
         expectSuccess = false
         install(ContentNegotiation) {
-            json(json = Json {
-                encodeDefaults = true
+            json(Json {
                 ignoreUnknownKeys = true
+                encodeDefaults = true
+                coerceInputValues = true
             })
         }
         install(UserAgent) {
             agent = "Melijn / 3.0.0 Discord bot"
+        }
+        install(Logging) {
+            level = LogLevel.ALL
         }
     }
 
