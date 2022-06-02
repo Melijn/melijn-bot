@@ -111,19 +111,19 @@ object KordExUtils {
     fun TranslationsProvider.tr(
         @PropertyKey(resourceBundle = MELIJN_RESOURCE_BUNDLE) key: String,
         locale: Locale,
-        vararg replacements: Any
+        vararg replacements: Any?
     ): String =
         translate(key, locale, MELIJN_RESOURCE_BUNDLE_KORDEX, replacements.asList().toTypedArray())
 
     suspend fun CommandContext.tr(
         @PropertyKey(resourceBundle = MELIJN_RESOURCE_BUNDLE) key: String,
-        vararg replacements: Any
+        vararg replacements: Any?
     ): String =
         translationsProvider.translate(key, getLocale(), MELIJN_RESOURCE_BUNDLE_KORDEX, replacements.asList().toTypedArray())
 
     suspend fun ValidationContext<*>.tr(
         @PropertyKey(resourceBundle = MELIJN_RESOURCE_BUNDLE) key: String,
-        vararg replacements: Any
+        vararg replacements: Any?
     ): String =
         translations.translate(key, context.getLocale(), MELIJN_RESOURCE_BUNDLE_KORDEX, replacements.asList().toTypedArray())
 
@@ -203,6 +203,9 @@ object KordExUtils {
         }
         body()
     }
+
+    fun bail(reason: String): Nothing = throw DiscordRelayedException(reason)
+
 }
 
 interface InferredChoiceEnum : ChoiceEnum {
