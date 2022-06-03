@@ -11,7 +11,10 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.string
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
+import com.kotlindiscord.kord.extensions.types.respondingPaginator
+import dev.kord.common.DiscordTimestampStyle
 import dev.kord.common.kColor
+import dev.kord.common.toMessageFormat
 import dev.kord.rest.builder.message.EmbedBuilder
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -24,9 +27,12 @@ import kotlinx.serialization.Serializable
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.OsuLinkManager
 import me.melijn.bot.database.manager.OsuTokenManager
+import me.melijn.bot.model.Cell
+import me.melijn.bot.model.enums.Alignment
 import me.melijn.bot.utils.InferredChoiceEnum
 import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.tr
+import me.melijn.bot.utils.TableBuilder
 import me.melijn.bot.web.api.WebManager
 import me.melijn.gen.OsuLinkData
 import me.melijn.gen.Settings
@@ -99,9 +105,48 @@ class OsuExtension : Extension() {
                     val scores = getScores(osuUser.id, "best", token, GetUserScoresRequest())
                         .getOrElse { bail(it.message ?: "wfjskld") }
 
-                    respond {
-                        content = scores.joinToString { it.id.toString() }
-                    }
+                    respondingPaginator {
+                        for ((i, score) in scores.withIndex()) {
+                            println(score)
+                            val beatmapset = score.beatmapset
+                            val stats = score.statistics
+                            val table = TableBuilder()
+                                .setColumns("300", "100", "50", "miss")
+                                .addRow(
+                                    Cell(stats.count_300.toString(), Alignment.RIGHT),
+                                    Cell(stats.count_100.toString(), Alignment.RIGHT),
+                                    Cell(stats.count_50.toString(), Alignment.RIGHT),
+                                    Cell(stats.count_miss.toString(), Alignment.RIGHT),
+                                )
+                                .build(false)
+                                .first()
+
+                            val hits = stats.count_300 + stats.count_100 + stats.count_50
+                            val total = hits + stats.count_miss
+                            page {
+                                title = "Score #${i}"
+                                url = score.beatmap.url
+                                description = tr(
+                                    "osu.scores.layout",
+                                    beatmapset.title,
+                                    beatmapset.favourite_count,
+                                    beatmapset.play_count,
+                                    beatmapset.favourite_count / beatmapset.play_count.toDouble() * 100,
+                                    hits,
+                                    total,
+                                    hits / total.toDouble() * 100,
+                                    score.accuracy * 100,
+                                    stats.count_katu, stats.count_geki,
+                                    table,
+                                    score.created_at.toMessageFormat(DiscordTimestampStyle.LongDateTime)
+                                )
+
+                                thumbnail {
+                                    url = beatmapset.covers.list2x ?: beatmapset.covers.list
+                                }
+                            }
+                        }
+                    }.send()
                 }
             }
 
@@ -140,11 +185,12 @@ class OsuExtension : Extension() {
         token
     ).getOrElse { bail(tr("osu.noUser")) }
 
-    private suspend fun getScores(user: Int, type: String, token: String, req: GetUserScoresRequest) = get<List<Score>, GetUserScoresRequest>(
-        endpoint("users/$user/scores/$type"),
-        req,
-        token
-    )
+    private suspend fun getScores(user: Int, type: String, token: String, req: GetUserScoresRequest) =
+        get<List<Score>, GetUserScoresRequest>(
+            endpoint("users/$user/scores/$type"),
+            req,
+            token
+        )
 
     inner class OsuAccountArg : Arguments() {
         val account by string {
@@ -261,7 +307,7 @@ class OsuExtension : Extension() {
         }
 
         footer {
-            text = tr("osu.user.joined", Date.from(user.join_date.toJavaInstant()))
+            text = tr("osu.user.joined", Date.from(user.join_date?.toJavaInstant()))
         }
     }
 
@@ -327,13 +373,13 @@ private data class User(
     val profile_colour: String?,
     // user's display name
     val username: String,
-    val statistics: UserStatistics?,
+    val statistics: UserStatistics? = null,
 
     /// User
-    val discord: String?,
-    val join_date: Instant,
-    val location: String?,
-    val playmode: GameMode,
+    val discord: String? = null,
+    val join_date: Instant? = null,
+    val location: String? = null,
+    val playmode: GameMode? = null,
 ) {
     fun siteUrl(mode: GameMode) = "https://osu.ppy.sh/users/$id/${mode.name.lowercase()}"
 }
@@ -353,8 +399,113 @@ enum class GameMode(val humanName: String) : InferredChoiceEnum {
     TAIKO("osu!taiko")
 }
 
+@Serializable
+private data class Weight(
+    val percentage: Double,
+    val pp: Double
+)
+
+@Serializable
+private data class Beatmap(
+    val mode_int: Int,
+    val ranked: Int,
+    val beatmapset_id: Long,
+    val id: Long,
+    val total_length: Long,
+    val user_id: Long,
+    val bpm: Long,
+    val count_circles: Long,
+    val count_sliders: Long,
+    val count_spinners: Long,
+    val hit_length: Long,
+    val passcount: Long,
+    val playcount: Long,
+    val drain: Double,
+    val difficulty_rating: Double,
+    val accuracy: Double,
+    val ar: Double,
+    val cs: Double,
+    val mode: String,
+    val status: String,
+    val version: String,
+    val last_updated: String,
+    val deleted_at: String?,
+    val url: String,
+    val checksum: String,
+    val convert: Boolean,
+    val is_scoreable: Boolean,
+)
+
+@Serializable
+private data class Covers(
+    val cover: String,
+    @SerialName("cover@2x")
+    val cover2x: String? = null,
+    val card: String,
+    @SerialName("card2x")
+    val card2x: String? = null,
+    val list: String,
+    @SerialName("list2x")
+    val list2x: String? = null,
+    val slimcover: String,
+    @SerialName("slimcover2x")
+    val slimcover2x: String? = null,
+)
+
+@Serializable
+private data class BeatmapSet(
+    val artist: String,
+    val artist_unicode: String,
+    val creator: String,
+    val preview_url: String,
+    val status: String,
+    val title: String,
+    val title_unicode: String,
+    val source: String,
+    val covers: Covers,
+    val favourite_count: Long,
+    val id: Long,
+    val offset: Long,
+    val play_count: Long,
+    val track_id: Long? = null,
+    val user_id: Long,
+    val nsfw: Boolean,
+    val spotlight: Boolean,
+    val video: Boolean,
+)
+
+@Serializable
+private data class Statistics(
+    val count_100: Int,
+    val count_300: Int,
+    val count_50: Int,
+    val count_geki: Int,
+    val count_katu: Int,
+    val count_miss: Int,
+)
+
+@Serializable
 private data class Score(
-    val id: Int,
+    val id: Long,
+    val best_id: Long,
+    val max_combo: Long,
+    val score: Long,
+    val user_id: Long,
+    val mode_int: Int,
+    val accuracy: Double,
+    val pp: Double,
+    val created_at: Instant,
+    val mode: String,
+    val rank: String,
+    val passed: Boolean,
+    val perfect: Boolean,
+    val replay: Boolean,
+    val mods: Array<String>,
+    val weight: Weight,
+    val statistics: Statistics,
+    val user: User,
+    val beatmap: Beatmap,
+    val beatmapset: BeatmapSet
 )
 
 @Serializable
