@@ -71,7 +71,7 @@ class UtilityExtension : Extension() {
         }
 
         publicSlashCommand(::RoleInfoArgs) {
-            name = "roleInfo"
+            name = "roleinfo"
             description = "gives roleInfo"
             action {
                 val role = arguments.role.parsed
@@ -100,7 +100,7 @@ class UtilityExtension : Extension() {
         }
 
         publicSlashCommand(::UserInfoArgs) {
-            name = "userInfo"
+            name = "userinfo"
             description = "Gives info about user"
 
             check {
@@ -146,7 +146,7 @@ class UtilityExtension : Extension() {
         }
 
         publicSlashCommand(::ServerInfoArgs) {
-            name = "serverInfo"
+            name = "serverinfo"
             description = "gives information about the server"
             action {
                 val guild =
@@ -193,7 +193,7 @@ class UtilityExtension : Extension() {
         }
 
         publicSlashCommand(::IdInfoArgs) {
-            name = "idInfo"
+            name = "idinfo"
             description = "Shows timestamp"
             action {
                 val id = this.arguments.id.parsed

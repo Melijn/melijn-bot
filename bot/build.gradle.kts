@@ -60,16 +60,16 @@ val scrimage = "4.0.22"
 
 val kord = "0.8.0-M13"
 val kordEx = "1.5.3-SNAPSHOT"
-val kordKommons = "1.1.0"
+val kordKommons = "1.2.2"
 
 dependencies {
     implementation("dev.kord:kord-core:$kord")
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
 
     implementation("me.melijn.kordkommons:kommons:$kordKommons")
-    implementation("me.melijn.kordkommons:redgres-kommons:0.0.2")
+    implementation("me.melijn.kordkommons:redgres-kommons:0.0.3")
 
-    val apKord = "me.melijn.kordkommons:ap:0.0.4"
+    val apKord = "me.melijn.kordkommons:ap:0.1.8"
     val apKordex = "me.melijn.kordkommons:apkordex:0.0.1"
     implementation(apKord)
     implementation(apKordex)

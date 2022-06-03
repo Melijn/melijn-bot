@@ -128,8 +128,8 @@ class SpotifyCommand : Extension() {
 
         /** time and progress bar calculations **/
         val created = System.currentTimeMillis()
-        val start = spotifyActivity.timestamps.value?.start.value ?: created
-        val end = spotifyActivity.timestamps.value?.end.value ?: created
+        val start: Long = spotifyActivity.timestamps.value?.start?.value ?: created
+        val end: Long = spotifyActivity.timestamps.value?.end?.value ?: created
         val lengthMillis = end - start
         val progressMillis = created - start
         var percent = progressMillis.toDouble() / lengthMillis.toDouble()

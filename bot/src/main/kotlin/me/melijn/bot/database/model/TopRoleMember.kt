@@ -4,15 +4,17 @@ import me.melijn.ap.cacheable.Cacheable
 import me.melijn.ap.createtable.CreateTable
 import org.jetbrains.exposed.sql.Table
 
-@OptIn(ExperimentalUnsignedTypes::class)
 @CreateTable
 @Cacheable
-object GuildUserSettings : Table("guild_user") {
-
+object TopRoleMember : Table("top_role_member") {
     var guildId = ulong("guild_id")
     var userId = ulong("user_id")
+    var roleId = ulong("role_id")
 
-    var xp = ulong("xp")
+    override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId, roleId)
 
-    override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId)
+    init {
+        index(false, guildId, roleId)
+        index(true, guildId, roleId)
+    }
 }

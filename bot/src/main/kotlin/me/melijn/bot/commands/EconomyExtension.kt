@@ -62,7 +62,7 @@ class EconomyExtension : Extension() {
             }
         }
         publicSlashCommand {
-            name = "getMel"
+            name = "getmel"
             description = "Get an additional 100 mel"
 
             action {
