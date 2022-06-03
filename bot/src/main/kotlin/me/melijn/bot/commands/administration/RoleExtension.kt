@@ -66,7 +66,7 @@ class RoleExtension : Extension() {
             name = "member"
             description = "member"
             validate {
-                failIf(translations.tr("botCannotInteractWithRole", role.parsed.mention)) {
+                failIf(translations.tr("botCannotInteractWithRole", context.getLocale(), role.parsed.mention)) {
                     !context.getGuild()!!.selfMember().canInteract(role.parsed)
                 }
             }

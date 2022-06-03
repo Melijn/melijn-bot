@@ -9,6 +9,7 @@ abstract class AbstractPage(
     val route: String,
     val contentType: ContentType
 ) : KoinComponent {
+
     abstract val src: String
     open val aliasRoutes: Array<String> = arrayOf()
 

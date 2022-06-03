@@ -16,7 +16,6 @@ import me.melijn.bot.database.manager.BalanceManager
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.gen.UserBalanceData
 import org.koin.core.component.inject
-import org.postgresql.util.GT.tr
 import kotlin.random.Random
 
 @KordExtension

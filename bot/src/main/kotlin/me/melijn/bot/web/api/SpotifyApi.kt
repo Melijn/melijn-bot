@@ -2,12 +2,19 @@ package me.melijn.bot.web.api
 
 import com.neovisionaries.i18n.CountryCode
 import kotlinx.coroutines.future.await
-import me.melijn.bot.model.TrackSource
+import me.melijn.bot.database.manager.SongCacheManager
+import me.melijn.bot.model.PartialUser
+import me.melijn.bot.music.SpotifyTrack
 import me.melijn.bot.music.Track
+import me.melijn.bot.music.TrackData
 import me.melijn.gen.Settings
+import org.koin.java.KoinJavaComponent.inject
 import se.michaelthelin.spotify.SpotifyApi
+import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified
+import java.time.Duration
 import kotlin.math.min
+import kotlin.time.toKotlinDuration
 
 
 class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
@@ -16,6 +23,8 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
         .setClientId(spotifySettings.clientId)
         .setClientSecret(spotifySettings.password)
         .build()
+
+    private val songCacheManager by inject<SongCacheManager>(SongCacheManager::class.java)
 
     suspend fun updateSpotifyCredentials() {
         val credentialsRequest = api.clientCredentials().build()
@@ -31,10 +40,29 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
         private val spotifyAlbumUri = Regex("spotify:album:(\\w+)")
         private val spotifyArtistUrl = Regex("https://open\\.spotify\\.com/artist/(\\w+)(?:\\?\\S+)?")
         private val spotifyArtistUri = Regex("spotify:artist:(\\w+)")
+
+        private fun getUrl(id: String) = "https://open.spotify.com/track/$id"
+
+        fun se.michaelthelin.spotify.model_objects.specification.Track.toTrack(requester: PartialUser): Track {
+            val trackData = TrackData.fromNow(requester, null)
+            return SpotifyTrack(
+                name, artists.joinToString(", ") { it.name }, getUrl(id), id, false, trackData,
+                Duration.ofMillis(durationMs.toLong()).toKotlinDuration()
+            )
+        }
+
+        fun TrackSimplified.toTrack(requester: PartialUser): Track {
+            val trackData = TrackData.fromNow(requester, null)
+            return SpotifyTrack(
+                name, artists.joinToString(", ") { it.name }, getUrl(id), id, false, trackData,
+                Duration.ofMillis(durationMs.toLong()).toKotlinDuration()
+            )
+        }
     }
 
     suspend fun getTracksFromSpotifyUrl(
-        songArg: String
+        songArg: String,
+        requester: PartialUser
     ): List<Track> {
         val matchesSingleTrack = spotifyTrackUrl.find(songArg)
         val matchesSingleTrackEmbed by lazy { spotifyTrackUri.find(songArg) }
@@ -49,45 +77,47 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
         val matchesArtistEmbed by lazy { spotifyArtistUri.find(songArg) }
 
         return when {
-            matchesSingleTrack != null -> listOf(requestTrackInfo(matchesSingleTrack))
-            matchesSingleTrackEmbed != null -> listOf(requestTrackInfo(matchesSingleTrackEmbed!!))
+            matchesSingleTrack != null -> listOf(requestTrackInfo(matchesSingleTrack, requester))
+            matchesSingleTrackEmbed != null -> listOf(requestTrackInfo(matchesSingleTrackEmbed!!, requester))
 
-            matchesPlaylist != null -> requestPlaylistTracksInfo(matchesPlaylist!!)
-            matchesPlaylistEmbed != null -> requestPlaylistTracksInfo(matchesPlaylistEmbed!!)
+            matchesPlaylist != null -> requestPlaylistTracksInfo(matchesPlaylist!!, requester)
+            matchesPlaylistEmbed != null -> requestPlaylistTracksInfo(matchesPlaylistEmbed!!, requester)
 
-            matchesAlbum != null -> acceptAlbumResults(matchesAlbum!!)
-            matchesAlbumEmbed != null -> acceptAlbumResults(matchesAlbumEmbed!!)
+            matchesAlbum != null -> acceptAlbumResults(matchesAlbum!!, requester)
+            matchesAlbumEmbed != null -> acceptAlbumResults(matchesAlbumEmbed!!, requester)
 
-            matchesArtist != null -> acceptArtistResults(matchesArtist!!)
-            matchesArtistEmbed != null -> acceptArtistResults(matchesArtistEmbed!!)
+            matchesArtist != null -> acceptArtistResults(matchesArtist!!, requester) //
+            matchesArtistEmbed != null -> acceptArtistResults(matchesArtistEmbed!!, requester)
             else -> throw IllegalArgumentException("That is not a valid spotify link")
         }
     }
 
-    private suspend fun requestTrackInfo(track: MatchResult): Track {
+    private suspend fun requestTrackInfo(track: MatchResult, requester: PartialUser): Track {
         val trackId = track.groupValues[1]
 
-        return getTrackById(trackId).toTrack()
+        return getTrackById(trackId).toTrack(requester)
     }
 
-    private fun se.michaelthelin.spotify.model_objects.specification.Track.toTrack(): Track {
-        return Track(name, artists.contentDeepToString(), uri, id, false, null, durationMs.toLong(),
-            TrackSource.Spotify)
-    }
-
-    private suspend fun acceptArtistResults(match: MatchResult): List<Track> {
+    private suspend fun acceptArtistResults(match: MatchResult, requester: PartialUser): List<Track> {
         val id = match.groupValues[1]
-        return api
+        return (songCacheManager.getSpotify(id).takeIf { it.isNotEmpty() } ?: api
             .getArtistsTopTracks(id, CountryCode.US)
             .build()
             .executeAsync()
             .await()
-            .map { it.toTrack() }
+            .toList()
+            .also {
+                songCacheManager.storeSpotify(id, it)
+            })
+            .map { it.toTrack(requester) }
     }
 
-    private suspend fun requestPlaylistTracksInfo(match: MatchResult): List<Track> {
+    private suspend fun requestPlaylistTracksInfo(match: MatchResult, requester: PartialUser): List<Track> {
         val id = match.groupValues[1]
-        val tracks = mutableListOf<Track>()
+        val cached = songCacheManager.getSpotify(id)
+        if (cached.isNotEmpty()) return cached.map { it.toTrack(requester) }
+
+        val playlistTracks = mutableListOf<PlaylistTrack>()
 
         var trackTotal = 1000
         var tracksGottenOffset = 0
@@ -104,47 +134,49 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
 
             tracksGottenOffset += moreTracks.items.size
             trackTotal = min(moreTracks.total, 1000)
-            tracks.addAll(
-                moreTracks.items.mapNotNull { playlistTrack ->
-                    (playlistTrack.track as se.michaelthelin.spotify.model_objects.specification.Track?)?.toTrack()
-                }
-            )
+            playlistTracks.addAll(moreTracks.items)
         }
 
-        return tracks
+        return playlistTracks.asSequence()
+            .map { it.track as se.michaelthelin.spotify.model_objects.specification.Track }
+            .also {
+                songCacheManager.storeSpotify(id, it.toList())
+            }
+            .map { it.toTrack(requester) }
+            .toList()
     }
 
-    private fun TrackSimplified.toTrack(): Track {
-        return Track(name, artists.contentDeepToString(), uri, id, false, null, durationMs.toLong(),
-                TrackSource.Spotify)
-    }
-
-    private suspend fun acceptAlbumResults(match: MatchResult): List<Track> {
+    private suspend fun acceptAlbumResults(match: MatchResult, trackData: PartialUser): List<Track> {
         val id = match.groupValues[1]
-        return api
-            .getAlbumsTracks(id)
+        return (songCacheManager.getSpotifySimplified(id).takeIf { it.isNotEmpty() } ?: api.getAlbumsTracks(id)
             .build()
             .executeAsync()
             .await()
             .items
-            .map { it.toTrack() }
+            .toList()
+            .also {
+                songCacheManager.storeSpotifySimplified(id, it)
+            })
+            .map { it.toTrack(trackData) }
     }
 
-    suspend fun getTrackById(trackId: String): se.michaelthelin.spotify.model_objects.specification.Track {
-        return api
-            .getTrack(trackId)
+    private suspend fun getTrackById(trackId: String): se.michaelthelin.spotify.model_objects.specification.Track {
+        return songCacheManager.getSpotify(trackId).firstOrNull() ?: api.getTrack(trackId)
             .build()
             .executeAsync()
-            .await()
+            .await().also {
+                songCacheManager.storeSpotify(trackId, listOf(it))
+            }
     }
 
     suspend fun searchTrack(search: String): se.michaelthelin.spotify.model_objects.specification.Track? {
-        return api.searchTracks(search)
+        return songCacheManager.getSpotify(search).firstOrNull() ?: api.searchTracks(search)
             .build()
             .executeAsync()
             .await()
             .items
-            .firstOrNull()
+            .firstOrNull()?.also {
+                songCacheManager.storeSpotify(search, listOf(it))
+            }
     }
-
 }

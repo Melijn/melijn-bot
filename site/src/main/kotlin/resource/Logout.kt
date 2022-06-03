@@ -15,6 +15,7 @@ class Logout : AbstractPage("/logout", ContentType.Text.Html) {
 
     @Language("html")
     override val src: String = """
+        <!DOCTYPE html>
         <html lang="uk">
             <head>
                 <title>Melijn Login</title>

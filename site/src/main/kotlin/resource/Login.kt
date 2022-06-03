@@ -30,6 +30,7 @@ class Login : AbstractPage("/callback", ContentType.Text.Html) {
 
     @Language("html")
     override val src: String = """
+        <!DOCTYPE html>
         <html lang="uk">
             <head>
                 <title>Melijn Login</title>

@@ -16,6 +16,7 @@ class HomePage : AbstractPage("/", ContentType.Text.Html) {
 
     @Language("html")
     override val src = """
+<!DOCTYPE html>
 <html lang="uk">
     <head>
         <title>Melijn Homepage</title>

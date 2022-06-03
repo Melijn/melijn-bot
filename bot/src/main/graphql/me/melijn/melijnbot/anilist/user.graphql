@@ -22,8 +22,9 @@ query SearchUser($name: String!) {
 
 fragment userFragment on User {
     name
+    id
     siteUrl
-    about
+    about(asHtml: true)
     avatar {
         large
     }

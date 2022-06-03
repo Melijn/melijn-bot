@@ -5,8 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kotlindiscord.kord.extensions.ExtensibleBot
 import com.kotlindiscord.kord.extensions.utils.loadModule
+import dev.kord.core.Kord
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
+import dev.kord.gateway.builder.Shards
+import dev.schlaubi.lavakord.LavaKord
+import dev.schlaubi.lavakord.kord.lavakord
 import io.sentry.Sentry
 import me.melijn.ap.createtable.CreateTableInterface
 import me.melijn.ap.injector.InjectorInterface
@@ -14,9 +18,11 @@ import me.melijn.apkordex.command.ExtensionInterface
 import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.model.Environment
 import me.melijn.bot.model.PodInfo
+import me.melijn.bot.music.MusicManager
 import me.melijn.bot.services.ServiceManager
 import me.melijn.bot.utils.EnumUtil.lcc
-import me.melijn.bot.web.server.RestServer
+import me.melijn.bot.utils.RealLinearRetry
+import me.melijn.bot.web.server.HttpServer
 import me.melijn.gen.Settings
 import me.melijn.kordkommons.database.ConfigUtil
 import me.melijn.kordkommons.database.DriverManager
@@ -28,10 +34,12 @@ import org.koin.dsl.bind
 import org.koin.java.KoinJavaComponent.inject
 import java.net.InetAddress
 import kotlin.system.exitProcess
+import kotlin.time.Duration.Companion.seconds
 
 object Melijn {
 
     private val logger = logger()
+    lateinit var lavalink: LavaKord
 
     suspend fun susInit() {
         logger.info("Starting Melijn..")
@@ -43,7 +51,7 @@ object Melijn {
             settings.process.environment == Environment.PRODUCTION
         )
         PodInfo.init(podCount, shardCount, podId)
-        //initSentry(settings)
+        // initSentry(settings)
 
         val botInstance = ExtensibleBot(settings.api.discord.token) {
             @OptIn(PrivilegedIntent::class)
@@ -80,17 +88,40 @@ object Melijn {
                         single { driverManager } bind DriverManager::class
                     }
 
+                    HttpServer.startProbeServer()
+
                     val injectorInterface = ReflectUtil.getInstanceOfKspClass<InjectorInterface>(
                         "me.melijn.gen", "InjectionKoinModule"
                     )
                     loadKoinModules(injectorInterface.module)
 
-                    RestServer // Inits restServer object
-
                     val serviceManager by inject<ServiceManager>(ServiceManager::class.java)
                     serviceManager.startAll()
                 }
+
+                setup {
+                    HttpServer.startHttpServer()
+
+                    val injectorInterface = ReflectUtil.getInstanceOfKspClass<InjectorInterface>(
+                        "me.melijn.gen", "InjectionKoinModule"
+                    )
+                    injectorInterface.initInjects()
+
+                    val kord by inject<Kord>(Kord::class.java)
+                    lavalink = kord.lavakord {
+                        link {
+                            autoReconnect = true
+                            retry = RealLinearRetry(1.seconds, 60.seconds, Int.MAX_VALUE)
+                        }
+                    }
+                    for (i in 0 until Settings.lavalink.url.size)
+                        lavalink.addNode(Settings.lavalink.url[i], Settings.lavalink.password[i], "node$i")
+                    for (node in lavalink.nodes) {
+                        MusicManager.setupReconnects(node)
+                    }
+                }
             }
+
 
             cache {
                 cachedMessages = 0
@@ -114,6 +145,16 @@ object Melijn {
                     }
                     return@callback settings.bot.prefix
                 }
+            }
+
+            kord {
+                sharding {
+                    Shards(shardCount, PodInfo.shardList)
+                }
+            }
+
+            i18n {
+                interactionUserLocaleResolver()
             }
         }
         botInstance.start()

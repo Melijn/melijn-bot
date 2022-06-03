@@ -9,6 +9,8 @@ private class Template {
 
     class Bot : BotSettings("bot") {
         val prefix by string("prefix", ">")
+        val username by string("prefix", "Melijn")
+        val discriminator by string("discrim", "0001")
         val ownerIds by string("ownerIds", "")
         val id by string("id", "")
         val version by string("version")
@@ -83,7 +85,20 @@ private class Template {
         val requestQueueLimit by int("requestQueueLimit", 3)
     }
 
+    // K8s probeserver
+    class ProbeServer : BotSettings("probeserver") {
+        val enabled by boolean("enabled", true)
+        val port by int("port", 1180)
+        val runningLimit by int("runningLimit", 3)
+        val requestQueueLimit by int("requestQueueLimit", 3)
+    }
+
     class Sentry : BotSettings("sentry") {
         val url by string("url")
+    }
+
+    class Lavalink : BotSettings("lavalink") {
+        val url by stringList("url")
+        val password by stringList("password")
     }
 }

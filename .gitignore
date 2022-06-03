@@ -7,6 +7,9 @@
 # Env file
 *.env
 
+# Docker files
+docker-compose.yml
+
 # builds, cache and idea
 .idea/
 .gradle/

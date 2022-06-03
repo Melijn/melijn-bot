@@ -35,7 +35,7 @@ fragment mediaFragment on Media {
         day
     }
     format
-    description(asHtml: false)
+    description(asHtml: true)
     coverImage {
         extraLarge
         color

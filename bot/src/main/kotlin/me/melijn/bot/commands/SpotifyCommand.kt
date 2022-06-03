@@ -10,20 +10,27 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.common.Color
 import dev.kord.common.entity.Permission
+import dev.kord.common.entity.Snowflake
 import dev.kord.common.entity.optional.value
+import dev.kord.core.Kord
 import dev.kord.core.behavior.requestMembers
 import dev.kord.core.cache.data.ActivityData
+import dev.kord.core.entity.User
+import dev.kord.core.event.guild.MembersChunkEvent
 import dev.kord.gateway.PrivilegedIntent
 import dev.kord.rest.builder.message.create.embed
 import kotlinx.coroutines.flow.firstOrNull
 import me.melijn.apkordex.command.KordExtension
+import me.melijn.bot.web.api.MySpotifyApi
 import me.melijn.bot.web.api.WebManager
 import org.jetbrains.kotlin.utils.keysToMap
 import org.koin.core.component.inject
+import org.koin.java.KoinJavaComponent
 import java.lang.Double.max
 import java.lang.Double.min
 import kotlin.math.roundToInt
 
+@Suppress("OPT_IN_IS_NOT_ENABLED")
 @KordExtension
 class SpotifyCommand : Extension() {
 
@@ -55,13 +62,13 @@ class SpotifyCommand : Extension() {
                 /**
                  * fetch full discord member which can have spotify presences since
                  * we don't cache or store user presences
-                 * **/
-                val targetMember = this.guild?.requestMembers {
-                    this.userIds.add(userId)
+                 **/
+                val targetMember = guild?.requestMembers {
+                    userIds.add(userId)
                     presences = true
                 }?.firstOrNull()
 
-                /** get spotify presences **/
+                // get spotify presences
                 val presences = targetMember?.data?.presences?.value
                 val possibleSpotifyActivities = presences?.mapNotNull { presence ->
                     presence.activities.firstOrNull { it.name == "Spotify" }
@@ -72,10 +79,11 @@ class SpotifyCommand : Extension() {
                     }
                     return@action
                 }
+                val songName = spotifyActivity.details.value
 
-                val spotifyData = getSaturatedSpotifyDataFromPresence(spotifyActivity)
+                val spotifyData = getSaturatedSpotifyDataFromPresence(targetMember, spotifyActivity)
 
-                /** craft response **/
+                // craft response
                 respond {
                     embed {
                         spotifyData.run {
@@ -99,7 +107,68 @@ class SpotifyCommand : Extension() {
         }
     }
 
+    companion object {
+
+        /**
+         * Parses the presence from [member], searches the spotify track information from presence info
+         * @param member should have presences enabled
+         * @param spotifyApi api with usable session
+         *
+         * @return spotify [se.michaelthelin.spotify.model_objects.specification.Track] object if we found a result otherwise null
+         */
+        suspend fun getSpotifyTrackFromMemberWithPresence(
+            member: MembersChunkEvent,
+            spotifyApi: MySpotifyApi
+        ): se.michaelthelin.spotify.model_objects.specification.Track? {
+            // get spotify presences
+            val presences = member.data.presences.value
+            val possibleSpotifyActivities = presences?.mapNotNull { presence ->
+                presence.activities.firstOrNull { it.name == "Spotify" }
+            } ?: emptyList()
+            val spotifyActivity = possibleSpotifyActivities.firstOrNull() ?: return null
+            val songName = spotifyActivity.details.value
+            val songAuthors = spotifyActivity.state.value?.split("; ") ?: emptyList()
+
+            val searchTerm = buildList {
+                songName?.let { add(it) }
+                songAuthors.firstOrNull()?.let { add(it) }
+            }.joinToString(" ")
+
+            return spotifyApi.searchTrack(searchTerm)
+        }
+
+        @OptIn(PrivilegedIntent::class)
+        /**
+         * Parses the presence [user] in [guildId], searches the spotify track information from presence info
+         *
+         * @param guildId guild in which presence should be checked, user needs to be a member
+         * @param user target user
+         * @param spotifyApi api with usable session
+         *
+         * @return spotify [se.michaelthelin.spotify.model_objects.specification.Track] object if we found a result otherwise null
+         */
+        suspend fun getSpotifyTrackFromUser(
+            guildId: Snowflake,
+            user: User,
+            spotifyApi: MySpotifyApi
+        ): se.michaelthelin.spotify.model_objects.specification.Track? {
+            val kord by KoinJavaComponent.inject<Kord>(Kord::class.java)
+
+            /**
+             * fetch full discord member which can have spotify presences since
+             * we don't cache or store user presences
+             **/
+            return kord.getGuild(guildId)?.requestMembers {
+                userIds.add(user.id)
+                presences = true
+            }?.firstOrNull()?.let {
+                getSpotifyTrackFromMemberWithPresence(it, spotifyApi)
+            }
+        }
+    }
+
     private suspend fun getSaturatedSpotifyDataFromPresence(
+        member: MembersChunkEvent?,
         spotifyActivity: ActivityData
     ): SaturatedSpotifyDiscordPresence {
         /** extract info from the presence **/
@@ -108,17 +177,13 @@ class SpotifyCommand : Extension() {
         val songAuthors = spotifyActivity.state.value?.split("; ") ?: emptyList()
         val spotifyThumbnailId = spotifyActivity.assets.value?.largeImage?.value?.drop(8)
 
-        val searchTerm = buildList {
-            songName?.let { add(it) }
-            songAuthors.firstOrNull()?.let { add(it) }
-        }.joinToString(" ")
+        val spotifyApi = webManager.spotifyApi
 
         /** fetch extra info using the spotify api **/
-        val track = try {
-            webManager.spotifyApi?.searchTrack(searchTerm)
-        } catch (t: Throwable) {
-            null
-        }
+        val track = if (member != null && spotifyApi != null) {
+            getSpotifyTrackFromMemberWithPresence(member, spotifyApi)
+        } else null
+
         val spotifyTrackLink = track?.externalUrls?.externalUrls?.get("spotify")
         val spotifyAlbumLink = track?.album?.externalUrls?.externalUrls?.get("spotify")
         val authorLink = { name: String ->

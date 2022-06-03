@@ -7,7 +7,7 @@ import me.melijn.bot.model.enums.DiscordSize
 
 object KordUtil {
     fun User.effectiveAvatarUrl(): String {
-        return avatar?.url ?: defaultAvatar.url.replace(".webp", ".png")
+        return User.Avatar(data, kord).url
     }
 
     /**

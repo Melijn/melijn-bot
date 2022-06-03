@@ -26,20 +26,20 @@ class SnippetProcessor(
             .filter { it is KSClassDeclaration && it.validate() }
 
         if (process.isNotEmpty()) {
-            val injectKoinModuleFile =
+            val snippetsFile =
                 codeGenerator.createNewFile(Dependencies(false), "me.melijn.gen", "Snippets${count}")
 
-            injectKoinModuleFile.appendLine("package me.melijn.gen\n")
-            injectKoinModuleFile.appendLine("import model.SnippetsInterface")
-            injectKoinModuleFile.appendLine("class Snippets$count : SnippetsInterface {")
-            injectKoinModuleFile.appendLine("    override val snippets = listOf(")
+            snippetsFile.appendLine("package me.melijn.gen\n")
+            snippetsFile.appendLine("import model.SnippetsInterface")
+            snippetsFile.appendLine("class Snippets$count : SnippetsInterface {")
+            snippetsFile.appendLine("    override val snippets = listOf(")
 
             process.forEach { it.accept(InjectorVisitor(lines), Unit) }
-            injectKoinModuleFile.appendLine(lines.joinToString(",\n"))
+            snippetsFile.appendLine(lines.joinToString(",\n"))
 
-            injectKoinModuleFile.appendLine("    )\n")
-            injectKoinModuleFile.appendLine("}")
-            injectKoinModuleFile.close()
+            snippetsFile.appendLine("    )\n")
+            snippetsFile.appendLine("}")
+            snippetsFile.close()
             count++
         }
 

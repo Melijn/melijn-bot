@@ -1,0 +1,29 @@
+# dev environment docker compose style
+version: "3.9"
+# info: ports and volumes use host:container format
+
+# useful commands
+# start: docker-compose up -d
+# stop: docker-compose down
+# logs: docker-compose logs -f --tail 200
+
+services:
+  melijn-redis:
+    image: redis:6.2.6
+    container_name: "melijn-redis"
+    restart: always
+    ports:
+      - 6379:6379
+    command: redis-server --requirepass replacethiswithasecurepassword # Replace the replacethiswithasecurepassword with a secure password
+  melijn-postgres:
+    image: postgres:13.5
+    container_name: "melijn-postgres"
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+    # Uncomment the one for your system if you want persistent storage. Change the paths on the left of the : to point to an existing directory
+    #      - /data/melijn-postgres:/var/lib/postgresql/data  # unix
+    #      - /c/Data/melijn-postgresql:/var/lib/postgresql/data # windows (also google how to enable /c/ sharing in docker desktop)
+    env_file:
+      - postgres.env
