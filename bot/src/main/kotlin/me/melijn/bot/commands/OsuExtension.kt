@@ -4,8 +4,11 @@ package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.CommandContext
+import com.kotlindiscord.kord.extensions.commands.application.slash.converters.ChoiceEnum
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.defaultingEnumChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
+import com.kotlindiscord.kord.extensions.commands.converters.impl.defaultingBoolean
+import com.kotlindiscord.kord.extensions.commands.converters.impl.defaultingInt
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalUser
 import com.kotlindiscord.kord.extensions.commands.converters.impl.string
 import com.kotlindiscord.kord.extensions.extensions.Extension
@@ -24,11 +27,13 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.toJavaInstant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.*
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.OsuLinkManager
 import me.melijn.bot.database.manager.OsuTokenManager
 import me.melijn.bot.model.Cell
 import me.melijn.bot.model.enums.Alignment
+import me.melijn.bot.utils.EnumUtil.lcc
 import me.melijn.bot.utils.InferredChoiceEnum
 import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.tr
@@ -36,6 +41,8 @@ import me.melijn.bot.utils.TableBuilder
 import me.melijn.bot.web.api.WebManager
 import me.melijn.gen.OsuLinkData
 import me.melijn.gen.Settings
+import me.melijn.kordkommons.utils.escapeCodeBlock
+import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 import org.koin.core.component.inject
 import java.awt.Color
 import java.net.URI
@@ -94,55 +101,104 @@ class OsuExtension : Extension() {
                 }
             }
 
-            publicSubCommand(::OsuAccountArg) {
+            publicSubCommand(::OsuScoreArg) {
                 name = "scores"
                 description = "View recent, best and firsts plays"
 
                 action {
                     val account = arguments.account
+                    val type = arguments.type
+                    val mode = arguments.gameMode
+                    val limit = arguments.limit
+                    val offset = arguments.offset
+                    val includeFails = arguments.includeFails.ifTrue { "1" } ?: "0"
                     val token = assertToken()
                     val osuUser = getUser(account, token, GameMode.OSU)
-                    val scores = getScores(osuUser.id, "best", token, GetUserScoresRequest())
-                        .getOrElse { bail(it.message ?: "wfjskld") }
+                    val requestParams = GetUserScoresRequest(includeFails, mode, limit, offset)
+                    val scores =
+                        getScores(osuUser.id, type, token, requestParams).getOrElse { bail(it.message ?: "wfjskld") }
+                    if (scores.isEmpty()) {
+                        respond {
+                            content = tr(
+                                "osu.scores.noScores",
+                                osuUser.username.escapeCodeBlock(),
+                                type.readableName.lowercase(),
+                                mode.readableName.lowercase()
+                            )
+                        }
+                        return@action
+                    }
 
                     respondingPaginator {
                         for ((i, score) in scores.withIndex()) {
-                            println(score)
-                            val beatmapset = score.beatmapset
+                            val beatmapSet = score.beatmapset
                             val stats = score.statistics
+                            val colunns = mutableListOf("300", "100", "50", "miss")
+                            val values = mutableListOf(Cell(
+                                stats.count_300.toString(), Alignment.RIGHT),
+                                Cell(stats.count_100.toString(), Alignment.RIGHT),
+                                Cell(stats.count_50.toString(), Alignment.RIGHT),
+                                Cell(stats.count_miss.toString(), Alignment.RIGHT))
+
+                            // In mania the combo counters are just extra hit accuracy markers
+                            if (mode == GameMode.MANIA) {
+                                colunns.add(1, "200喝")
+                                colunns.add(0, "300激")
+                                values.add(1, Cell(score.statistics.count_katu.toString(), Alignment.RIGHT))
+                                values.add(0, Cell(score.statistics.count_geki.toString(), Alignment.RIGHT))
+                            }
                             val table = TableBuilder()
-                                .setColumns("300", "100", "50", "miss")
-                                .addRow(
-                                    Cell(stats.count_300.toString(), Alignment.RIGHT),
-                                    Cell(stats.count_100.toString(), Alignment.RIGHT),
-                                    Cell(stats.count_50.toString(), Alignment.RIGHT),
-                                    Cell(stats.count_miss.toString(), Alignment.RIGHT),
-                                )
+                                .setColumns(*colunns.toTypedArray())
+                                .addRow(*values.toTypedArray())
                                 .build(false)
                                 .first()
 
-                            val hits = stats.count_300 + stats.count_100 + stats.count_50
-                            val total = hits + stats.count_miss
                             page {
+                                author {
+                                    name = score.user.username
+                                    url = "https://osu.ppy.sh/users/" + score.user_id
+                                    icon = score.user.avatar_url
+                                }
                                 title = "Score #${i}"
-                                url = score.beatmap.url
-                                description = tr(
-                                    "osu.scores.layout",
-                                    beatmapset.title,
-                                    beatmapset.favourite_count,
-                                    beatmapset.play_count,
-                                    beatmapset.favourite_count / beatmapset.play_count.toDouble() * 100,
-                                    hits,
-                                    total,
-                                    hits / total.toDouble() * 100,
-                                    score.accuracy * 100,
-                                    stats.count_katu, stats.count_geki,
-                                    table,
-                                    score.created_at.toMessageFormat(DiscordTimestampStyle.LongDateTime)
-                                )
+                                url = "https://osu.ppy.sh/scores/osu/${score.id}"
+                                field {
+                                    name = tr("osu.scores.beatmapInfoTitle")
+                                    value = tr(
+                                        "osu.scores.beatmapInfo",
+                                        beatmapSet.title,
+                                        "https://osu.ppy.sh/beatmapsets/" + beatmapSet.id,
+                                        beatmapSet.creator,
+                                        "https://osu.ppy.sh/users/" + beatmapSet.user_id,
+                                        beatmapSet.artist,
+                                        score.beatmap.bpm,
+                                        score.beatmap.difficulty_rating,
+                                        beatmapSet.favourite_count,
+                                        beatmapSet.play_count,
+                                        (beatmapSet.favourite_count / beatmapSet.play_count.toDouble()) * 100
+                                    )
+                                    inline = false
+                                }
+                                field {
+                                    name = tr("osu.scores.scoreInfoTitle")
+                                    value = tr(
+                                        "osu.scores.scoreInfo",
+                                        score.accuracy * 100,
+                                        score.rank?.getEmote() ?: "?",
+                                        score.pp,
+                                        score.max_combo,
+                                        score.score,
+                                        score.mods.joinToString(),
+                                        mode.lcc(),
+                                        stats.count_geki,
+                                        stats.count_katu,
+                                        table,
+                                        score.created_at.toMessageFormat(DiscordTimestampStyle.LongDateTime)
+                                    )
+                                    inline = false
+                                }
 
                                 thumbnail {
-                                    url = beatmapset.covers.list2x ?: beatmapset.covers.list
+                                    url = beatmapSet.covers.list2x ?: beatmapSet.covers.list
                                 }
                             }
                         }
@@ -155,12 +211,9 @@ class OsuExtension : Extension() {
                 description = "View osu! profile of discord user"
 
                 action {
-                    val id = (arguments.user
-                        ?.let {
-                            linkManager.get(it.id)?.osuId
-                                ?: bail(tr("osu.profile.other.noLink", it.mention))
-                        } ?: (linkManager.get(getUser().id)?.osuId
-                        ?: bail(tr("osu.profile.you.noLink"))))
+                    val id = (arguments.user?.let {
+                        linkManager.get(it.id)?.osuId ?: bail(tr("osu.profile.other.noLink", it.mention))
+                    } ?: (linkManager.get(getUser().id)?.osuId ?: bail(tr("osu.profile.you.noLink"))))
 
                     val token = assertToken()
                     val gameMode = arguments.gameMode
@@ -176,26 +229,54 @@ class OsuExtension : Extension() {
 
     @Suppress("BlockingMethodInNonBlockingContext")
     private suspend fun CommandContext.getUser(
-        account: String,
-        token: String,
-        gameMode: GameMode
+        account: String, token: String, gameMode: GameMode
     ): User = get<User, Unit>(
-        endpoint("users/$account/${gameMode.name.lowercase()}"),
-        Unit,
-        token
+        endpoint("users/$account/${gameMode.name.lowercase()}"), Unit, token
     ).getOrElse { bail(tr("osu.noUser")) }
 
-    private suspend fun getScores(user: Int, type: String, token: String, req: GetUserScoresRequest) =
+    private suspend fun getScores(user: Int, type: ScoreType, token: String, req: GetUserScoresRequest) =
         get<List<Score>, GetUserScoresRequest>(
-            endpoint("users/$user/scores/$type"),
-            req,
-            token
+            endpoint("users/$user/scores/${type.lcc()}"), req, token
         )
 
     inner class OsuAccountArg : Arguments() {
         val account by string {
             name = "account"
             description = "osu! account username or ID"
+        }
+    }
+
+    enum class ScoreType : InferredChoiceEnum {
+        FIRSTS, RECENT, BEST
+    }
+
+    inner class OsuScoreArg : Arguments() {
+        val account by string {
+            name = "account"
+            description = "osu! account username or ID"
+        }
+
+        val gameMode by gameModeArg()
+        val type by defaultingEnumChoice<ScoreType> {
+            defaultValue = ScoreType.BEST
+            name = "ScoreType"
+            description = "the types of scores you want to fetch (default: ${defaultValue})"
+            typeName = "ScoreType"
+        }
+        val offset by defaultingInt {
+            defaultValue = 0
+            name = "offset"
+            description = "offset for the provided scores (default: ${defaultValue})"
+        }
+        val limit by defaultingInt {
+            defaultValue = 5
+            name = "limit"
+            description = "limit for the amount of scores to fetch, more can take longer (default: ${defaultValue})"
+        }
+        val includeFails by defaultingBoolean {
+            defaultValue = false
+            name = "includeFails"
+            description = "whether the scores should include fails (default: ${defaultValue})"
         }
     }
 
@@ -227,33 +308,37 @@ class OsuExtension : Extension() {
     }.accessToken
 
     private suspend inline fun <reified R, reified B> get(
-        endpoint: String,
-        body: B,
-        token: String,
-        params: HttpRequestBuilder.() -> Unit = {}
-    ): Result<R> =
-        webManager.httpClient.get(endpoint) {
-            contentType(ContentType.Application.Json)
-            header("Authorization", "Bearer $token")
-            params()
-            setBody(body)
-        }.catchErroneousResponse()
+        endpoint: String, body: B, token: String, params: HttpRequestBuilder.() -> Unit = {}
+    ): Result<R> = webManager.httpClient.get(endpoint) {
+        contentType(ContentType.Application.Json)
+        header("Authorization", "Bearer $token")
+        params()
+        val json = Json.encodeToJsonElement(body)
+        json.jsonObject.forEach { t, u ->
+            val prim = try {
+                u.jsonPrimitive
+            } catch (t: IllegalArgumentException) {
+                null
+            }
+            val value: Any =
+                prim?.booleanOrNull ?: prim?.intOrNull ?: prim?.longOrNull ?: prim?.floatOrNull ?: prim?.doubleOrNull
+                ?: prim?.contentOrNull ?: return@forEach
+            parameter(t, value)
+        }
+    }.catchErroneousResponse()
 
     private suspend inline fun <reified B> post(endpoint: String, token: String? = null) =
         post<Unit, B>(endpoint, Unit, token)
 
     private suspend inline fun <reified B, reified R> post(
-        endpoint: String,
-        body: B,
-        token: String? = null
-    ): Result<R> =
-        webManager.httpClient.post(endpoint) {
-            token?.let {
-                header("Authorization", "Bearer $it")
-            }
-            contentType(ContentType.Application.Json)
-            setBody(body)
-        }.catchErroneousResponse()
+        endpoint: String, body: B, token: String? = null
+    ): Result<R> = webManager.httpClient.post(endpoint) {
+        token?.let {
+            header("Authorization", "Bearer $it")
+        }
+        contentType(ContentType.Application.Json)
+        setBody(body)
+    }.catchErroneousResponse()
 
     private suspend fun obtainToken(): Result<TokenResponse> =
         post("https://osu.ppy.sh/oauth/token", AuthRequest(settings.api.osu.clientId, settings.api.osu.secret))
@@ -270,7 +355,7 @@ class OsuExtension : Extension() {
             url = user.avatar_url
         }
 
-        title = tr("osu.user.title", user.username, gameMode.humanName)
+        title = tr("osu.user.title", user.username, gameMode.readableName)
         url = user.siteUrl(gameMode)
         user.profile_colour?.let { color = Color.decode(it).kColor }
 
@@ -314,10 +399,10 @@ class OsuExtension : Extension() {
 }
 
 private fun Arguments.gameModeArg() = defaultingEnumChoice<GameMode> {
-    name = "gamemode"
-    description = "The selected osu! gamemode"
-    typeName = "GameMode"
     defaultValue = GameMode.OSU
+    name = "gamemode"
+    description = "The selected osu! gamemode (default: ${defaultValue})"
+    typeName = "GameMode"
 }
 
 private fun endpoint(suffix: String) = URI("https", "osu.ppy.sh", "/api/v2/$suffix", null).toURL().toString()
@@ -341,11 +426,7 @@ private data class UserStatistics(
 
 @Serializable
 private data class GradeCounts(
-    val ss: Int,
-    val ssh: Int,
-    val s: Int,
-    val sh: Int,
-    val a: Int
+    val ss: Int, val ssh: Int, val s: Int, val sh: Int, val a: Int
 )
 
 @Serializable
@@ -356,8 +437,7 @@ private data class Level(
 
 @Serializable
 private data class Rank(
-    val global: Int? = null,
-    val country: Int? = null
+    val global: Int? = null, val country: Int? = null
 )
 
 @Serializable
@@ -385,24 +465,65 @@ private data class User(
 }
 
 @Serializable
-enum class GameMode(val humanName: String) : InferredChoiceEnum {
+enum class GameMode : ChoiceEnum {
     @SerialName("fruits")
-    FRUITS("osu!catch"),
+    FRUITS {
+        override val readableName: String = "osu!catch"
+    },
 
     @SerialName("mania")
-    MANIA("osu!mania"),
+    MANIA {
+        override val readableName: String = "osu!mania"
+    },
 
     @SerialName("osu")
-    OSU("osu!"),
+    OSU {
+        override val readableName: String = "osu!"
+    },
 
     @SerialName("taiko")
-    TAIKO("osu!taiko")
+    TAIKO {
+        override val readableName: String = "osu!taiko"
+    }
+}
+
+@Serializable
+enum class ScoreRank(val emoteName: String, val emoteId: Long) : InferredChoiceEnum {
+    @SerialName("SSSilver")
+    SS_SILVER("SSSilver", 744300240370139226),
+
+    @SerialName("SS")
+    SS("SS", 744300239946514433),
+
+    @SerialName("SSilver")
+    S_SILVER("GradeSSilver", 744300240269475861),
+
+    @SerialName("S")
+    S("GradeS", 744300240202367017),
+
+    @SerialName("A")
+    A("GradeA", 744300239867084842),
+
+    @SerialName("B")
+    B("GradeB", 744300240114417665),
+
+    @SerialName("C")
+    C("GradeC", 744300239954903062),
+
+    @SerialName("D")
+    D("GradeD", 744300240248635503),
+
+    @SerialName("F")
+    F("GradeF", 982218246604337192);
+
+    fun getEmote(): String {
+        return "<:${emoteName}:$emoteId>"
+    }
 }
 
 @Serializable
 private data class Weight(
-    val percentage: Double,
-    val pp: Double
+    val percentage: Double, val pp: Double
 )
 
 @Serializable
@@ -413,7 +534,7 @@ private data class Beatmap(
     val id: Long,
     val total_length: Long,
     val user_id: Long,
-    val bpm: Long,
+    val bpm: Double,
     val count_circles: Long,
     val count_sliders: Long,
     val count_spinners: Long,
@@ -439,17 +560,13 @@ private data class Beatmap(
 @Serializable
 private data class Covers(
     val cover: String,
-    @SerialName("cover@2x")
-    val cover2x: String? = null,
+    @SerialName("cover@2x") val cover2x: String? = null,
     val card: String,
-    @SerialName("card2x")
-    val card2x: String? = null,
+    @SerialName("card2x") val card2x: String? = null,
     val list: String,
-    @SerialName("list2x")
-    val list2x: String? = null,
+    @SerialName("list2x") val list2x: String? = null,
     val slimcover: String,
-    @SerialName("slimcover2x")
-    val slimcover2x: String? = null,
+    @SerialName("slimcover2x") val slimcover2x: String? = null,
 )
 
 @Serializable
@@ -487,21 +604,21 @@ private data class Statistics(
 @Serializable
 private data class Score(
     val id: Long,
-    val best_id: Long,
+    val best_id: Long? = null,
     val max_combo: Long,
     val score: Long,
     val user_id: Long,
     val mode_int: Int,
     val accuracy: Double,
-    val pp: Double,
+    val pp: Double = 0.0,
     val created_at: Instant,
     val mode: String,
-    val rank: String,
+    val rank: ScoreRank? = null,
     val passed: Boolean,
     val perfect: Boolean,
     val replay: Boolean,
     val mods: Array<String>,
-    val weight: Weight,
+    val weight: Weight = Weight(0.0, 0.0),
     val statistics: Statistics,
     val user: User,
     val beatmap: Beatmap,
@@ -511,7 +628,7 @@ private data class Score(
 @Serializable
 private data class GetUserScoresRequest(
     val include_fails: String? = "0",
-    val mode: String? = null,
+    val mode: GameMode? = null,
     val limit: Int? = null,
     val offset: Int? = null,
 )
@@ -526,10 +643,10 @@ private data class AuthRequest(
 
 @Serializable
 private data class ErrorResponse(
-    val error: String,
-    @SerialName("error_description") val errorDescription: String,
-    val hint: String,
-    override val message: String,
+    val error: String = "",
+    @SerialName("error_description") val errorDescription: String = "",
+    val hint: String = "",
+    override val message: String = "null",
 ) : Throwable()
 
 @Serializable
