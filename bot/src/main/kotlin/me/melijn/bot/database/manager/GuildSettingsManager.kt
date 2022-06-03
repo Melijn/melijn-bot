@@ -11,7 +11,10 @@ class GuildSettingsManager(override val driverManager: DriverManager) :
     AbstractGuildSettingsManager(driverManager) {
 
     suspend fun get(id: Snowflake): GuildSettingsData {
-        return getCachedById(id.value) ?: GuildSettingsData(id.value, allowSpacedPrefix = false, allowNsfw = false)
+        return getCachedById(id.value) ?: GuildSettingsData(
+            id.value, allowSpacedPrefix = false, allowNsfw = false,
+            enableLeveling = false
+        )
     }
 }
 
