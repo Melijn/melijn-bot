@@ -207,6 +207,7 @@ tasks {
     }
 
     shadowJar {
+        from("build/generated/ksp/main/kotlin")
         isZip64 = true
         mergeServiceFiles()
         archiveFileName.set("melijn.jar")
