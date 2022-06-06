@@ -6,6 +6,7 @@ import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.CommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.ChoiceEnum
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.defaultingEnumChoice
+import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalEnumChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.commands.converters.impl.defaultingBoolean
 import com.kotlindiscord.kord.extensions.commands.converters.impl.defaultingInt
@@ -39,7 +40,6 @@ import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.TableBuilder
 import me.melijn.bot.web.api.WebManager
-import me.melijn.gen.OsuLinkData
 import me.melijn.gen.Settings
 import me.melijn.kordkommons.utils.escapeCodeBlock
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
@@ -64,6 +64,28 @@ class OsuExtension : Extension() {
             name = "osu"
             description = "View osu! profiles and statistics"
 
+            publicSubCommand(::OsuSetPreferredModeArg) {
+                name = "preferredMode"
+                description = "Set or shows your preferred osu! gamemode"
+
+                action {
+                    val mode = arguments.gameMode
+                    val currentEntry = linkManager.get(user.id)
+                    if (mode == null) {
+                        respond {
+                            content = "Currently set to $currentEntry"
+                        }
+                    } else {
+                        currentEntry.apply {
+                            modePreference = mode
+                        }
+                        respond {
+                            content = "set to $currentEntry"
+                        }
+                    }
+                }
+            }
+
             publicSubCommand(::OsuAccountArg) {
                 name = "link"
                 description = "Links your discord and osu! account"
@@ -72,14 +94,12 @@ class OsuExtension : Extension() {
                     val account = arguments.account
                     val token = assertToken()
                     val osuUser = getUser(account, token, GameMode.OSU)
+                    val current = linkManager.get(user.id)
 
+                    linkManager.store(current.apply {
+                        osuId = osuUser.id
+                    })
                     respond {
-                        linkManager.store(
-                            OsuLinkData(
-                                user.id.value,
-                                osuUser.id,
-                            )
-                        )
 
                         content = tr("osu.link.succeeded")
                     }
@@ -117,6 +137,7 @@ class OsuExtension : Extension() {
                     val requestParams = GetUserScoresRequest(includeFails, mode, limit, offset)
                     val scores =
                         getScores(osuUser.id, type, token, requestParams).getOrElse { bail(it.message ?: "wfjskld") }
+                            .filter { it.beatmap != null && it.beatmapset != null && it.user != null }
                     if (scores.isEmpty()) {
                         respond {
                             content = tr(
@@ -131,14 +152,17 @@ class OsuExtension : Extension() {
 
                     respondingPaginator {
                         for ((i, score) in scores.withIndex()) {
-                            val beatmapSet = score.beatmapset
+                            val beatmapSet = score.beatmapset ?: bail("This score isn't set on a beatmap set ???")
                             val stats = score.statistics
                             val colunns = mutableListOf("300", "100", "50", "miss")
-                            val values = mutableListOf(Cell(
-                                stats.count_300.toString(), Alignment.RIGHT),
+                            val values = mutableListOf(
+                                Cell(
+                                    stats.count_300.toString(), Alignment.RIGHT
+                                ),
                                 Cell(stats.count_100.toString(), Alignment.RIGHT),
                                 Cell(stats.count_50.toString(), Alignment.RIGHT),
-                                Cell(stats.count_miss.toString(), Alignment.RIGHT))
+                                Cell(stats.count_miss.toString(), Alignment.RIGHT)
+                            )
 
                             // In mania the combo counters are just extra hit accuracy markers
                             if (mode == GameMode.MANIA) {
@@ -153,11 +177,13 @@ class OsuExtension : Extension() {
                                 .build(false)
                                 .first()
 
+                            val osuScoreUser = score.user ?: bail("a score was set by no user")
+                            val beatmap = score.beatmap ?: bail("a score was not set on a beatmap")
                             page {
                                 author {
-                                    name = score.user.username
+                                    name = osuScoreUser.username
                                     url = "https://osu.ppy.sh/users/" + score.user_id
-                                    icon = score.user.avatar_url
+                                    icon = osuScoreUser.avatar_url
                                 }
                                 title = "Score #${i}"
                                 url = "https://osu.ppy.sh/scores/osu/${score.id}"
@@ -170,8 +196,8 @@ class OsuExtension : Extension() {
                                         beatmapSet.creator,
                                         "https://osu.ppy.sh/users/" + beatmapSet.user_id,
                                         beatmapSet.artist,
-                                        score.beatmap.bpm,
-                                        score.beatmap.difficulty_rating,
+                                        beatmap.bpm,
+                                        beatmap.difficulty_rating,
                                         beatmapSet.favourite_count,
                                         beatmapSet.play_count,
                                         (beatmapSet.favourite_count / beatmapSet.play_count.toDouble()) * 100
@@ -238,6 +264,13 @@ class OsuExtension : Extension() {
         get<List<Score>, GetUserScoresRequest>(
             endpoint("users/$user/scores/${type.lcc()}"), req, token
         )
+
+    inner class OsuSetPreferredModeArg : Arguments() {
+        val gameMode by optionalEnumChoice<GameMode> {
+            name = "gameMode"
+            description = "If provided, sets your preferred osu! gamemode "
+        }
+    }
 
     inner class OsuAccountArg : Arguments() {
         val account by string {
@@ -620,9 +653,9 @@ private data class Score(
     val mods: Array<String>,
     val weight: Weight = Weight(0.0, 0.0),
     val statistics: Statistics,
-    val user: User,
-    val beatmap: Beatmap,
-    val beatmapset: BeatmapSet
+    val user: User? = null,
+    val beatmap: Beatmap? = null,
+    val beatmapset: BeatmapSet? = null
 )
 
 @Serializable

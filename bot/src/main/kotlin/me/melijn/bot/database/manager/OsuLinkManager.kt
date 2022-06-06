@@ -9,8 +9,8 @@ import me.melijn.kordkommons.database.DriverManager
 @Inject
 class OsuLinkManager(driverManager: DriverManager) : AbstractOsuLinkManager(driverManager) {
 
-    suspend fun get(id: Snowflake): OsuLinkData? {
-        return getCachedById(id.value)
+    suspend fun get(id: Snowflake): OsuLinkData {
+        return getCachedById(id.value) ?: OsuLinkData(id.value, null, null)
     }
 
 }
