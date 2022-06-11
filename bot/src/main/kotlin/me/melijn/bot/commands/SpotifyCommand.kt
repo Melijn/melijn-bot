@@ -11,7 +11,6 @@ import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.common.Color
 import dev.kord.common.entity.Permission
 import dev.kord.common.entity.Snowflake
-import dev.kord.common.entity.optional.value
 import dev.kord.core.Kord
 import dev.kord.core.behavior.requestMembers
 import dev.kord.core.cache.data.ActivityData
@@ -193,10 +192,10 @@ class SpotifyCommand : Extension() {
 
         /** time and progress bar calculations **/
         val created = System.currentTimeMillis()
-//        val start = spotifyActivity.timestamps.value?.start?.value?.toEpochMilliseconds() ?: created
-        val start = spotifyActivity.timestamps.value?.start?.value ?: created
-//        val end = spotifyActivity.timestamps.value?.end?.value?.toEpochMilliseconds() ?: created
-        val end = spotifyActivity.timestamps.value?.end?.value ?: created
+        val start = spotifyActivity.timestamps.value?.start?.value?.toEpochMilliseconds() ?: created
+//        val start = spotifyActivity.timestamps.value?.start?.value ?: created
+        val end = spotifyActivity.timestamps.value?.end?.value?.toEpochMilliseconds() ?: created
+//        val end = spotifyActivity.timestamps.value?.end?.value ?: created
         val lengthMillis = end - start
         val progressMillis = created - start
         var percent = progressMillis.toDouble() / lengthMillis.toDouble()

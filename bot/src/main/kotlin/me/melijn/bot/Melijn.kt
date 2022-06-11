@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kotlindiscord.kord.extensions.ExtensibleBot
-import com.kotlindiscord.kord.extensions.utils.loadModule
+import com.kotlindiscord.kord.extensions.koin.KordExContext
 import dev.kord.core.Kord
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
@@ -31,6 +31,7 @@ import me.melijn.kordkommons.redis.RedisConfig
 import me.melijn.kordkommons.utils.ReflectUtil
 import org.koin.core.context.GlobalContext.loadKoinModules
 import org.koin.dsl.bind
+import org.koin.dsl.module
 import org.koin.java.KoinJavaComponent.inject
 import java.net.InetAddress
 import kotlin.system.exitProcess
@@ -81,11 +82,11 @@ object Melijn {
                     val objectMapper: ObjectMapper = jacksonObjectMapper()
                         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                     val driverManager = initDriverManager(settings)
-                    loadModule {
+                    KordExContext.get().loadModules(listOf(module {
                         single { settings } bind Settings::class
                         single { objectMapper } bind ObjectMapper::class
                         single { driverManager } bind DriverManager::class
-                    }
+                    }))
 
                     HttpServer.startProbeServer()
 

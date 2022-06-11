@@ -1,8 +1,8 @@
 plugins {
-    kotlin("jvm") version "1.6.20"
-    id("com.google.devtools.ksp") version "1.6.20-1.0.4"
+    kotlin("jvm") version "1.7.0"
+    id("com.google.devtools.ksp") version "1.7.0-1.0.6"
     id("com.github.johnrengelman.shadow") version "7.1.2"
-    kotlin("plugin.serialization") version "1.6.20"
+    kotlin("plugin.serialization") version "1.7.0"
 }
 
 version = "1.0"
@@ -26,7 +26,7 @@ val apKord = "0.1.2"
 
 dependencies {
     implementation(kotlin("stdlib"))
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.3")
 
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
@@ -61,29 +61,29 @@ dependencies {
     implementation("io.ktor:ktor-server-auto-head-response:$ktorVersion")
     implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
 
-    implementation("io.insert-koin:koin-core:3.1.5")
+    implementation("io.insert-koin:koin-core:3.2.0")
 
     // JWT Token stuff
     // https://mvnrepository.com/artifact/org.springframework.security/spring-security-web
-    implementation("org.springframework.security:spring-security-web:5.6.2")
+    implementation("org.springframework.security:spring-security-web:5.7.1")
     // https://github.com/jwtk/jjwt
     // https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-impl
-    implementation("io.jsonwebtoken:jjwt-impl:0.11.2")
-    implementation("io.jsonwebtoken:jjwt-jackson:0.11.2")
+    implementation("io.jsonwebtoken:jjwt-impl:0.11.5")
+    implementation("io.jsonwebtoken:jjwt-jackson:0.11.5")
 
     // Database
     // https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-core
-    implementation("org.jetbrains.exposed:exposed-core:0.37.3")
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.37.3")
-    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.37.3")
+    implementation("org.jetbrains.exposed:exposed-core:0.38.2")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.38.2")
+    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.38.2")
 
     // https://search.maven.org/artifact/com.zaxxer/HikariCP
     implementation("com.zaxxer:HikariCP:5.0.1")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.3.3")
+    implementation("org.postgresql:postgresql:42.4.0")
 }
 
 ksp {
