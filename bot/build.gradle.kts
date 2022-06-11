@@ -57,9 +57,9 @@ val scrimage = "4.0.22"
 
 // val kord = "0.8.0-M13"
 val kordEx = "1.5.3-SNAPSHOT"
-val kordKommons = "1.2.2"
-val apKordVersion = "0.1.8"
-val redgresKommons = "0.0.3"
+val kordKommons = "1.2.8"
+val apKordVersion = "0.1.9"
+val redgresKommons = "0.0.4"
 
 dependencies {
     // implementation("dev.kord:kord-core:$kord")   let kord-ex handle kord version
@@ -73,13 +73,22 @@ dependencies {
         }
     }
 
-    implementation("me.melijn.kordkommons:kommons:$kordKommons")
-    implementation("me.melijn.kordkommons:redgres-kommons:$redgresKommons")
+    implementation("me.melijn.kordkommons:kommons") {
+        version {
+            strictly(kordKommons)
+        }
+    }
+    implementation("me.melijn.kordkommons:redgres-kommons:$redgresKommons") {
+        exclude("me.melijn.kordkommons", "kommons")
+    }
 
 
     val apKord = "me.melijn.kordkommons:ap:$apKordVersion"
     val apKordex = "me.melijn.kordkommons:apkordex:0.0.1"
-    implementation(apKord)
+    implementation(apKord) {
+        exclude("me.melijn.kordkommons", "kommons")
+    }
+
     implementation(apKordex)
     ksp(apKord)
     ksp(apKordex)
@@ -203,6 +212,9 @@ tasks {
     withType(KotlinCompile::class) {
         kotlinOptions {
             jvmTarget = "16"
+            freeCompilerArgs = listOf(
+                "-opt-in=kotlin.RequiresOptIn"
+            )
         }
     }
 

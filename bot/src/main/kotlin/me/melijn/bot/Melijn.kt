@@ -81,7 +81,6 @@ object Melijn {
                     val objectMapper: ObjectMapper = jacksonObjectMapper()
                         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                     val driverManager = initDriverManager(settings)
-
                     loadModule {
                         single { settings } bind Settings::class
                         single { objectMapper } bind ObjectMapper::class
@@ -93,6 +92,7 @@ object Melijn {
                     val injectorInterface = ReflectUtil.getInstanceOfKspClass<InjectorInterface>(
                         "me.melijn.gen", "InjectionKoinModule"
                     )
+
                     loadKoinModules(injectorInterface.module)
 
                     val serviceManager by inject<ServiceManager>(ServiceManager::class.java)
@@ -139,7 +139,7 @@ object Melijn {
                     val event = this
                     val prefixManager by inject<PrefixManager>(PrefixManager::class.java)
                     val prefixes = (event.guildId?.let { prefixManager.getPrefixes(it) } ?: emptyList()) +
-                        (event.message.author?.let { prefixManager.getPrefixes(it.id) } ?: emptyList())
+                            (event.message.author?.let { prefixManager.getPrefixes(it.id) } ?: emptyList())
                     prefixes.sortedByDescending { it.prefix.length }.forEach {
                         if (message.content.startsWith(it.prefix)) return@callback it.prefix
                     }

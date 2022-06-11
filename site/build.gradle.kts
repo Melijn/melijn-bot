@@ -20,8 +20,8 @@ repositories {
 val ktorVersion = "2.0.0"
 val logbackVersion = "1.2.11"
 
-val kordKommons = "1.2.0"
-val redgresKommons = "0.0.3"
+val kordKommons = "1.2.8"
+val redgresKommons = "0.0.4"
 val apKord = "0.1.2"
 
 dependencies {
