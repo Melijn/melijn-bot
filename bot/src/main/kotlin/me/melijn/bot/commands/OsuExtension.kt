@@ -65,7 +65,7 @@ class OsuExtension : Extension() {
             description = "View osu! profiles and statistics"
 
             publicSubCommand(::OsuSetPreferredModeArg) {
-                name = "preferredMode"
+                name = "preferredmode"
                 description = "Set or shows your preferred osu! gamemode"
 
                 action {
@@ -73,14 +73,14 @@ class OsuExtension : Extension() {
                     val currentEntry = linkManager.get(user.id)
                     if (mode == null) {
                         respond {
-                            content = "Currently set to $currentEntry"
+                            content = tr("osu.preferredMode.show", currentEntry.modePreference?.readableName)
                         }
                     } else {
-                        currentEntry.apply {
+                        linkManager.store(currentEntry.apply {
                             modePreference = mode
-                        }
+                        })
                         respond {
-                            content = "set to $currentEntry"
+                            content = tr("osu.preferredMode.set", currentEntry.modePreference?.readableName)
                         }
                     }
                 }
@@ -171,11 +171,9 @@ class OsuExtension : Extension() {
                                 values.add(1, Cell(score.statistics.count_katu.toString(), Alignment.RIGHT))
                                 values.add(0, Cell(score.statistics.count_geki.toString(), Alignment.RIGHT))
                             }
-                            val table = TableBuilder()
-                                .setColumns(*colunns.toTypedArray())
-                                .addRow(*values.toTypedArray())
-                                .build(false)
-                                .first()
+                            val table =
+                                TableBuilder().setColumns(*colunns.toTypedArray()).addRow(*values.toTypedArray())
+                                    .build(false).first()
 
                             val osuScoreUser = score.user ?: bail("a score was set by no user")
                             val beatmap = score.beatmap ?: bail("a score was not set on a beatmap")
@@ -237,13 +235,19 @@ class OsuExtension : Extension() {
                 description = "View osu! profile of discord user"
 
                 action {
-                    val id = (arguments.user?.let {
-                        linkManager.get(it.id)?.osuId ?: bail(tr("osu.profile.other.noLink", it.mention))
-                    } ?: (linkManager.get(getUser().id)?.osuId ?: bail(tr("osu.profile.you.noLink"))))
+                    val target = arguments.user?.asUser() ?: getUser().asUser()
+                    val authorOsuSettings = linkManager.get(getUser().id)
+                    val osuSettings = linkManager.get(target.id)
+
+                    val osuId = osuSettings.osuId ?: bail(
+                        if (target.id == getUser().id) tr("osu.profile.you.noLink")
+                        else tr("osu.profile.other.noLink", target.mention)
+                    )
 
                     val token = assertToken()
-                    val gameMode = arguments.gameMode
-                    val osuUser = getUser("$id", token, gameMode)
+                    val gameMode = arguments.gameMode ?: osuSettings.modePreference ?: authorOsuSettings.modePreference
+                    ?: GameMode.OSU
+                    val osuUser = getUser("$osuId", token, gameMode)
 
                     respond {
                         embeds.add(presentUser(osuUser, gameMode))
@@ -269,6 +273,7 @@ class OsuExtension : Extension() {
         val gameMode by optionalEnumChoice<GameMode> {
             name = "gameMode"
             description = "If provided, sets your preferred osu! gamemode "
+            typeName = "gamemode"
         }
     }
 
@@ -318,7 +323,11 @@ class OsuExtension : Extension() {
             name = "user"
             description = "Discord user of whom to view osu! profile of"
         }
-        val gameMode by gameModeArg()
+        val gameMode by optionalEnumChoice<GameMode> {
+            name = "gamemode"
+            description = "The selected osu! gamemode (default: ${GameMode.OSU.readableName})"
+            typeName = "GameMode"
+        }
     }
 
     internal class OsuAccountAndModeArg : Arguments() {
