@@ -8,10 +8,7 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.converters.C
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.defaultingEnumChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalEnumChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
-import com.kotlindiscord.kord.extensions.commands.converters.impl.defaultingBoolean
-import com.kotlindiscord.kord.extensions.commands.converters.impl.defaultingInt
-import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalUser
-import com.kotlindiscord.kord.extensions.commands.converters.impl.string
+import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
@@ -40,6 +37,7 @@ import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.TableBuilder
 import me.melijn.bot.web.api.WebManager
+import me.melijn.gen.OsuLinkData
 import me.melijn.gen.Settings
 import me.melijn.kordkommons.utils.escapeCodeBlock
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
@@ -102,21 +100,6 @@ class OsuExtension : Extension() {
                     respond {
 
                         content = tr("osu.link.succeeded")
-                    }
-                }
-            }
-
-            publicSubCommand(::OsuAccountAndModeArg) {
-                name = "lookup"
-                description = "View osu! profile by username or ID"
-
-                action {
-                    val account = arguments.account
-                    val token = assertToken()
-                    val osuUser = getUser(account, token, GameMode.OSU)
-
-                    respond {
-                        embeds.add(presentUser(osuUser, arguments.gameMode))
                     }
                 }
             }
@@ -232,22 +215,28 @@ class OsuExtension : Extension() {
 
             publicSubCommand(::UserAndModeArg) {
                 name = "profile"
-                description = "View osu! profile of discord user"
+                description =
+                    "View an osu! profile, will default to your linked profile if the target is left unspecified."
 
                 action {
-                    val target = arguments.user?.asUser() ?: getUser().asUser()
-                    val authorOsuSettings = linkManager.get(getUser().id)
-                    val osuSettings = linkManager.get(target.id)
+                    var osuId: String? = arguments.account
+                    var osuSettings: OsuLinkData? = null
+                    if (osuId == null) {
+                        val target = arguments.user?.asUser() ?: getUser().asUser()
+                        val authorOsuSettings = linkManager.get(getUser().id)
+                        osuSettings =
+                            linkManager.get(target.id).takeIf { it.modePreference != null } ?: authorOsuSettings
 
-                    val osuId = osuSettings.osuId ?: bail(
-                        if (target.id == getUser().id) tr("osu.profile.you.noLink")
-                        else tr("osu.profile.other.noLink", target.mention)
-                    )
-
+                        osuId = osuSettings.osuId?.toString() ?: bail(
+                            if (target.id == getUser().id) tr("osu.profile.you.noLink")
+                            else tr("osu.profile.other.noLink", target.mention)
+                        )
+                    }
+                    val account = osuId ?:bail(tr("osu.profile.noIdProvided"))
+                    val gameMode = arguments.gameMode ?: osuSettings?.modePreference ?: GameMode.OSU
                     val token = assertToken()
-                    val gameMode = arguments.gameMode ?: osuSettings.modePreference ?: authorOsuSettings.modePreference
-                    ?: GameMode.OSU
-                    val osuUser = getUser("$osuId", token, gameMode)
+
+                    val osuUser = getUser(account, token, gameMode)
 
                     respond {
                         embeds.add(presentUser(osuUser, gameMode))
@@ -323,19 +312,15 @@ class OsuExtension : Extension() {
             name = "user"
             description = "Discord user of whom to view osu! profile of"
         }
+        val account by optionalString {
+            name = "account"
+            description = "osu! account username or ID"
+        }
         val gameMode by optionalEnumChoice<GameMode> {
             name = "gamemode"
             description = "The selected osu! gamemode (default: ${GameMode.OSU.readableName})"
             typeName = "GameMode"
         }
-    }
-
-    internal class OsuAccountAndModeArg : Arguments() {
-        val account by string {
-            name = "account"
-            description = "osu! account username or ID"
-        }
-        val gameMode by gameModeArg()
     }
 
     /**
