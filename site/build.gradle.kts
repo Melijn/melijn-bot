@@ -1,8 +1,8 @@
 plugins {
-    kotlin("jvm") version "1.7.0"
-    id("com.google.devtools.ksp") version "1.7.0-1.0.6"
+    kotlin("jvm") version "1.7.10"
+    id("com.google.devtools.ksp") version "1.7.10-1.0.6"
     id("com.github.johnrengelman.shadow") version "7.1.2"
-    kotlin("plugin.serialization") version "1.7.0"
+    kotlin("plugin.serialization") version "1.7.10"
 }
 
 version = "1.0"
@@ -17,16 +17,16 @@ repositories {
     maven("https://nexus.melijn.com/repository/maven-public/")
 }
 
-val ktorVersion = "2.0.0"
+val ktorVersion = "2.0.3"
 val logbackVersion = "1.2.11"
 
-val kordKommons = "1.2.8"
-val redgresKommons = "0.0.4"
-val apKord = "0.1.2"
+val kordKommons = "1.3.0"
+val redgresKommons = "0.1.0"
+val apKord = "0.2.1"
 
 dependencies {
     implementation(kotlin("stdlib"))
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
 
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
@@ -67,7 +67,7 @@ dependencies {
 
     // JWT Token stuff
     // https://mvnrepository.com/artifact/org.springframework.security/spring-security-web
-    implementation("org.springframework.security:spring-security-web:5.7.1")
+    implementation("org.springframework.security:spring-security-web:5.7.2")
     // https://github.com/jwtk/jjwt
     // https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-impl
     implementation("io.jsonwebtoken:jjwt-impl:0.11.5")
