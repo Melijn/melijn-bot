@@ -20,11 +20,11 @@ import dev.kord.gateway.PrivilegedIntent
 import dev.kord.rest.builder.message.create.embed
 import kotlinx.coroutines.flow.firstOrNull
 import me.melijn.apkordex.command.KordExtension
+import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.bot.web.api.MySpotifyApi
 import me.melijn.bot.web.api.WebManager
 import org.jetbrains.kotlin.utils.keysToMap
 import org.koin.core.component.inject
-import org.koin.java.KoinJavaComponent
 import java.lang.Double.max
 import java.lang.Double.min
 import kotlin.math.roundToInt
@@ -151,7 +151,7 @@ class SpotifyCommand : Extension() {
             user: User,
             spotifyApi: MySpotifyApi
         ): se.michaelthelin.spotify.model_objects.specification.Track? {
-            val kord by KoinJavaComponent.inject<Kord>(Kord::class.java)
+            val kord by inject<Kord>()
 
             /**
              * fetch full discord member which can have spotify presences since

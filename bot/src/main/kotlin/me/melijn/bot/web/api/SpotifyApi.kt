@@ -7,8 +7,8 @@ import me.melijn.bot.model.PartialUser
 import me.melijn.bot.music.SpotifyTrack
 import me.melijn.bot.music.Track
 import me.melijn.bot.music.TrackData
+import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.gen.Settings
-import org.koin.java.KoinJavaComponent.inject
 import se.michaelthelin.spotify.SpotifyApi
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified
@@ -24,7 +24,7 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
         .setClientSecret(spotifySettings.password)
         .build()
 
-    private val songCacheManager by inject<SongCacheManager>(SongCacheManager::class.java)
+    private val songCacheManager by inject<SongCacheManager>()
 
     suspend fun updateSpotifyCredentials() {
         val credentialsRequest = api.clientCredentials().build()

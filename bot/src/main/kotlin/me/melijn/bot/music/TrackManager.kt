@@ -13,13 +13,13 @@ import me.melijn.bot.model.PartialUser
 import me.melijn.bot.model.PremiumIntLimit
 import me.melijn.bot.model.enums.IntLimit
 import me.melijn.bot.model.enums.PremiumTier
+import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.bot.web.api.MySpotifyApi
 import me.melijn.bot.web.api.MySpotifyApi.Companion.toTrack
 import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.async.SafeList
 import me.melijn.kordkommons.async.Task
 import me.melijn.kordkommons.logger.logger
-import org.koin.java.KoinJavaComponent.inject
 import kotlin.random.Random
 
 class TrackManager(val link: Link) {
@@ -62,7 +62,7 @@ class TrackManager(val link: Link) {
 
             val target1 = target
             if (target1 != null) {
-                val webManager by inject<WebManager>(WebManager::class.java)
+                val webManager by inject<WebManager>()
                 webManager.spotifyApi?.let { playFromTarget(it, target1) }
                 return
             }
