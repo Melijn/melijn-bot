@@ -70,11 +70,7 @@ dependencies {
     // https://mvnrepository.com/artifact/org.scilab.forge/jlatexmath
     implementation("org.scilab.forge:jlatexmath:1.0.7")
 
-    implementation("dev.schlaubi.lavakord", "kord") {
-        version {
-            branch = "main"
-        }
-    }
+    implementation("dev.schlaubi.lavakord", "kord", "3.6.3")
 
     implementation("me.melijn.kordkommons:kommons:$kordKommons")
     implementation("me.melijn.kordkommons:redgres-kommons:$redgresKommons")
