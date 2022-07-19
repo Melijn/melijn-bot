@@ -7,8 +7,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.music.FetchedTrack
+import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.kordkommons.database.DriverManager
-import org.koin.java.KoinJavaComponent
 import se.michaelthelin.spotify.model_objects.specification.Track
 import se.michaelthelin.spotify.model_objects.specification.TrackSimplified
 import java.util.concurrent.TimeUnit
@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
 @Inject
 class SongCacheManager(private val driverManager: DriverManager) {
 
-    val objectMapper by KoinJavaComponent.inject<ObjectMapper>(ObjectMapper::class.java)
+    val objectMapper by inject<ObjectMapper>()
 
     fun storeFetched(input: String, fetchedTracks: List<FetchedTrack>) {
         val time = if (fetchedTracks.isEmpty()) 1 else 5

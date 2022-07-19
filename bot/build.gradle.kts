@@ -5,9 +5,9 @@ plugins {
     id("application")
     id("com.apollographql.apollo") version "2.5.11"
     id("com.github.johnrengelman.shadow") version "7.1.2"
-    kotlin("jvm") version "1.6.20"
-    id("com.google.devtools.ksp") version "1.6.20-1.0.4"
-    kotlin("plugin.serialization") version "1.6.20"
+    kotlin("jvm") version "1.7.10"
+    id("com.google.devtools.ksp") version "1.7.10-1.0.6"
+    kotlin("plugin.serialization") version "1.7.10"
 }
 
 application.mainClass.set("me.melijn.bot.MelijnKt")
@@ -43,48 +43,41 @@ repositories {
     maven("https://nexus.melijn.com/repository/jcenter-mirror/")
     mavenLocal()
     maven("https://duncte123.jfrog.io/artifactory/maven")
-    
+
     // pooppack mirror
     maven("https://nexus.melijn.com/repository/jitpack/")
 }
 
 val jackson = "2.13.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
-val ktor = "2.0.0"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
+val ktor = "2.0.3"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 val apollo = "2.5.11" // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
-val kotlinX = "1.6.0" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
-val kotlin = "1.6.20"
+val kotlinX = "1.6.4" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
+val kotlin = "1.7.10"
 val scrimage = "4.0.22"
 
 // val kord = "0.8.0-M13"
-val kordEx = "1.5.3-SNAPSHOT"
-val kordKommons = "1.2.8"
-val apKordVersion = "0.1.9"
-val redgresKommons = "0.0.4"
+val kordEx = "1.5.5-SNAPSHOT"
+val kordKommons = "1.3.0"
+val apKordVersion = "0.2.2"
+val apKordex = "0.1.0"
+val redgresKommons = "0.1.0"
 
 dependencies {
     // implementation("dev.kord:kord-core:$kord")   let kord-ex handle kord version
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
     ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
+
+    // https://mvnrepository.com/artifact/org.scilab.forge/jlatexmath
     implementation("org.scilab.forge:jlatexmath:1.0.7")
 
-    implementation("dev.schlaubi.lavakord", "kord") {
-        version {
-            branch = "main"
-        }
-    }
+    implementation("dev.schlaubi.lavakord", "kord", "3.6.3")
 
-    implementation("me.melijn.kordkommons:kommons") {
-        version {
-            strictly(kordKommons)
-        }
-    }
-    implementation("me.melijn.kordkommons:redgres-kommons:$redgresKommons") {
-        exclude("me.melijn.kordkommons", "kommons")
-    }
+    implementation("me.melijn.kordkommons:kommons:$kordKommons")
+    implementation("me.melijn.kordkommons:redgres-kommons:$redgresKommons")
 
-
+    // Annotation processors
     val apKord = "me.melijn.kordkommons:ap:$apKordVersion"
-    val apKordex = "me.melijn.kordkommons:apkordex:0.0.1"
+    val apKordex = "me.melijn.kordkommons:apkordex:$apKordex"
     implementation(apKord) {
         exclude("me.melijn.kordkommons", "kommons")
     }
@@ -93,14 +86,14 @@ dependencies {
     ksp(apKord)
     ksp(apKordex)
 
-    implementation("io.sentry:sentry:5.2.2")
+    implementation("io.sentry:sentry:6.2.1")
 
     // https://mvnrepository.com/artifact/club.minnced/discord-webhooks
-    implementation("club.minnced:discord-webhooks:0.8.0")
+    implementation("club.minnced:discord-webhooks:0.8.2")
     // https://github.com/freya022/JEmojis
     implementation("com.github.ToxicMushroom:JEmojis:a8c82848f166893f67251c741579c74c80fbb2dd")
 
-    // Annotation processors
+
     api("org.jetbrains.kotlin:kotlin-script-util:$kotlin")
     api("org.jetbrains.kotlin:kotlin-compiler:$kotlin")
     api("org.jetbrains.kotlin:kotlin-scripting-compiler:$kotlin")
@@ -122,7 +115,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.0.1")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.3.5")
+    implementation("org.postgresql:postgresql:42.4.0")
 
     // expiring map, https://search.maven.org/artifact/net.jodah/expiringmap
     implementation("net.jodah:expiringmap:0.5.10")
@@ -130,6 +123,9 @@ dependencies {
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinX")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:$kotlinX")
+
+    // https://search.maven.org/artifact/org.jetbrains.kotlinx/kotlinx-datetime
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-jdk8
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:$kotlinX")
@@ -193,6 +189,9 @@ dependencies {
 ksp {
     arg("apkordex_package", "me.melijn.gen")
     arg("ap_package", "me.melijn.gen")
+    arg("ap_imports", "import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent;import org.koin.core.component.get;import org.koin.core.parameter.ParametersHolder;")
+    arg("ap_interfaces", "KordExKoinComponent")
+    arg("ap_init_placeholder", "get<%className%> { ParametersHolder() }")
     arg("ap_redis_key_prefix", "melijn:")
 }
 
