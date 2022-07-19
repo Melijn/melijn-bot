@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kotlindiscord.kord.extensions.ExtensibleBot
 import com.kotlindiscord.kord.extensions.koin.KordExContext
+import com.kotlindiscord.kord.extensions.utils.getKoin
 import dev.kord.core.Kord
 import dev.kord.gateway.Intent
 import dev.kord.gateway.PrivilegedIntent
@@ -29,10 +30,8 @@ import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.logger.logger
 import me.melijn.kordkommons.redis.RedisConfig
 import me.melijn.kordkommons.utils.ReflectUtil
-import org.koin.core.context.GlobalContext.loadKoinModules
 import org.koin.dsl.bind
 import org.koin.dsl.module
-import org.koin.java.KoinJavaComponent.inject
 import java.net.InetAddress
 import kotlin.system.exitProcess
 import kotlin.time.Duration.Companion.seconds
@@ -54,7 +53,9 @@ object Melijn {
         PodInfo.init(podCount, shardCount, podId)
         // initSentry(settings)
 
+
         val botInstance = ExtensibleBot(settings.api.discord.token) {
+
             @OptIn(PrivilegedIntent::class)
             intents {
                 +Intent.DirectMessages
@@ -79,6 +80,7 @@ object Melijn {
 
             hooks {
                 beforeKoinSetup {
+                    val koin = getKoin()
                     val objectMapper: ObjectMapper = jacksonObjectMapper()
                         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                     val driverManager = initDriverManager(settings)
@@ -93,10 +95,9 @@ object Melijn {
                     val injectorInterface = ReflectUtil.getInstanceOfKspClass<InjectorInterface>(
                         "me.melijn.gen", "InjectionKoinModule"
                     )
+                    koin.loadModules(listOf(injectorInterface.module))
 
-                    loadKoinModules(injectorInterface.module)
-
-                    val serviceManager by inject<ServiceManager>(ServiceManager::class.java)
+                    val serviceManager by koin.inject<ServiceManager>()
                     serviceManager.startAll()
                 }
 
@@ -108,7 +109,7 @@ object Melijn {
                     )
                     injectorInterface.initInjects()
 
-                    val kord by inject<Kord>(Kord::class.java)
+                    val kord by getKoin().inject<Kord>()
                     lavalink = kord.lavakord {
                         link {
                             autoReconnect = true
@@ -138,7 +139,7 @@ object Melijn {
                 enabled = true
                 prefix callback@{ _ ->
                     val event = this
-                    val prefixManager by inject<PrefixManager>(PrefixManager::class.java)
+                    val prefixManager by getKoin().inject<PrefixManager>()
                     val prefixes = (event.guildId?.let { prefixManager.getPrefixes(it) } ?: emptyList()) +
                             (event.message.author?.let { prefixManager.getPrefixes(it.id) } ?: emptyList())
                     prefixes.sortedByDescending { it.prefix.length }.forEach {

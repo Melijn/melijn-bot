@@ -1,5 +1,6 @@
 package me.melijn.bot.web.api
 
+import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -8,10 +9,9 @@ import me.melijn.bot.model.AnimalType
 import me.melijn.bot.utils.KtorUtils.parametersOf
 import me.melijn.bot.utils.Log
 import me.melijn.gen.Settings
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-class AnimalImageApi(private val httpClient: HttpClient) : KoinComponent {
+class AnimalImageApi(private val httpClient: HttpClient) : KordExKoinComponent {
 
     private val settings by inject<Settings>()
     private val logger by Log

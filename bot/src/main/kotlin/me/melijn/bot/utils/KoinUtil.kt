@@ -1,8 +1,8 @@
 package me.melijn.bot.utils
 
+import com.kotlindiscord.kord.extensions.utils.getKoin
 import org.koin.core.parameter.ParametersDefinition
 import org.koin.core.qualifier.Qualifier
-import org.koin.java.KoinJavaComponent
 import org.koin.mp.KoinPlatformTools
 
 object KoinUtil {
@@ -11,6 +11,6 @@ object KoinUtil {
         mode: LazyThreadSafetyMode = KoinPlatformTools.defaultLazyMode(),
         noinline parameters: ParametersDefinition? = null
     ): Lazy<T> = lazy(mode) {
-        KoinJavaComponent.get(T::class.java, qualifier, parameters)
+        getKoin().get(qualifier, parameters)
     }
 }

@@ -43,7 +43,7 @@ repositories {
     maven("https://nexus.melijn.com/repository/jcenter-mirror/")
     mavenLocal()
     maven("https://duncte123.jfrog.io/artifactory/maven")
-    
+
     // pooppack mirror
     maven("https://nexus.melijn.com/repository/jitpack/")
 }
@@ -58,7 +58,7 @@ val scrimage = "4.0.22"
 // val kord = "0.8.0-M13"
 val kordEx = "1.5.5-SNAPSHOT"
 val kordKommons = "1.3.0"
-val apKordVersion = "0.2.1"
+val apKordVersion = "0.2.2"
 val apKordex = "0.1.0"
 val redgresKommons = "0.1.0"
 
@@ -79,7 +79,7 @@ dependencies {
     implementation("me.melijn.kordkommons:kommons:$kordKommons")
     implementation("me.melijn.kordkommons:redgres-kommons:$redgresKommons")
 
-
+    // Annotation processors
     val apKord = "me.melijn.kordkommons:ap:$apKordVersion"
     val apKordex = "me.melijn.kordkommons:apkordex:$apKordex"
     implementation(apKord) {
@@ -97,7 +97,7 @@ dependencies {
     // https://github.com/freya022/JEmojis
     implementation("com.github.ToxicMushroom:JEmojis:a8c82848f166893f67251c741579c74c80fbb2dd")
 
-    // Annotation processors
+
     api("org.jetbrains.kotlin:kotlin-script-util:$kotlin")
     api("org.jetbrains.kotlin:kotlin-compiler:$kotlin")
     api("org.jetbrains.kotlin:kotlin-scripting-compiler:$kotlin")
@@ -193,6 +193,9 @@ dependencies {
 ksp {
     arg("apkordex_package", "me.melijn.gen")
     arg("ap_package", "me.melijn.gen")
+    arg("ap_imports", "import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent;import org.koin.core.component.get;import org.koin.core.parameter.ParametersHolder;")
+    arg("ap_interfaces", "KordExKoinComponent")
+    arg("ap_init_placeholder", "get<%className%> { ParametersHolder() }")
     arg("ap_redis_key_prefix", "melijn:")
 }
 
