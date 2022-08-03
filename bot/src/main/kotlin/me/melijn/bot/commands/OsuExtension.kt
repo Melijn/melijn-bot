@@ -2,6 +2,7 @@
 
 package me.melijn.bot.commands
 
+import com.kotlindiscord.kord.extensions.DiscordRelayedException
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.CommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.ChoiceEnum
@@ -13,10 +14,13 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
+import com.sksamuel.scrimage.ImmutableImage
 import dev.kord.common.DiscordTimestampStyle
 import dev.kord.common.kColor
 import dev.kord.common.toMessageFormat
 import dev.kord.rest.builder.message.EmbedBuilder
+import dev.kord.rest.builder.message.create.MessageCreateBuilder
+import dev.kord.rest.builder.message.create.embed
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -43,8 +47,15 @@ import me.melijn.kordkommons.utils.escapeCodeBlock
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 import org.koin.core.component.inject
 import java.awt.Color
+import java.awt.image.BufferedImage
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.net.URI
 import java.util.*
+import javax.imageio.ImageIO
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
@@ -68,17 +79,19 @@ class OsuExtension : Extension() {
 
                 action {
                     val mode = arguments.gameMode
-                    val currentEntry = linkManager.get(user.id)
+                    val currentProfile = linkManager.get(user.id)
+                    val currentModeName = currentProfile.modePreference?.readableName
                     if (mode == null) {
                         respond {
-                            content = tr("osu.preferredMode.show", currentEntry.modePreference?.readableName)
+                            content = tr("osu.preferredMode.show", currentModeName)
                         }
                     } else {
-                        linkManager.store(currentEntry.apply {
+                        val updatedProfile = currentProfile.apply {
                             modePreference = mode
-                        })
+                        }
+                        linkManager.store(updatedProfile)
                         respond {
-                            content = tr("osu.preferredMode.set", currentEntry.modePreference?.readableName)
+                            content = tr("osu.preferredMode.set", mode.readableName)
                         }
                     }
                 }
@@ -92,13 +105,13 @@ class OsuExtension : Extension() {
                     val account = arguments.account
                     val token = assertToken()
                     val osuUser = getUser(account, token, GameMode.OSU)
-                    val current = linkManager.get(user.id)
+                    val currentProfile = linkManager.get(user.id)
 
-                    linkManager.store(current.apply {
+                    val updatedProfile = currentProfile.apply {
                         osuId = osuUser.id
-                    })
+                    }
+                    linkManager.store(updatedProfile)
                     respond {
-
                         content = tr("osu.link.succeeded")
                     }
                 }
@@ -232,21 +245,31 @@ class OsuExtension : Extension() {
                             else tr("osu.profile.other.noLink", target.mention)
                         )
                     }
-                    val account = osuId ?:bail(tr("osu.profile.noIdProvided"))
+                    val account = osuId ?: bail(tr("osu.profile.noIdProvided"))
                     val gameMode = arguments.gameMode ?: osuSettings?.modePreference ?: GameMode.OSU
                     val token = assertToken()
 
                     val osuUser = getUser(account, token, gameMode)
 
                     respond {
-                        embeds.add(presentUser(osuUser, gameMode))
+                        embed {
+                            presentUser(osuUser, gameMode)
+                        }
                     }
                 }
             }
         }
     }
 
-    @Suppress("BlockingMethodInNonBlockingContext")
+    /**
+     * @param account a string containing an osu username or userId
+     * @param gameMode the gameMode you want information about for the [account]
+     * @param token osu api oauth token
+     *
+     * @throws DiscordRelayedException when no user is found for the [account]
+     *
+     * @return Osu [User] information
+     */
     private suspend fun CommandContext.getUser(
         account: String, token: String, gameMode: GameMode
     ): User = get<User, Unit>(
@@ -377,7 +400,8 @@ class OsuExtension : Extension() {
             Result.failure(body<ErrorResponse>())
         }
 
-    private suspend fun CommandContext.presentUser(user: User, gameMode: GameMode) = EmbedBuilder().apply {
+    context(EmbedBuilder, MessageCreateBuilder, CommandContext)
+            private suspend fun presentUser(user: User, gameMode: GameMode) {
         thumbnail {
             url = user.avatar_url
         }
@@ -418,9 +442,174 @@ class OsuExtension : Extension() {
             }
         }
 
+        val points = user.rank_history.data.toMutableList()
+        val barr = drawRankHistoryWithSplines(points)
+        val bais = ByteArrayInputStream(barr)
+        addFile("image.png", bais)
+
         footer {
             text = tr("osu.user.joined", Date.from(user.join_date?.toJavaInstant()))
         }
+    }
+
+    fun make_spline(data: Array<Array<Double>>): Array<Array<Double>> {
+        // Returns sets of coefficients to create a cubic spline through points
+        // contained in data. In each region x_i < x < x_i+1, the spline is
+        // given by a_i*(x-x_i)^3 + b_i*(x-x_i)^2 + c_i*(x-x_i) + d_i.
+        // The output is is a list of lists make_spline = [a,b,c,d].
+        // Solve for ssp in the matrix equation T*ssp = r.
+        // at, bt, and ct are the elements of the tridiagonal matrix T.
+        // r is the column vector on the right-hand side.
+        // ssd holds the values of the second derivative of the spline polynomial
+        // at each data point.
+        val bt = ArrayList<Double>(data.size).also { it.add(1.0) }
+        val at = ArrayList<Double>(data.size).also { it.add(0.0) }
+        val ct = ArrayList<Double>(data.size).also { it.add(data[1][0] - data[0][0]) }
+        val r = ArrayList<Double>(data.size).also { it.add(0.0) }
+        for (i in 1 until data.size - 1) {
+            bt.add(2 * (data[i + 1][0] - data[i - 1][0]))
+            ct.add(data[i + 1][0] - data[i][0])
+            at.add(data[i][0] - data[i - 1][0])
+            var r1 = (data[i + 1][1] - data[i][1]) / (data[i + 1][0] - data[i][0])
+            r1 -= (data[i][1] - data[i - 1][1]) / (data[i][0] - data[i - 1][0])
+            r.add(6 * r1)
+        }
+
+        at.add(data[data.size - 1][0] - data[data.size - 2][0])
+        bt.add(1.0)
+        ct.add(0.0)
+        r.add(0.0)
+
+        // Solve the matrix equation for ssd.beta = [bt[0]] # beta and rho are short-hand variables.
+        val beta = Array(data.size) { 0.0 }.also { it[0] = bt[0] }
+        val rho = Array(data.size) { 0.0 }.also { it[0] = r[0] }
+        val ssd = Array(data.size) { 0.0 }
+        for (j in 1 until data.size) {
+            beta[j] = (bt[j] - at[j] * ct[j - 1] / beta[j - 1])
+            rho[j] = (r[j] - at[j] * rho[j - 1] / beta[j - 1])
+        }
+
+        ssd[data.size - 1] = rho[data.size - 1] / beta[data.size - 1]
+        for (j in (2..data.size - 2))
+            ssd[data.size - j] = (rho[data.size - j] - ct[data.size - j] * ssd[data.size - j + 1]) / beta[data.size - j]
+
+
+        // Spline has been determined . Prepare output.a = []
+        val a = Array(data.size) { 0.0 }
+        val b = Array(data.size) { 0.0 }
+        val c = Array(data.size) { 0.0 }
+        val d = Array(data.size) { 0.0 }
+
+        for (i in 0 until data.size - 1) {
+            d[i] = data[i][1]
+            b[i] = ssd[i] / 2.0
+            a[i] = (ssd[i + 1] - ssd[i]) / (6 * (data[i + 1][0] - data[i][0]))
+            var c1 = (data[i + 1][1] - data[i][1]) / (data[i + 1][0] - data[i][0])
+            c1 -= ((data[i + 1][0] - data[i][0]) * (ssd[i + 1] + 2 * ssd[i]) / 6)
+            c[i] = c1
+        }
+
+        return arrayOf(a, b, c, d)
+    }
+
+    fun drawRankHistoryWithSplines(points: MutableList<Long>): ByteArray {
+        points.add(points.last())
+        val yMax = 300
+        val xOff = 20
+        val yOff = 20
+        val xMax = 800
+        val canvas = ImmutableImage.create(xMax, yMax, BufferedImage.TYPE_4BYTE_ABGR)
+        val g2d = canvas.awt().createGraphics()
+        g2d.background = Color.decode("#1C1719")
+        g2d.paint = Color.decode("#1C1719")
+        g2d.fillRect(0, 0, xMax, yMax)
+        g2d.paint = Color.DARK_GRAY
+        for (i in 0 until 8) {
+            g2d.drawLine(i * 100 + xOff, 0, i * 100 + xOff, yMax - yOff)
+            g2d.drawLine(xOff, i * 100 - yOff, xMax, i * 100 - yOff)
+        }
+
+        val maxPoint = points.max()
+        val minPoint = points.min()
+
+        g2d.paint = Color.RED
+        val dataSet = Array(points.size) { Array(2) { 0.0 } }
+        for ((i, point) in points.withIndex()) {
+            val scaledX = (i / (points.size-1).toDouble()) * (xMax - xOff) + xOff
+            val scaledY = ((point - minPoint) / (maxPoint - minPoint).toDouble()) * (yMax - yOff)
+            dataSet[i][0] = scaledX
+            dataSet[i][1] = scaledY
+//            canvas.setColor(scaledX.toInt(), scaledY.toInt(), RGBColor.fromAwt(Color.CYAN))
+        }
+
+        val spline = make_spline(dataSet)
+        val a = spline[0]
+        val b = spline[1]
+        val c = spline[2]
+        val d = spline[3]
+
+        var i = 0
+        var prevY = -1
+        for (x in (xOff until xMax)) {
+            while (i < (dataSet.size - 1) && dataSet[i + 1][0] < x) i++
+            val xdiff = x - dataSet[i][0]
+            val value = a[i] * xdiff.pow(3) + b[i] * xdiff.pow(2) + c[i] * xdiff + d[i]
+            val splinedY = max(0, min(value.toInt(), yMax-1))
+            val from = if (prevY != -1) prevY else splinedY
+            g2d.drawLine(x, from, x, splinedY)
+            prevY = splinedY
+
+//            canvas.setColor(x, , RGBColor.fromAwt(Color.RED))
+        }
+
+        val baos = ByteArrayOutputStream()
+        ImageIO.write(canvas.awt(), "png", baos)
+        return baos.toByteArray()
+    }
+
+    fun drawRankHistoryWithLagrange(points: List<Long>): ByteArray {
+        val yMax = 300
+        val xOff = 20
+        val yOff = 20
+        val xMax = 800
+        val canvas = ImmutableImage.create(xMax, yMax, BufferedImage.TYPE_4BYTE_ABGR)
+        val g2d = canvas.awt().createGraphics()
+        g2d.background = Color.decode("#1C1719")
+        g2d.paint = Color.decode("#1C1719")
+        g2d.fillRect(0, 0, xMax, yMax)
+        g2d.paint = Color.DARK_GRAY
+        for (i in 0 until 8) {
+            g2d.drawLine(i * 100 + xOff, 0, i * 100 + xOff, yMax - yOff)
+            g2d.drawLine(xOff, i * 100 - yOff, xMax, i * 100 - yOff)
+        }
+
+        val maxPoint = points.max()
+        val minPoint = points.min()
+
+        g2d.paint = Color.RED
+        var prevY = -1
+        for (s in xOff until xMax) {
+            val x = ((s - xOff).toDouble() / (xMax - xOff)) * points.size
+            var y = 0.0
+            val n = points.size
+            for (i in 0 until n) {
+                var t = points[i].toDouble()
+                for (j in 0 until n) {
+                    if (j != i) {
+                        t *= (x - j) / (i - j).toDouble()
+                    }
+                }
+                y += t
+            }
+            y = (y - minPoint) * 300 / (maxPoint - minPoint)
+            val from = if (prevY != -1) prevY else y.toInt()
+            g2d.drawLine(s, from, s, y.toInt())
+            prevY = y.toInt()
+        }
+
+        val baos = ByteArrayOutputStream()
+        ImageIO.write(canvas.awt(), "png", baos)
+        return baos.toByteArray()
     }
 
 }
@@ -487,9 +676,23 @@ private data class User(
     val join_date: Instant? = null,
     val location: String? = null,
     val playmode: GameMode? = null,
+    val monthly_playcounts: List<MomentCount>,
+    val rank_history: RankHistory
 ) {
     fun siteUrl(mode: GameMode) = "https://osu.ppy.sh/users/$id/${mode.name.lowercase()}"
 }
+
+@Serializable
+data class RankHistory(
+    val mode: String,
+    val data: List<Long>
+)
+
+@Serializable
+data class MomentCount(
+    val start_date: String,
+    val count: Long
+)
 
 @Serializable
 enum class GameMode : ChoiceEnum {
