@@ -5,6 +5,7 @@ package me.melijn.bot.commands
 import com.kotlindiscord.kord.extensions.DiscordRelayedException
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.CommandContext
+import com.kotlindiscord.kord.extensions.commands.application.ApplicationCommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.ChoiceEnum
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.defaultingEnumChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalEnumChoice
@@ -122,18 +123,20 @@ class OsuExtension : Extension() {
                 description = "View recent, best and firsts plays"
 
                 action {
-                    val account = arguments.account
                     val type = arguments.type
-                    val mode = arguments.gameMode
                     val limit = arguments.limit
                     val offset = arguments.offset
                     val includeFails = arguments.includeFails.ifTrue { "1" } ?: "0"
+                    val (osuSettings, osuId) = assertAccount(arguments.account, arguments.user)
+                    val mode = arguments.gameMode ?: osuSettings?.modePreference ?: GameMode.OSU
+
                     val token = assertToken()
-                    val osuUser = getUser(account, token, GameMode.OSU)
+                    val osuUser = getUser(osuId, token, GameMode.OSU)
                     val requestParams = GetUserScoresRequest(includeFails, mode, limit, offset)
-                    val scores =
-                        getScores(osuUser.id, type, token, requestParams).getOrElse { bail(it.message ?: "wfjskld") }
-                            .filter { it.beatmap != null && it.beatmapset != null && it.user != null }
+                    val scores = getScores(osuUser.id, type, token, requestParams)
+                        .getOrElse { bail(it.message ?: "wfjskld") }
+                        .filter { it.beatmap != null && it.beatmapset != null && it.user != null }
+
                     if (scores.isEmpty()) {
                         respond {
                             content = tr(
@@ -232,24 +235,12 @@ class OsuExtension : Extension() {
                     "View an osu! profile, will default to your linked profile if the target is left unspecified."
 
                 action {
-                    var osuId: String? = arguments.account
-                    var osuSettings: OsuLinkData? = null
-                    if (osuId == null) {
-                        val target = arguments.user?.asUser() ?: getUser().asUser()
-                        val authorOsuSettings = linkManager.get(getUser().id)
-                        osuSettings =
-                            linkManager.get(target.id).takeIf { it.modePreference != null } ?: authorOsuSettings
+                    val (osuSettings, osuId) = assertAccount(arguments.account, arguments.user)
 
-                        osuId = osuSettings.osuId?.toString() ?: bail(
-                            if (target.id == getUser().id) tr("osu.profile.you.noLink")
-                            else tr("osu.profile.other.noLink", target.mention)
-                        )
-                    }
-                    val account = osuId ?: bail(tr("osu.profile.noIdProvided"))
                     val gameMode = arguments.gameMode ?: osuSettings?.modePreference ?: GameMode.OSU
                     val token = assertToken()
 
-                    val osuUser = getUser(account, token, gameMode)
+                    val osuUser = getUser(osuId, token, gameMode)
 
                     respond {
                         embed {
@@ -260,6 +251,26 @@ class OsuExtension : Extension() {
             }
         }
     }
+
+    context(ApplicationCommandContext)
+    private suspend fun assertAccount(
+        osuId: String?,
+        user: dev.kord.core.entity.User?
+    ): Pair<OsuLinkData?, String> {
+        if (osuId != null) return null to osuId
+
+        val target = user?.asUser() ?: getUser().asUser()
+        val authorOsuSettings = linkManager.get(target.id)
+        val osuSettings =
+            linkManager.get(target.id).takeIf { it.modePreference != null } ?: authorOsuSettings
+
+        val assertedOsuId = osuSettings.osuId?.toString() ?: bail(
+            if (target.id == getUser().id) tr("osu.profile.you.noLink")
+            else tr("osu.profile.other.noLink", target.mention)
+        )
+        return osuSettings to assertedOsuId
+    }
+
 
     /**
      * @param account a string containing an osu username or userId
@@ -283,7 +294,7 @@ class OsuExtension : Extension() {
 
     inner class OsuSetPreferredModeArg : Arguments() {
         val gameMode by optionalEnumChoice<GameMode> {
-            name = "gameMode"
+            name = "gamemode"
             description = "If provided, sets your preferred osu! gamemode "
             typeName = "gamemode"
         }
@@ -301,15 +312,22 @@ class OsuExtension : Extension() {
     }
 
     inner class OsuScoreArg : Arguments() {
-        val account by string {
+        val user by optionalUser {
+            name = "user"
+            description = "Discord user of whom to view osu! profile of"
+        }
+        val account by optionalString {
             name = "account"
             description = "osu! account username or ID"
         }
-
-        val gameMode by gameModeArg()
+        val gameMode by optionalEnumChoice<GameMode> {
+            name = "gamemode"
+            description = "The selected osu! gamemode"
+            typeName = "GameMode"
+        }
         val type by defaultingEnumChoice<ScoreType> {
             defaultValue = ScoreType.BEST
-            name = "ScoreType"
+            name = "Scoretype"
             description = "the types of scores you want to fetch (default: ${defaultValue})"
             typeName = "ScoreType"
         }
@@ -325,7 +343,7 @@ class OsuExtension : Extension() {
         }
         val includeFails by defaultingBoolean {
             defaultValue = false
-            name = "includeFails"
+            name = "includefails"
             description = "whether the scores should include fails (default: ${defaultValue})"
         }
     }
@@ -442,13 +460,14 @@ class OsuExtension : Extension() {
             }
         }
 
-        val points = user.rank_history.data.toMutableList()
-        val barr = drawRankHistoryWithSplines(points)
-        val bais = ByteArrayInputStream(barr)
-        addFile("image.png", bais)
+        user.rank_history?.let { points ->
+            val barr = drawRankHistoryWithSplines(points.data.toMutableList())
+            val bais = ByteArrayInputStream(barr)
+            addFile("image.png", bais)
 
-        footer {
-            text = tr("osu.user.joined", Date.from(user.join_date?.toJavaInstant()))
+            footer {
+                text = tr("osu.user.joined", Date.from(user.join_date?.toJavaInstant()))
+            }
         }
     }
 
@@ -512,7 +531,7 @@ class OsuExtension : Extension() {
         return arrayOf(a, b, c, d)
     }
 
-    fun drawRankHistoryWithSplines(points: MutableList<Long>): ByteArray {
+    private fun drawRankHistoryWithSplines(points: MutableList<Long>): ByteArray {
         points.add(points.last())
         val yMax = 300
         val xOff = 20
@@ -535,11 +554,10 @@ class OsuExtension : Extension() {
         g2d.paint = Color.RED
         val dataSet = Array(points.size) { Array(2) { 0.0 } }
         for ((i, point) in points.withIndex()) {
-            val scaledX = (i / (points.size-1).toDouble()) * (xMax - xOff) + xOff
+            val scaledX = (i / (points.size - 1).toDouble()) * (xMax - xOff) + xOff
             val scaledY = ((point - minPoint) / (maxPoint - minPoint).toDouble()) * (yMax - yOff)
             dataSet[i][0] = scaledX
             dataSet[i][1] = scaledY
-//            canvas.setColor(scaledX.toInt(), scaledY.toInt(), RGBColor.fromAwt(Color.CYAN))
         }
 
         val spline = make_spline(dataSet)
@@ -554,12 +572,10 @@ class OsuExtension : Extension() {
             while (i < (dataSet.size - 1) && dataSet[i + 1][0] < x) i++
             val xdiff = x - dataSet[i][0]
             val value = a[i] * xdiff.pow(3) + b[i] * xdiff.pow(2) + c[i] * xdiff + d[i]
-            val splinedY = max(0, min(value.toInt(), yMax-1))
+            val splinedY = max(0, min(value.toInt(), yMax - 1))
             val from = if (prevY != -1) prevY else splinedY
             g2d.drawLine(x, from, x, splinedY)
             prevY = splinedY
-
-//            canvas.setColor(x, , RGBColor.fromAwt(Color.RED))
         }
 
         val baos = ByteArrayOutputStream()
@@ -567,58 +583,52 @@ class OsuExtension : Extension() {
         return baos.toByteArray()
     }
 
-    fun drawRankHistoryWithLagrange(points: List<Long>): ByteArray {
-        val yMax = 300
-        val xOff = 20
-        val yOff = 20
-        val xMax = 800
-        val canvas = ImmutableImage.create(xMax, yMax, BufferedImage.TYPE_4BYTE_ABGR)
-        val g2d = canvas.awt().createGraphics()
-        g2d.background = Color.decode("#1C1719")
-        g2d.paint = Color.decode("#1C1719")
-        g2d.fillRect(0, 0, xMax, yMax)
-        g2d.paint = Color.DARK_GRAY
-        for (i in 0 until 8) {
-            g2d.drawLine(i * 100 + xOff, 0, i * 100 + xOff, yMax - yOff)
-            g2d.drawLine(xOff, i * 100 - yOff, xMax, i * 100 - yOff)
-        }
+//    Old lagrange method, had very ban edge interpolation
+//    fun drawRankHistoryWithLagrange(points: List<Long>): ByteArray {
+//        val yMax = 300
+//        val xOff = 20
+//        val yOff = 20
+//        val xMax = 800
+//        val canvas = ImmutableImage.create(xMax, yMax, BufferedImage.TYPE_4BYTE_ABGR)
+//        val g2d = canvas.awt().createGraphics()
+//        g2d.background = Color.decode("#1C1719")
+//        g2d.paint = Color.decode("#1C1719")
+//        g2d.fillRect(0, 0, xMax, yMax)
+//        g2d.paint = Color.DARK_GRAY
+//        for (i in 0 until 8) {
+//            g2d.drawLine(i * 100 + xOff, 0, i * 100 + xOff, yMax - yOff)
+//            g2d.drawLine(xOff, i * 100 - yOff, xMax, i * 100 - yOff)
+//        }
+//
+//        val maxPoint = points.max()
+//        val minPoint = points.min()
+//
+//        g2d.paint = Color.RED
+//        var prevY = -1
+//        for (s in xOff until xMax) {
+//            val x = ((s - xOff).toDouble() / (xMax - xOff)) * points.size
+//            var y = 0.0
+//            val n = points.size
+//            for (i in 0 until n) {
+//                var t = points[i].toDouble()
+//                for (j in 0 until n) {
+//                    if (j != i) {
+//                        t *= (x - j) / (i - j).toDouble()
+//                    }
+//                }
+//                y += t
+//            }
+//            y = (y - minPoint) * 300 / (maxPoint - minPoint)
+//            val from = if (prevY != -1) prevY else y.toInt()
+//            g2d.drawLine(s, from, s, y.toInt())
+//            prevY = y.toInt()
+//        }
+//
+//        val baos = ByteArrayOutputStream()
+//        ImageIO.write(canvas.awt(), "png", baos)
+//        return baos.toByteArray()
+//    }
 
-        val maxPoint = points.max()
-        val minPoint = points.min()
-
-        g2d.paint = Color.RED
-        var prevY = -1
-        for (s in xOff until xMax) {
-            val x = ((s - xOff).toDouble() / (xMax - xOff)) * points.size
-            var y = 0.0
-            val n = points.size
-            for (i in 0 until n) {
-                var t = points[i].toDouble()
-                for (j in 0 until n) {
-                    if (j != i) {
-                        t *= (x - j) / (i - j).toDouble()
-                    }
-                }
-                y += t
-            }
-            y = (y - minPoint) * 300 / (maxPoint - minPoint)
-            val from = if (prevY != -1) prevY else y.toInt()
-            g2d.drawLine(s, from, s, y.toInt())
-            prevY = y.toInt()
-        }
-
-        val baos = ByteArrayOutputStream()
-        ImageIO.write(canvas.awt(), "png", baos)
-        return baos.toByteArray()
-    }
-
-}
-
-private fun Arguments.gameModeArg() = defaultingEnumChoice<GameMode> {
-    defaultValue = GameMode.OSU
-    name = "gamemode"
-    description = "The selected osu! gamemode (default: ${defaultValue})"
-    typeName = "GameMode"
 }
 
 private fun endpoint(suffix: String) = URI("https", "osu.ppy.sh", "/api/v2/$suffix", null).toURL().toString()
@@ -676,8 +686,8 @@ private data class User(
     val join_date: Instant? = null,
     val location: String? = null,
     val playmode: GameMode? = null,
-    val monthly_playcounts: List<MomentCount>,
-    val rank_history: RankHistory
+    val monthly_playcounts: List<MomentCount>? = null,
+    val rank_history: RankHistory? = null
 ) {
     fun siteUrl(mode: GameMode) = "https://osu.ppy.sh/users/$id/${mode.name.lowercase()}"
 }
