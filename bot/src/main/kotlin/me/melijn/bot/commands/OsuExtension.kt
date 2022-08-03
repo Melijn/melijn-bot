@@ -105,9 +105,26 @@ class OsuExtension : Extension() {
                 action {
                     val account = arguments.account
                     val token = assertToken()
-                    val osuUser = getUser(account, token, GameMode.OSU)
                     val currentProfile = linkManager.get(user.id)
 
+                    if (arguments.reset == true) {
+                        val updatedProfile = currentProfile.apply { osuId = null }
+                        linkManager.store(updatedProfile)
+                        respond {
+                            content = tr("osu.link.reset")
+                        }
+                        return@action
+                    }
+
+                    if (account == null) {
+                        // show current account
+                        respond {
+                            content = tr("osu.link.show", currentProfile.osuId.toString())
+                        }
+                        return@action
+                    }
+
+                    val osuUser = getUser(account, token, GameMode.OSU)
                     val updatedProfile = currentProfile.apply {
                         osuId = osuUser.id
                     }
@@ -115,6 +132,7 @@ class OsuExtension : Extension() {
                     respond {
                         content = tr("osu.link.succeeded")
                     }
+
                 }
             }
 
@@ -253,7 +271,7 @@ class OsuExtension : Extension() {
     }
 
     context(ApplicationCommandContext)
-    private suspend fun assertAccount(
+            private suspend fun assertAccount(
         osuId: String?,
         user: dev.kord.core.entity.User?
     ): Pair<OsuLinkData?, String> {
@@ -301,9 +319,13 @@ class OsuExtension : Extension() {
     }
 
     inner class OsuAccountArg : Arguments() {
-        val account by string {
+        val account by optionalString {
             name = "account"
             description = "osu! account username or ID"
+        }
+        val reset by optionalBoolean {
+            name = "reset"
+            description = "unlinks your osu account"
         }
     }
 
