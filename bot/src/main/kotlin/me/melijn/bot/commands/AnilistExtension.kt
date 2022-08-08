@@ -4,7 +4,6 @@ import com.apollographql.apollo.api.Operation
 import com.apollographql.apollo.api.Query
 import com.apollographql.apollo.api.Response
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.kotlindiscord.kord.extensions.DiscordRelayedException
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.CommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
@@ -33,6 +32,7 @@ import me.melijn.bot.commands.AnilistExtension.LookupArg.AnilistItemType.USER
 import me.melijn.bot.database.manager.AnilistLinkManager
 import me.melijn.bot.utils.EnumUtil.ucc
 import me.melijn.bot.utils.InferredChoiceEnum
+import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.Log
 import me.melijn.bot.utils.StringsUtil.batchingJoinToString
@@ -99,7 +99,7 @@ class AnilistExtension : Extension() {
 
             publicSubCommand(::PreferenceArg) {
                 name = "preference"
-                description = "Change your preffered AniList result language"
+                description = "Change your preferred AniList result language"
 
                 action {
                     val pref = arguments.preference.parsed
@@ -119,7 +119,7 @@ class AnilistExtension : Extension() {
 
             publicSubCommand(::UserArg) {
                 name = "profile"
-                description = "View AniList profile of user"
+                description = "View AniList profile of discord user"
 
                 action {
                     val id = (arguments.user.parsed
@@ -556,8 +556,6 @@ class AnilistExtension : Extension() {
 
         return this.parse(result.encodeUtf8())
     }
-
-    private fun bail(reason: String): Nothing = throw DiscordRelayedException(reason)
 
     private val String.profileStripped: String
         get() = this.remove("https://anilist.co/user", "/")

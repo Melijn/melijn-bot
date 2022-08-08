@@ -148,7 +148,8 @@ dependencies {
 
     // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
     implementation("io.ktor:ktor:$ktor")
-    implementation("io.ktor:ktor-serialization-jackson:$ktor")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor")
+    implementation("io.ktor:ktor-client-logging:$ktor")
 
     // Ktor Client
     implementation("io.ktor:ktor-client-okhttp:$ktor")
@@ -212,7 +213,8 @@ tasks {
         kotlinOptions {
             jvmTarget = "16"
             freeCompilerArgs = listOf(
-                "-opt-in=kotlin.RequiresOptIn"
+                "-opt-in=kotlin.RequiresOptIn",
+                "-Xcontext-receivers"
             )
         }
     }
