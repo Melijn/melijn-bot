@@ -70,7 +70,7 @@ dependencies {
     // https://mvnrepository.com/artifact/org.scilab.forge/jlatexmath
     implementation("org.scilab.forge:jlatexmath:1.0.7")
 
-    implementation("dev.schlaubi.lavakord", "kord", "3.6.3")
+    implementation("dev.schlaubi.lavakord", "kord", "3.7.0")
 
     implementation("me.melijn.kordkommons:kommons:$kordKommons")
     implementation("me.melijn.kordkommons:redgres-kommons:$redgresKommons")
@@ -106,7 +106,7 @@ dependencies {
 
     // Database
     // https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-core
-    val exposed = "0.38.2"
+    val exposed = "0.39.2"
     implementation("org.jetbrains.exposed:exposed-core:$exposed")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposed")
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter:$exposed")
@@ -115,7 +115,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.0.1")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.4.0")
+    implementation("org.postgresql:postgresql:42.5.0")
 
     // expiring map, https://search.maven.org/artifact/net.jodah/expiringmap
     implementation("net.jodah:expiringmap:0.5.10")
@@ -134,7 +134,7 @@ dependencies {
     implementation("me.duncte123:weebJava:3.0.1_4")
 
     // https://mvnrepository.com/artifact/se.michaelthelin.spotify/spotify-web-api-java
-    implementation("se.michaelthelin.spotify:spotify-web-api-java:7.1.0")
+    implementation("se.michaelthelin.spotify:spotify-web-api-java:7.2.0")
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
     implementation("ch.qos.logback:logback-classic:1.2.11")
@@ -171,14 +171,14 @@ dependencies {
     implementation("me.melijn.jikankt:JikanKt:1.3.2")
 
     // https://mvnrepository.com/artifact/org.mariuszgromada.math/MathParser.org-mXparser
-    implementation("org.mariuszgromada.math:MathParser.org-mXparser:5.0.3")
+    implementation("org.mariuszgromada.math:MathParser.org-mXparser:5.0.7")
 
     // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
     implementation("com.apollographql.apollo:apollo-runtime:$apollo")
     implementation("com.apollographql.apollo:apollo-coroutines-support:$apollo")
 
     // https://mvnrepository.com/artifact/io.lettuce/lettuce-core
-    implementation("io.lettuce:lettuce-core:6.1.8.RELEASE")
+    implementation("io.lettuce:lettuce-core:6.2.0.RELEASE")
 
     // https://github.com/cdimascio/dotenv-kotlin
     implementation("io.github.cdimascio:dotenv-kotlin:6.2.2")
