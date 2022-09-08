@@ -66,6 +66,11 @@ private class Template {
         class TheCatApi : BotSettings("thecatapi") {
             val apiKey by string("apikey")
         }
+
+        class Osu : BotSettings("osu") {
+            val clientId by int("clientId")
+            val secret by string("secret")
+        }
     }
 
     /**

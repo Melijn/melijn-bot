@@ -1,5 +1,6 @@
 package me.melijn.bot.music
 
+import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import dev.schlaubi.lavakord.audio.RestNode
 import dev.schlaubi.lavakord.rest.TrackResponse
 import dev.schlaubi.lavakord.rest.loadItem
@@ -8,11 +9,10 @@ import me.melijn.bot.database.manager.SongCacheManager
 import me.melijn.bot.model.PartialUser
 import me.melijn.bot.utils.Log
 import me.melijn.bot.web.api.WebManager
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 @Inject
-class TrackLoader : KoinComponent {
+class TrackLoader : KordExKoinComponent {
 
     private val songCacheManager by inject<SongCacheManager>()
     private val webManager by inject<WebManager>()

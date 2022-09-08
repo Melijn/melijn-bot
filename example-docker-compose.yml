@@ -2,7 +2,7 @@
 version: "3.9"
 # info: ports and volumes use host:container format
 
-# useful commands
+# useful commands (Note: The new docker compose versions now use `docker compose` instead of `docker-compose` as command)
 # start: docker-compose up -d
 # stop: docker-compose down
 # logs: docker-compose logs -f --tail 200
@@ -27,3 +27,14 @@ services:
     #      - /c/Data/melijn-postgresql:/var/lib/postgresql/data # windows (also google how to enable /c/ sharing in docker desktop)
     env_file:
       - postgres.env
+
+# For self hosting the bot inside docker uncomment the service below:
+#  melijn:
+#    image: ghcr.io/melijn/melijn-bot:latest-no-cache
+#    container_name: "melijn"
+#    restart: always
+#    depends_on:
+#      - melijn-postgres
+#      - melijn-redis
+#    env_file:
+#      - .env

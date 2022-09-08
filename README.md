@@ -29,7 +29,7 @@ You will need:
 If you want to use docker for your dev environment: [example-docker-compose.yml](./example-docker-compose.yml) 
 
 Optional (related features won't work unless supplied ofcourse):
-- Lavalink server
+- [Lavalink](https://github.com/freyacodes/Lavalink) server (for music)
 - Spotify developer application tokens
 - Other API keys
 
@@ -40,3 +40,25 @@ Starting the bot is done using the main function in [Melijn.kt](./bot/src/main/k
 
 An example configuration can be found here: [./example.env](./example.env)<br>
 Copy it to `.env` and place it in the root (same level as example.env)
+
+## Selfhosting
+You will need:
+- a Postgresql server
+- a Redis server
+- a discord user account, bot user and server
+<br>
+and optionally:
+- [Lavalink](https://github.com/freyacodes/Lavalink) server (for music)
+- Spotify developer application tokens
+- Other API keys
+
+It is recommended to run the bot inside docker using the [example-docker-compose.yml](./example-docker-compose.yml). <br>
+To update the version you can use the `:latest` version tag OR you can manually update the version hash (you can find the latest version hashes [here](https://github.com/Melijn/melijn-bot/pkgs/container/melijn-bot)).<br>
+
+`docker compose pull; docker compose down; docker compose up -d` pulls the latest version if using `:latest` and restarts the containers.
+
+For installing docker and docker-compose follow these instructions:
+- https://docs.docker.com/engine/install/#server
+- https://docs.docker.com/compose/install/compose-plugin/#installing-compose-on-linux-systems
+
+*Inside the .env file you can point to the service name of the other containers inside this file as host (e.g. DB_HOST=melijn-postgres), docker will route it to the correct container*
