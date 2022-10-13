@@ -106,6 +106,36 @@ class MathExtension : Extension() {
                 buttonCache.latexButtonOwners[AbstractOwnedMessage.from(guild, user!!, sent)] = true
             }
         }
+
+        chatCommand() {
+            name = "double"
+            description = "Finds the base and mantise of kotlin doubles"
+
+            action {
+                var a = 1.0
+                while ((a + 1.0) - a == 1.0) {
+                    a *= 2.0
+                }
+                var i = 1.0
+                while ((a + i) == a) {
+                    i++
+                }
+                val b = (a + i) - a
+
+                var p = 1
+                var z = b
+                while ((z + 1.0) - z == 1.0) {
+                    p++
+                    z *= b
+                }
+
+                channel.createEmbed {
+                    description = "base: ${b}, mantise: $z"
+                }
+            }
+        }
+
+
     }
 
     /** finds the greatest common denominator **/
