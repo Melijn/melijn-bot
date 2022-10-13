@@ -127,8 +127,6 @@ object KordExUtils {
     ): String =
         translations.translate(key, context.getLocale(), MELIJN_RESOURCE_BUNDLE_KORDEX, replacements.asList().toTypedArray())
 
-
-
     /**
      * DSL function for easily registering a public slash command, with arguments.
      * Includes a check for anyGuild
