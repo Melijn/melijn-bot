@@ -19,7 +19,7 @@ class LevelingListener {
 
     val logger by Log
     private val xpManager by inject<XPManager>()
-    val activeTimers = SafeList<Snowflake>()
+    private val activeTimers = SafeList<Snowflake>()
 
     init {
         val kord by inject<Kord>()
@@ -59,15 +59,14 @@ class LevelingListener {
         }
     }
 
-
-
     private suspend fun handle(event: MessageCreateEvent) {
         val member = event.member?.takeIf { !it.isBot }
         val userId = member?.id ?: return
 
-        if (xpManager.getMsgXPCooldown(userId) < System.currentTimeMillis()) {
+        val cooldown = xpManager.getMsgXPCooldown(userId)
+        if (cooldown < System.currentTimeMillis()) {
             xpManager.increaseGlobalXP(userId, 1UL)
-            xpManager.setMsgXPCooldown(userId, System.currentTimeMillis() + 30.seconds.inWholeMilliseconds)
+            xpManager.setMsgXPCooldown(userId, 30.seconds)
             logger.info { "${member.username} gained 1 xp" }
         }
     }

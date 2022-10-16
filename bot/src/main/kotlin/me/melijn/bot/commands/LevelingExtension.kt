@@ -30,6 +30,13 @@ class LevelingExtension : Extension() {
     override val name: String = "leveling"
     val xpManager by inject<XPManager>()
 
+    companion object {
+        fun getLevel(xp: ULong, base: Double): ULong {
+            val level = log((xp + 50UL).toDouble(), base)
+            return floor(level).toULong() - 21UL
+        }
+    }
+
     override suspend fun setup() {
         publicSlashCommand {
             name = "xp"
@@ -96,14 +103,21 @@ class LevelingExtension : Extension() {
 
         /** Draw XP text **/
         graphics.font = arial.deriveFont(50f)
-        val base = 1.6
-        val level = getLevel(xp, base)
-        val xpLower = floor(base.pow(level.toDouble())).toLong()
-        val xpUpper = floor(base.pow((level + 1).toDouble())).toLong()
+        val base = 1.2
+        var level = getLevel(xp, base)
+        var xpLower = floor(base.pow((level + 21UL).toDouble()) - 50).toULong()
+        var xpUpper = floor(base.pow((level + 22UL).toDouble()) - 50).toULong()
 
         /** Relative xp to level variables **/
-        val progressToNextLevel = xp - xpLower.toUInt()
-        val nextLevelThreshold = xpUpper - xpLower
+        var progressToNextLevel = xp - xpLower
+        var nextLevelThreshold = xpUpper - xpLower
+        if (nextLevelThreshold == progressToNextLevel) {
+            level++
+            xpLower = floor(base.pow((level + 21UL).toDouble()) - 50).toULong()
+            xpUpper = floor(base.pow((level + 22UL).toDouble()) - 50).toULong()
+            progressToNextLevel = xp - xpLower
+            nextLevelThreshold = xpUpper - xpLower
+        }
 
         val text = "$progressToNextLevel/$nextLevelThreshold XP | Level: $level"
         val textWidth = graphics.fontMetrics.stringWidth(text)
@@ -123,11 +137,6 @@ class LevelingExtension : Extension() {
         barGraphics.fillRect(645 + end, 470, (956 - end), 120)
         barGraphics.drawImage(bufferedImage, 0, 0, null)
         return bars
-    }
-
-    private fun getLevel(xp: ULong, base: Double): Long {
-        val level = log(xp.toDouble(), base)
-        return floor(level).toLong()
     }
 
     inner class SetXPArgs : Arguments() {

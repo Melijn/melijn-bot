@@ -12,6 +12,7 @@ import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.database.insertOrUpdate
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration
 
 @Inject
 class GlobalXPManager(driverManager: DriverManager) : AbstractGlobalXPManager(driverManager) {
@@ -62,7 +63,9 @@ class XPManager(
         return driverManager.getCacheEntry("messageXPCooldown:${userSnowflake}")?.toLong()?:0
     }
 
-    suspend fun setMsgXPCooldown(userSnowflake: Snowflake, cooldown: Long) {
-        driverManager.setCacheEntry("messageXPCooldown:${userSnowflake}", cooldown.toString(), cooldown.toInt(), TimeUnit.MILLISECONDS)
+    fun setMsgXPCooldown(userSnowflake: Snowflake, cooldown: Duration) {
+        driverManager.setCacheEntry("messageXPCooldown:${userSnowflake}",
+            (System.currentTimeMillis() + cooldown.inWholeMilliseconds).toString(),
+            cooldown.inWholeMinutes.toInt() + 1, TimeUnit.MINUTES)
     }
 }
