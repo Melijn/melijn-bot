@@ -4,6 +4,8 @@
         <encoder>
             <pattern>%d{dd-MM-yyyy HH:mm:ss} %boldCyan(%thread) %boldGreen(%logger{0}) %highlight(%level) %msg%n
             </pattern>
+            <pattern>%boldGreen(%d{yyyy-MM-dd}) %boldYellow(%d{HH:mm:ss}) %highlight(%5level) %boldGreen(%40.40logger{40}) %gray(|) %msg%n
+            </pattern>
         </encoder>
     </appender>
 
