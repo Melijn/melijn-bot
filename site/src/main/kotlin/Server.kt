@@ -1,3 +1,5 @@
+import io.jsonwebtoken.SignatureAlgorithm
+import io.jsonwebtoken.security.Keys
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.serialization.kotlinx.json.*
@@ -12,6 +14,7 @@ import io.ktor.server.plugins.cors.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.*
 import me.melijn.ap.createtable.CreateTableInterface
 import me.melijn.ap.injector.InjectorInterface
 import me.melijn.gen.Settings
@@ -35,6 +38,7 @@ import util.JavaResourcesUtil
 val logger = Log.logger()
 
 fun main() {
+//    println(genHS512())
     initKoin()
 
     registerSnippets()
@@ -116,6 +120,8 @@ fun main() {
 
     }.start(wait = true)
 }
+
+private fun genHS512() = Keys.secretKeyFor(SignatureAlgorithm.HS512).encoded.encodeBase64()
 
 fun initKoin() {
     startKoin {

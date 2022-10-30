@@ -4,6 +4,7 @@ import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalString
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
+import com.kotlindiscord.kord.extensions.extensions.chatGroupCommand
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.utils.getJumpUrl
@@ -22,13 +23,32 @@ class DevExtension : Extension() {
 
     override val name: String = "dev"
 
+
     override suspend fun setup() {
         publicSlashCommand {
             name = "test"
             description = "test"
+//            cooldown {
+//                staticCooldown {
+//                    if (wannes) 50000000.seconds
+//                    else 5.seconds
+//                }
+//
+//            }
             action {
                 respond {
                     content = ":flushed:"
+                }
+            }
+        }
+
+
+        chatGroupCommand {
+            name = "6"
+            chatCommand {
+                name = "5"
+                action {
+                    this.channel.createMessage("5")
                 }
             }
         }
