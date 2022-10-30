@@ -121,13 +121,14 @@ class EconomyExtension : Extension() {
             description = "Beg for a small amount of mel, max once every hour"
 
             action {
-                //implement hourly beg cooldown
+                // TODO: 1h cooldown
+                // implement hourly beg cooldown
                 val receivedAmount = Random.nextInt(11)
                 val recipient = balanceManager.get(user.id)
                 recipient.balance += receivedAmount
                 balanceManager.store(recipient)
                 respond {
-                    content = tr("balance.beg",receivedAmount)
+                    content = tr("beg.receive",receivedAmount)
                 }
             }
         }
