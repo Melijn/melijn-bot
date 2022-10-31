@@ -3,7 +3,6 @@ package me.melijn.bot.commands
 import com.apollographql.apollo.api.Operation
 import com.apollographql.apollo.api.Query
 import com.apollographql.apollo.api.Response
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.CommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
@@ -549,7 +548,7 @@ class AnilistExtension : Extension() {
         val body: String = this.composeRequestBody().utf8()
 
         val result: String = webManager.httpClient.post("https://graphql.anilist.co") {
-            setBody(jacksonObjectMapper().readTree(body))
+            setBody(body)
             contentType(ContentType.Application.Json)
             accept(ContentType.Application.Json)
         }.body()
