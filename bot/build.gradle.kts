@@ -1,9 +1,8 @@
-import com.apollographql.apollo.gradle.api.ApolloExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("application")
-    id("com.apollographql.apollo") version "2.5.11"
+    id("com.apollographql.apollo3") version "3.7.0"
     id("com.github.johnrengelman.shadow") version "7.1.2"
     kotlin("jvm") version "1.7.10"
     id("com.google.devtools.ksp") version "1.7.10-1.0.6"
@@ -19,17 +18,10 @@ configure<JavaPluginExtension> {
     targetCompatibility = JavaVersion.VERSION_16
 }
 
-configure<ApolloExtension> {
-    generateKotlinModels.set(true) // or false for Java models
-
+apollo {
     service("anilist") {
-        rootPackageName.set("me.melijn.melijnbot.anilist")
-        sourceFolder.set("me/melijn/melijnbot/anilist")
-    }
-
-    customTypeMapping.map {
-        ("StartDate" to "me.melijn.melijnbot.internals.models.AnilistDateKt")
-        ("MediaFragment.StartDate" to "me.melijn.melijnbot.internals.models.AnilistDateKt")
+        srcDir("src/main/graphql/me/melijn/melijnbot/anilist")
+        packageName.set("me.melijn.melijnbot.anilist")
     }
 }
 
@@ -50,12 +42,12 @@ repositories {
 
 val jackson = "2.13.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
 val ktor = "2.0.3"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
-val apollo = "2.5.11" // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
+val apollo = "3.7.0" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
 val kotlinX = "1.6.4" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
 val kotlin = "1.7.10"
 val scrimage = "4.0.22"
 
-// val kord = "0.8.0-M13"
+ val kord = "0.8.0-M17"
 val kordEx = "1.5.5-SNAPSHOT"
 val kordKommons = "1.3.0"
 val apKordVersion = "0.2.2"
@@ -63,9 +55,10 @@ val apKordex = "0.1.0"
 val redgresKommons = "0.1.0"
 
 dependencies {
-    // implementation("dev.kord:kord-core:$kord")   let kord-ex handle kord version
+    implementation("dev.kord:kord-core:$kord")   // let kord-ex handle kord version
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
     ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
+
 
     // https://mvnrepository.com/artifact/org.scilab.forge/jlatexmath
     implementation("org.scilab.forge:jlatexmath:1.0.7")
@@ -153,6 +146,7 @@ dependencies {
 
     // Ktor Client
     implementation("io.ktor:ktor-client-okhttp:$ktor")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
     implementation("io.ktor:ktor-client-content-negotiation:$ktor")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor")
 
@@ -173,9 +167,9 @@ dependencies {
     // https://mvnrepository.com/artifact/org.mariuszgromada.math/MathParser.org-mXparser
     implementation("org.mariuszgromada.math:MathParser.org-mXparser:5.0.7")
 
-    // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
-    implementation("com.apollographql.apollo:apollo-runtime:$apollo")
-    implementation("com.apollographql.apollo:apollo-coroutines-support:$apollo")
+    // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
+    implementation("com.apollographql.apollo3:apollo-runtime:$apollo")
+//    implementation("com.apollographql.apollo3:apollo-coroutines-support:$apollo")
 
     // https://mvnrepository.com/artifact/io.lettuce/lettuce-core
     implementation("io.lettuce:lettuce-core:6.2.0.RELEASE")
