@@ -14,13 +14,8 @@
         <appender-ref ref="STDOUT"/>
     </root>
 
-    <logger name="io.lettuce.core" level="INFO">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-
-    <logger name="com.zaxxer.hikari" level="INFO">
-        <appender-ref ref="STDOUT"/>
-    </logger>
+    <logger name="io.lettuce.core" level="INFO"/>
+    <logger name="com.zaxxer.hikari" level="INFO"/>
 
 <!--    <root level="ERROR">-->
 <!--        <appender-ref ref="FILE"/>-->
