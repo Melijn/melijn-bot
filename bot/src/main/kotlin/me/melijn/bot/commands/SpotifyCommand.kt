@@ -157,7 +157,7 @@ class SpotifyCommand : Extension() {
              * fetch full discord member which can have spotify presences since
              * we don't cache or store user presences
              **/
-            return kord.getGuild(guildId)?.requestMembers {
+            return kord.getGuildOrNull(guildId)?.requestMembers {
                 userIds.add(user.id)
                 presences = true
             }?.firstOrNull()?.let {

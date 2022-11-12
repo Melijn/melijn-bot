@@ -59,7 +59,7 @@ class DevExtension : Extension() {
                 val linkArg = arguments.messageLink.parsed
                 val message = if (linkArg != null) {
                     val parts = linkArg.split("/").takeLast(3).map { it.toULong() }
-                    val guild = this@DevExtension.kord.getGuild(Snowflake(parts[0]))
+                    val guild = this@DevExtension.kord.getGuildOrNull(Snowflake(parts[0]))
                     val channel = guild?.getChannelOrNull(Snowflake(parts[1]))
                     if (channel == null || channel !is MessageChannel) {
                         this.channel.createMessage("that link is veeery stinky")

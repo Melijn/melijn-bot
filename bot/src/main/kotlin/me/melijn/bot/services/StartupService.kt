@@ -31,7 +31,7 @@ class StartupService {
                 queue.forEach { queueData ->
                     val tracks = botRestartTrackEntryManager.getMelijnTracks(queueData.guildId)
 
-                    val guild = kord.getGuild(Snowflake(queueData.guildId)) ?: return@async
+                    val guild = kord.getGuildOrNull(Snowflake(queueData.guildId)) ?: return@async
 
                     val tm = guild.getTrackManager()
                     tm.link.connectAudio(queueData.voiceChannelId)

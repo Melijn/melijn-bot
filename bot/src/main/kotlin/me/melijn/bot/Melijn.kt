@@ -53,7 +53,6 @@ object Melijn {
         PodInfo.init(podCount, shardCount, podId)
         // initSentry(settings)
 
-
         val botInstance = ExtensibleBot(settings.api.discord.token) {
 
             @OptIn(PrivilegedIntent::class)
@@ -124,7 +123,6 @@ object Melijn {
                 }
             }
 
-
             cache {
                 cachedMessages = 0
             }
@@ -135,6 +133,7 @@ object Melijn {
                 if (settings.process.environment == Environment.TESTING)
                     defaultGuild(settings.process.testingServerId.toULong())
             }
+
             chatCommands {
                 enabled = true
                 prefix callback@{ _ ->

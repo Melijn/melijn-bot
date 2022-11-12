@@ -151,7 +151,7 @@ class UtilityExtension : Extension() {
             description = "gives information about the server"
             action {
                 val guild =
-                    arguments.serverId.parsed?.let { this@UtilityExtension.kord.getGuild(it) } ?: this.guild?.asGuild()
+                    arguments.serverId.parsed?.let { this@UtilityExtension.kord.getGuildOrNull(it) } ?: this.guild?.asGuild()
                 if (guild == null) {
                     respond { content = tr("serverInfo.guildOnlyOrArgumentPassed") }
                     return@action
@@ -338,7 +338,7 @@ class UtilityExtension : Extension() {
             validate {
                 val betterValue = value ?: return@validate
                 failIf(message = tr("arguments.guildId.noGuild")) {
-                    kord.getGuild(betterValue) == null
+                    kord.getGuildOrNull(betterValue) == null
                 }
             }
         }
