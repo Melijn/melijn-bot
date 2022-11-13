@@ -11,11 +11,13 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashC
 import com.kotlindiscord.kord.extensions.commands.application.slash.SlashCommand
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.ChoiceEnum
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
+import com.kotlindiscord.kord.extensions.commands.chat.ChatCommand
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandContext
 import com.kotlindiscord.kord.extensions.commands.converters.SingleConverter
 import com.kotlindiscord.kord.extensions.commands.converters.Validator
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
 import com.kotlindiscord.kord.extensions.extensions.Extension
+import com.kotlindiscord.kord.extensions.extensions.chatCommand
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
 import com.kotlindiscord.kord.extensions.modules.annotations.converters.Converter
@@ -126,6 +128,47 @@ object KordExUtils {
         vararg replacements: Any?
     ): String =
         translations.translate(key, context.getLocale(), MELIJN_RESOURCE_BUNDLE_KORDEX, replacements.asList().toTypedArray())
+
+    /**
+     * DSL function for easily registering a command.
+     *
+     * Use this in your setup function to register a command that may be executed on Discord.
+     *
+     * @param body Builder lambda used for setting up the command object.
+     */
+    @ExtensionDSL
+    suspend fun <T : Arguments> Extension.guildChatCommand(
+        arguments: () -> T,
+        body: suspend ChatCommand<T>.() -> Unit
+    ): ChatCommand<T> {
+        val commandObj = ChatCommand(this, arguments).apply {
+            check {
+                anyGuild()
+            }
+        }
+        body.invoke(commandObj)
+        return chatCommand(commandObj)
+    }
+
+    /**
+     * DSL function for easily registering a command, without arguments.
+     *
+     * Use this in your setup function to register a command that may be executed on Discord.
+     *
+     * @param body Builder lambda used for setting up the command object.
+     */
+    @ExtensionDSL
+    suspend fun Extension.guildChatCommand(
+        body: suspend ChatCommand<Arguments>.() -> Unit
+    ): ChatCommand<Arguments> {
+        val commandObj = ChatCommand<Arguments>(this).apply {
+            check {
+                anyGuild()
+            }
+        }
+        body.invoke(commandObj)
+        return chatCommand(commandObj)
+    }
 
     /**
      * DSL function for easily registering a public slash command, with arguments.

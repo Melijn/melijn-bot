@@ -162,6 +162,7 @@ object Melijn {
     }
 
     private fun initDriverManager(settings: Settings): DriverManager {
+        logger.info { "Initializing driverManager" }
         val redisConfig = settings.redis.run { RedisConfig(enabled, host, port, user, pass) }
         val hikariConfig = settings.database.run {
             ConfigUtil.generateDefaultHikariConfig(host, port, name, user, pass)
