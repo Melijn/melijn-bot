@@ -5,7 +5,6 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashC
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.numberChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.commands.converters.SingleConverter
-import com.kotlindiscord.kord.extensions.commands.converters.impl.long
 import com.kotlindiscord.kord.extensions.commands.converters.impl.user
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
@@ -13,6 +12,7 @@ import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.rest.builder.message.create.embed
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.BalanceManager
+import me.melijn.bot.utils.KordExUtils.availableCurrency
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.gen.UserBalanceData
 import org.koin.core.component.inject
@@ -170,32 +170,16 @@ class EconomyExtension : Extension() {
                 failIf(translations.translate("pay.triedPayingSelf")) { value.id == context.getUser()?.id }
             }
         }
-        val amount = long {
+        val amount = availableCurrency("pay.triedPayingNothing", "pay.triedOverPaying") {
             name = "amount"
             description = "amount to pay"
-            validate {
-                val balance = context.getUser()?.id?.let { userId ->
-                    balanceManager.get(userId)
-                }?.balance ?: 0
-
-                failIf(tr("pay.triedPayingNothing")) { value <= 0 }
-                failIf(tr("pay.triedOverPaying", value, balance)) { value > balance }
-            }
         }
     }
 
     inner class FlipAmountArgs : Arguments() {
-        val amount = long {
+        val amount = availableCurrency("triedBettingNothing", "triedOverBetting") {
             name = "bet"
             description = "amount to bet"
-            validate {
-                val balance = context.getUser()?.id?.let { userId ->
-                    balanceManager.get(userId)
-                }?.balance ?: 0
-
-                failIf(tr("flip.triedBettingNothing")) { value <= 0 }
-                failIf(tr("flip.triedOverBetting", value, balance)) { value > balance }
-            }
         }
         val coinSide = coinSideArg()
     }
