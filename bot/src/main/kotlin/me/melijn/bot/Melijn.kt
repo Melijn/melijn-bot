@@ -19,6 +19,7 @@ import me.melijn.apkordex.command.ExtensionInterface
 import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.model.Environment
 import me.melijn.bot.model.PodInfo
+import me.melijn.bot.model.kordex.MelijnCooldownHandler
 import me.melijn.bot.music.MusicManager
 import me.melijn.bot.services.ServiceManager
 import me.melijn.bot.utils.EnumUtil.lcc
@@ -132,6 +133,10 @@ object Melijn {
 
                 if (settings.process.environment == Environment.TESTING)
                     defaultGuild(settings.process.testingServerId.toULong())
+
+                useLimiter {
+                    cooldownHandler = MelijnCooldownHandler()
+                }
             }
 
             chatCommands {
@@ -145,6 +150,9 @@ object Melijn {
                         if (message.content.startsWith(it.prefix)) return@callback it.prefix
                     }
                     return@callback settings.bot.prefix
+                }
+                useLimiter {
+                    cooldownHandler = MelijnCooldownHandler()
                 }
             }
 

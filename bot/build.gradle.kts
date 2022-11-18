@@ -28,7 +28,8 @@ apollo {
 repositories {
     mavenCentral()
     maven("https://oss.sonatype.org/content/repositories/snapshots")
-
+//    maven("https://nexus.melijn.com/repository/maven-snapshots/")
+    maven("https://reposilite.melijn.com/snapshots")
     maven("https://maven.kotlindiscord.com/repository/maven-snapshots/")
     maven("https://maven.kotlindiscord.com/repository/maven-releases/")
     maven("https://nexus.melijn.com/repository/maven-public/")
@@ -47,7 +48,7 @@ val kotlinX = "1.6.4" // https://mvnrepository.com/artifact/org.jetbrains.kotlin
 val kotlin = "1.7.10"
 val scrimage = "4.0.22"
 
- val kord = "0.8.0-M17"
+val kord = "0.8.0-M17"
 val kordEx = "1.5.5-SNAPSHOT"
 val kordKommons = "1.3.0"
 val apKordVersion = "0.2.2"
@@ -55,8 +56,10 @@ val apKordex = "0.1.0"
 val redgresKommons = "0.1.0"
 
 dependencies {
-    implementation("dev.kord:kord-core:$kord")   // let kord-ex handle kord version
+     implementation("dev.kord:kord-core:$kord")   // let kord-ex handle kord version
+
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
+    // implementation("com.kotlindiscord.kord.extensions:kord-extensions:1.5.5-20221013.173933-1")
     ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
 
 
