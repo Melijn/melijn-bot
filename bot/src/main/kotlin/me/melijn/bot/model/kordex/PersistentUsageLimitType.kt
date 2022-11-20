@@ -7,41 +7,42 @@ import me.melijn.bot.database.manager.CooldownManager
 import me.melijn.bot.database.manager.UsageHistoryManager
 import me.melijn.bot.utils.KoinUtil
 import me.melijn.gen.UserCommandCooldownData
+import me.melijn.gen.UserCooldownData
 
 enum class PersistentUsageLimitType : UsageLimitType {
 
     COMMAND_USER {
         override fun getCooldown(context: DiscriminatingContext): Long {
-            return cooldownManager.getById(context.userId, context.commandId)?.until ?: 0
+            return cooldownManager.getUserCmdCd(context.userId, context.commandId)?.until ?: 0
         }
 
         override fun setCooldown(context: DiscriminatingContext, until: Long) {
-            cooldownManager.store(UserCommandCooldownData(context.userId, context.commandId, until))
+            cooldownManager.storeUserCmdCd(UserCommandCooldownData(context.userId, context.commandId, until))
         }
 
         override fun getUsageHistory(context: DiscriminatingContext): UsageHistory {
-            return usageHistoryManager.getDeserialized(context.userId, context.commandId)
+            return usageHistoryManager.getUserCmdHistDeserialized(context.userId, context.commandId)
         }
 
         override fun setUsageHistory(context: DiscriminatingContext, usageHistory: UsageHistory) {
-            usageHistoryManager.setSerialized(context.userId, context.commandId, usageHistory)
+            usageHistoryManager.setUserCmdHistSerialized(context.userId, context.commandId, usageHistory)
         }
     },
     USER {
         override fun getCooldown(context: DiscriminatingContext): Long {
-            return cooldownManager.getById(context.userId)?.until ?: 0
-        }
-
-        override fun getUsageHistory(context: DiscriminatingContext): UsageHistory {
-            TODO("Not yet implemented")
+            return cooldownManager.getUserCd(context.userId)?.until ?: 0
         }
 
         override fun setCooldown(context: DiscriminatingContext, until: Long) {
-            TODO("Not yet implemented")
+            cooldownManager.storeUserCd(UserCooldownData(context.userId, until))
+        }
+
+        override fun getUsageHistory(context: DiscriminatingContext): UsageHistory {
+             return usageHistoryManager.getUserHistDeserialized(context.userId)
         }
 
         override fun setUsageHistory(context: DiscriminatingContext, usageHistory: UsageHistory) {
-            TODO("Not yet implemented")
+             usageHistoryManager.setUserHistSerialized(context.userId, usageHistory)
         }
 
     };

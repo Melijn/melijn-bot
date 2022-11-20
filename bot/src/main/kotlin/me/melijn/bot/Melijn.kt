@@ -132,7 +132,7 @@ object Melijn {
                 enabled = true
 
                 if (settings.process.environment == Environment.TESTING)
-                    defaultGuild(settings.process.testingServerId.toULong())
+                    defaultGuild(settings.process.testingServerId?.toULong())
 
                 useLimiter {
                     cooldownHandler = MelijnCooldownHandler()
