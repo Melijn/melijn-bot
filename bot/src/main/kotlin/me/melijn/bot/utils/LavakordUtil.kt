@@ -1,9 +1,8 @@
 package me.melijn.bot.utils
 
 import dev.schlaubi.lavakord.audio.retry.Retry
-import kotlinx.atomicfu.atomic
-import kotlinx.atomicfu.update
 import kotlinx.coroutines.delay
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration
 
 internal class RealLinearRetry constructor(
@@ -23,21 +22,21 @@ internal class RealLinearRetry constructor(
         require(maxTries > 0) { "maxTries needs to be positive but was $maxTries" }
     }
 
-    private val tries = atomic(0)
+    private val tries = AtomicInteger(0)
 
     override val hasNext: Boolean
-        get() = tries.value < maxTries
+        get() = tries.get() < maxTries
 
     override fun reset() {
-        tries.update { 0 }
+        tries.set(0)
     }
 
     override suspend fun retry() {
         if (!hasNext) error("max retries exceeded")
         val diff =
             firstBackoff.inWholeMilliseconds +
-                ((tries.incrementAndGet() / maxTries) * (maxBackoff.inWholeMilliseconds - firstBackoff.inWholeMilliseconds))
-        log.info { "retry attempt ${tries.value}/$maxTries, delaying for $diff ms." }
+                    ((tries.incrementAndGet() / maxTries) * (maxBackoff.inWholeMilliseconds - firstBackoff.inWholeMilliseconds))
+        log.info { "retry attempt ${tries.get()}/$maxTries, delaying for $diff ms." }
         delay(diff)
     }
 }

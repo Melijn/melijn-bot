@@ -13,9 +13,9 @@ import dev.kord.gateway.builder.Shards
 import dev.schlaubi.lavakord.LavaKord
 import dev.schlaubi.lavakord.kord.lavakord
 import io.sentry.Sentry
-import me.melijn.ap.createtable.CreateTableInterface
 import me.melijn.ap.injector.InjectorInterface
 import me.melijn.apkordex.command.ExtensionInterface
+import me.melijn.apredgres.createtable.CreateTableInterface
 import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.model.Environment
 import me.melijn.bot.model.PodInfo
