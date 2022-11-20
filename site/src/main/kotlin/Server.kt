@@ -15,8 +15,8 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.*
-import me.melijn.ap.createtable.CreateTableInterface
 import me.melijn.ap.injector.InjectorInterface
+import me.melijn.apredgres.createtable.CreateTableInterface
 import me.melijn.gen.Settings
 import me.melijn.kordkommons.database.ConfigUtil
 import me.melijn.kordkommons.database.DriverManager

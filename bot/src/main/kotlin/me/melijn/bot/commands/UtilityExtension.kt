@@ -385,6 +385,7 @@ class UtilityExtension : Extension() {
             UserFlag.DiscordCertifiedModerator -> "<:certified_virgin:907322144109756426>"
             UserFlag.BotHttpInteractions -> "`http bot`"
             UserFlag.System -> "`System User`"
+//            UserFlag.ActiveDeveloper -> "`Active developer`"
         }
     }
 }

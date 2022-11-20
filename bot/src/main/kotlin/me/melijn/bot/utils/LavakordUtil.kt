@@ -35,7 +35,7 @@ internal class RealLinearRetry constructor(
         if (!hasNext) error("max retries exceeded")
         val diff =
             firstBackoff.inWholeMilliseconds +
-                ((tries.incrementAndGet() / maxTries) * (maxBackoff.inWholeMilliseconds - firstBackoff.inWholeMilliseconds))
+                    ((tries.incrementAndGet() / maxTries) * (maxBackoff.inWholeMilliseconds - firstBackoff.inWholeMilliseconds))
         log.info { "retry attempt ${tries.get()}/$maxTries, delaying for $diff ms." }
         delay(diff)
     }
