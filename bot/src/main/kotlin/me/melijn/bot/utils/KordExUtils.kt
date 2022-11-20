@@ -16,6 +16,10 @@ import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandContext
 import com.kotlindiscord.kord.extensions.commands.converters.SingleConverter
 import com.kotlindiscord.kord.extensions.commands.converters.Validator
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
+import com.kotlindiscord.kord.extensions.commands.converters.impl.LongConverterBuilder
+import com.kotlindiscord.kord.extensions.commands.converters.impl.OptionalLongConverterBuilder
+import com.kotlindiscord.kord.extensions.commands.converters.impl.long
+import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalLong
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
@@ -29,8 +33,10 @@ import dev.kord.core.event.interaction.ChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.interaction.OptionsBuilder
 import dev.kord.rest.builder.interaction.StringChoiceBuilder
+import me.melijn.bot.database.manager.BalanceManager
 import me.melijn.bot.database.manager.PlaylistManager
 import me.melijn.bot.utils.EnumUtil.ucc
+import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.gen.PlaylistData
 import me.melijn.gen.Settings
@@ -121,13 +127,23 @@ object KordExUtils {
         @PropertyKey(resourceBundle = MELIJN_RESOURCE_BUNDLE) key: String,
         vararg replacements: Any?
     ): String =
-        translationsProvider.translate(key, getLocale(), MELIJN_RESOURCE_BUNDLE_KORDEX, replacements.asList().toTypedArray())
+        translationsProvider.translate(
+            key,
+            getLocale(),
+            MELIJN_RESOURCE_BUNDLE_KORDEX,
+            replacements.asList().toTypedArray()
+        )
 
     suspend fun ValidationContext<*>.tr(
         @PropertyKey(resourceBundle = MELIJN_RESOURCE_BUNDLE) key: String,
         vararg replacements: Any?
     ): String =
-        translations.translate(key, context.getLocale(), MELIJN_RESOURCE_BUNDLE_KORDEX, replacements.asList().toTypedArray())
+        translations.translate(
+            key,
+            context.getLocale(),
+            MELIJN_RESOURCE_BUNDLE_KORDEX,
+            replacements.asList().toTypedArray()
+        )
 
     /**
      * DSL function for easily registering a command.
@@ -217,7 +233,7 @@ object KordExUtils {
      * @param body Builder lambda used for setting up the slash command object.
      */
     @ExtensionDSL
-    suspend fun <T: Arguments> SlashCommand<*, *>.publicGuildSubCommand(
+    suspend fun <T : Arguments> SlashCommand<*, *>.publicGuildSubCommand(
         arguments: () -> T,
         body: suspend PublicSlashCommand<T>.() -> Unit
     ): PublicSlashCommand<T> = publicSubCommand(arguments) {
@@ -247,6 +263,43 @@ object KordExUtils {
 
     fun bail(reason: String): Nothing = throw DiscordRelayedException(reason)
 
+    private val balanceManager by inject<BalanceManager>()
+
+    fun Arguments.optionalAvailableCurrency(
+        @PropertyKey(resourceBundle = "translations.melijn.strings") negativeOrZeroAmount: String,
+        @PropertyKey(resourceBundle = "translations.melijn.strings") tooLittleBalance: String,
+        func: OptionalLongConverterBuilder.() -> Unit
+    ) = optionalLong {
+        func()
+        validate {
+            val valueVal = value ?: return@validate
+            validateBalanceAmount(negativeOrZeroAmount, valueVal, tooLittleBalance)
+        }
+    }
+
+    fun Arguments.availableCurrency(
+        @PropertyKey(resourceBundle = "translations.melijn.strings") negativeOrZeroAmount: String,
+        @PropertyKey(resourceBundle = "translations.melijn.strings") tooLittleBalance: String,
+        func: LongConverterBuilder.() -> Unit
+    ) = long {
+        func()
+        validate {
+            validateBalanceAmount(negativeOrZeroAmount, value, tooLittleBalance)
+        }
+    }
+
+    private suspend fun ValidationContext<Long?>.validateBalanceAmount(
+        negativeOrZeroAmount: String,
+        valueVal: Long,
+        tooLittleBalance: String
+    ) {
+        val balance = context.getUser()?.id?.let { userId ->
+            balanceManager.get(userId)
+        }?.balance ?: 0
+
+        failIf(tr(negativeOrZeroAmount)) { valueVal <= 0 }
+        failIf(tr(tooLittleBalance, valueVal, balance)) { valueVal > balance }
+    }
 }
 
 interface InferredChoiceEnum : ChoiceEnum {

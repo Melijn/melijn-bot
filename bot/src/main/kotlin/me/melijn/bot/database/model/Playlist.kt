@@ -1,7 +1,7 @@
 package me.melijn.bot.database.model
 
-import me.melijn.ap.cacheable.Cacheable
-import me.melijn.ap.createtable.CreateTable
+import me.melijn.apredgres.cacheable.Cacheable
+import me.melijn.apredgres.createtable.CreateTable
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 

@@ -14,15 +14,13 @@ configure<JavaPluginExtension> {
 
 repositories {
     mavenCentral()
-    maven("https://nexus.melijn.com/repository/maven-public/")
+    maven("https://reposilite.melijn.com/snapshots")
 }
 
 val ktorVersion = "2.0.3"
 val logbackVersion = "1.2.11"
 
-val kordKommons = "1.3.0"
-val redgresKommons = "0.1.0"
-val apKord = "0.2.1"
+val kordKommons = "0.0.1-SNAPSHOT"
 
 dependencies {
     implementation(kotlin("stdlib"))
@@ -30,18 +28,23 @@ dependencies {
 
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
-    implementation("me.melijn.kordkommons:kommons:$kordKommons")
-    implementation("me.melijn.kordkommons:redgres-kommons:$redgresKommons")
+    implementation("me.melijn.kommons:kommons:$kordKommons")
+    implementation("me.melijn.kommons:redgres-kommons:$kordKommons")
+
+    // Annotation processors
+    val apKord = "me.melijn.kommons:annotation-processor:$kordKommons"
+    val apRedgres = "me.melijn.kommons:annotation-processor-redgres:$kordKommons"
+    implementation(apKord)
+    implementation(apRedgres)
+    ksp(apKord)
+    ksp(apRedgres)
+
     implementation("io.github.microutils:kotlin-logging-jvm:2.1.21")
 
     // Annotation processors
     val siteAp = project(":site-annotation-processors")
     implementation(siteAp)
     ksp(siteAp)
-
-    val kordkommonsAp = "me.melijn.kordkommons:ap:$apKord"
-    implementation(kordkommonsAp)
-    ksp(kordkommonsAp)
 
     // ktor client
     implementation("io.ktor:ktor-client-core:$ktorVersion")
@@ -67,7 +70,7 @@ dependencies {
 
     // JWT Token stuff
     // https://mvnrepository.com/artifact/org.springframework.security/spring-security-web
-    implementation("org.springframework.security:spring-security-web:5.7.2")
+    implementation("org.springframework.security:spring-security-web:5.7.5")
     // https://github.com/jwtk/jjwt
     // https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-impl
     implementation("io.jsonwebtoken:jjwt-impl:0.11.5")
@@ -75,20 +78,25 @@ dependencies {
 
     // Database
     // https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-core
-    implementation("org.jetbrains.exposed:exposed-core:0.38.2")
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.38.2")
-    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.38.2")
+    val exposed = "0.41.1"
+    implementation("org.jetbrains.exposed:exposed-core:$exposed")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposed")
+    implementation("org.jetbrains.exposed:exposed-spring-boot-starter:$exposed")
 
     // https://search.maven.org/artifact/com.zaxxer/HikariCP
     implementation("com.zaxxer:HikariCP:5.0.1")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.4.0")
+    implementation("org.postgresql:postgresql:42.5.0")
 }
 
 ksp {
     arg("ap_package", "me.melijn.gen")
-    arg("ap_redis_key_prefix", "melijn:")
+    arg("ap_redgres_package", "me.melijn.gen")
+    arg("ap_redgres_redis_key_prefix", "melijn:")
+    arg("ap_imports", "import org.koin.core.context.GlobalContext;import org.koin.core.component.get;import org.koin.core.parameter.ParametersHolder;")
+    arg("ap_interfaces", "")
+    arg("ap_init_placeholder", "GlobalContext.get().get<%className%> { ParametersHolder() }")
 }
 
 kotlin {

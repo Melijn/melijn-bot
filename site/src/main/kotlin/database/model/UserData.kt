@@ -1,7 +1,7 @@
 package database.model
 
-import me.melijn.ap.cacheable.Cacheable
-import me.melijn.ap.createtable.CreateTable
+import me.melijn.apredgres.cacheable.Cacheable
+import me.melijn.apredgres.createtable.CreateTable
 import org.jetbrains.exposed.sql.Table
 
 @Cacheable
