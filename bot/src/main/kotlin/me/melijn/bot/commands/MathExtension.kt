@@ -9,6 +9,8 @@ import dev.kord.common.entity.ButtonStyle
 import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.rest.builder.message.create.actionRow
+import io.ktor.client.request.forms.*
+import io.ktor.utils.io.jvm.javaio.*
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.cache.ButtonCache
 import me.melijn.bot.events.LATEX_DESTROY_BUTTON_ID
@@ -95,7 +97,7 @@ class MathExtension : Extension() {
                 val bis = ByteArrayInputStream(baos.toByteArray())
 
                 val sent = channel.createMessage {
-                    addFile("img.png", bis)
+                    addFile("img.png", ChannelProvider { bis.toByteReadChannel() })
                     actionRow {
                         interactionButton(ButtonStyle.Danger, LATEX_DESTROY_BUTTON_ID) {
                             label = "Destroy"
@@ -106,6 +108,36 @@ class MathExtension : Extension() {
                 buttonCache.latexButtonOwners[AbstractOwnedMessage.from(guild, user!!, sent)] = true
             }
         }
+
+        chatCommand {
+            name = "double"
+            description = "Finds the base and mantise of kotlin doubles"
+
+            action {
+                var a = 1.0
+                while ((a + 1.0) - a == 1.0) {
+                    a *= 2.0
+                }
+                var i = 1.0
+                while ((a + i) == a) {
+                    i++
+                }
+                val b = (a + i) - a
+
+                var p = 1
+                var z = b
+                while ((z + 1.0) - z == 1.0) {
+                    p++
+                    z *= b
+                }
+
+                channel.createEmbed {
+                    description = "base: ${b}, mantise: $z"
+                }
+            }
+        }
+
+
     }
 
     /** finds the greatest common denominator **/

@@ -24,8 +24,10 @@ import dev.kord.rest.builder.message.create.MessageCreateBuilder
 import dev.kord.rest.builder.message.create.embed
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toJavaInstant
 import kotlinx.serialization.SerialName
@@ -485,7 +487,7 @@ class OsuExtension : Extension() {
         user.rank_history?.let { points ->
             val barr = drawRankHistoryWithSplines(points.data.toMutableList())
             val bais = ByteArrayInputStream(barr)
-            addFile("image.png", bais)
+            addFile("image.png", ChannelProvider { bais.toByteReadChannel() })
 
             footer {
                 text = tr("osu.user.joined", Date.from(user.join_date?.toJavaInstant()))

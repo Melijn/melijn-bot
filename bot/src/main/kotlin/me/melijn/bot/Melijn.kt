@@ -13,9 +13,9 @@ import dev.kord.gateway.builder.Shards
 import dev.schlaubi.lavakord.LavaKord
 import dev.schlaubi.lavakord.kord.lavakord
 import io.sentry.Sentry
-import me.melijn.ap.createtable.CreateTableInterface
 import me.melijn.ap.injector.InjectorInterface
 import me.melijn.apkordex.command.ExtensionInterface
+import me.melijn.apredgres.createtable.CreateTableInterface
 import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.model.Environment
 import me.melijn.bot.model.PodInfo
@@ -52,7 +52,6 @@ object Melijn {
         )
         PodInfo.init(podCount, shardCount, podId)
         // initSentry(settings)
-
 
         val botInstance = ExtensibleBot(settings.api.discord.token) {
 
@@ -124,7 +123,6 @@ object Melijn {
                 }
             }
 
-
             cache {
                 cachedMessages = 0
             }
@@ -133,8 +131,9 @@ object Melijn {
                 enabled = true
 
                 if (settings.process.environment == Environment.TESTING)
-                    defaultGuild(settings.process.testingServerId.toULong())
+                    defaultGuild(settings.process.testingServerId?.toULong())
             }
+
             chatCommands {
                 enabled = true
                 prefix callback@{ _ ->
@@ -163,6 +162,7 @@ object Melijn {
     }
 
     private fun initDriverManager(settings: Settings): DriverManager {
+        logger.info { "Initializing driverManager" }
         val redisConfig = settings.redis.run { RedisConfig(enabled, host, port, user, pass) }
         val hikariConfig = settings.database.run {
             ConfigUtil.generateDefaultHikariConfig(host, port, name, user, pass)

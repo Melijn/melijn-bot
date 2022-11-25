@@ -7,7 +7,7 @@ import me.melijn.bot.model.enums.PremiumTier
 data class PremiumIntLimit(
 
     /**
-    null -> no limit
+     * null -> no limit
      **/
     val freeAmount: Int?,
 

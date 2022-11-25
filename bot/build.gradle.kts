@@ -1,9 +1,8 @@
-import com.apollographql.apollo.gradle.api.ApolloExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("application")
-    id("com.apollographql.apollo") version "2.5.11"
+    id("com.apollographql.apollo3") version "3.7.0"
     id("com.github.johnrengelman.shadow") version "7.1.2"
     kotlin("jvm") version "1.7.10"
     id("com.google.devtools.ksp") version "1.7.10-1.0.6"
@@ -19,17 +18,10 @@ configure<JavaPluginExtension> {
     targetCompatibility = JavaVersion.VERSION_16
 }
 
-configure<ApolloExtension> {
-    generateKotlinModels.set(true) // or false for Java models
-
+apollo {
     service("anilist") {
-        rootPackageName.set("me.melijn.melijnbot.anilist")
-        sourceFolder.set("me/melijn/melijnbot/anilist")
-    }
-
-    customTypeMapping.map {
-        ("StartDate" to "me.melijn.melijnbot.internals.models.AnilistDateKt")
-        ("MediaFragment.StartDate" to "me.melijn.melijnbot.internals.models.AnilistDateKt")
+        srcDir("src/main/graphql/me/melijn/melijnbot/anilist")
+        packageName.set("me.melijn.melijnbot.anilist")
     }
 }
 
@@ -37,10 +29,9 @@ repositories {
     mavenCentral()
     maven("https://oss.sonatype.org/content/repositories/snapshots")
 
-    maven("https://maven.kotlindiscord.com/repository/maven-snapshots/")
-    maven("https://maven.kotlindiscord.com/repository/maven-releases/")
-    maven("https://nexus.melijn.com/repository/maven-public/")
-    maven("https://nexus.melijn.com/repository/jcenter-mirror/")
+    maven("https://reposilite.melijn.com/snapshots")
+    maven("https://reposilite.melijn.com/shitpack")
+
     mavenLocal()
     maven("https://duncte123.jfrog.io/artifactory/maven")
 
@@ -50,20 +41,17 @@ repositories {
 
 val jackson = "2.13.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
 val ktor = "2.0.3"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
-val apollo = "2.5.11" // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
+val apollo = "3.7.0" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
 val kotlinX = "1.6.4" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
 val kotlin = "1.7.10"
 val scrimage = "4.0.22"
 
-// val kord = "0.8.0-M13"
+ val kord = "0.8.0-M17"
 val kordEx = "1.5.5-SNAPSHOT"
-val kordKommons = "1.3.0"
-val apKordVersion = "0.2.2"
-val apKordex = "0.1.0"
-val redgresKommons = "0.1.0"
+val kordKommons = "0.0.1-SNAPSHOT"
 
 dependencies {
-    // implementation("dev.kord:kord-core:$kord")   let kord-ex handle kord version
+    implementation("dev.kord:kord-core:$kord")   // let kord-ex handle kord version
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
     ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
 
@@ -72,19 +60,20 @@ dependencies {
 
     implementation("dev.schlaubi.lavakord", "kord", "3.7.0")
 
-    implementation("me.melijn.kordkommons:kommons:$kordKommons")
-    implementation("me.melijn.kordkommons:redgres-kommons:$redgresKommons")
+    implementation("me.melijn.kommons:kommons:$kordKommons")
+    implementation("me.melijn.kommons:kord-kommons:$kordKommons")
+    implementation("me.melijn.kommons:redgres-kommons:$kordKommons")
 
     // Annotation processors
-    val apKord = "me.melijn.kordkommons:ap:$apKordVersion"
-    val apKordex = "me.melijn.kordkommons:apkordex:$apKordex"
-    implementation(apKord) {
-        exclude("me.melijn.kordkommons", "kommons")
-    }
-
+    val apKord = "me.melijn.kommons:annotation-processor:$kordKommons"
+    val apKordex = "me.melijn.kommons:annotation-processor-kordex:$kordKommons"
+    val apRedgres = "me.melijn.kommons:annotation-processor-redgres:$kordKommons"
+    implementation(apKord)
     implementation(apKordex)
+    implementation(apRedgres)
     ksp(apKord)
     ksp(apKordex)
+    ksp(apRedgres)
 
     implementation("io.sentry:sentry:6.2.1")
 
@@ -102,11 +91,11 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin")
 
     // https://nexus.melijn.com/#browse/browse:maven-public:me%2Fmelijn%2Fjagtag
-    implementation("me.melijn.jagtag:JagTag-Kotlin:2.2.1")
+//    implementation("me.melijn.jagtag:JagTag-Kotlin:2.2.1")
 
     // Database
     // https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-core
-    val exposed = "0.39.2"
+    val exposed = "0.41.1"
     implementation("org.jetbrains.exposed:exposed-core:$exposed")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposed")
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter:$exposed")
@@ -153,6 +142,7 @@ dependencies {
 
     // Ktor Client
     implementation("io.ktor:ktor-client-okhttp:$ktor")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
     implementation("io.ktor:ktor-client-content-negotiation:$ktor")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor")
 
@@ -168,14 +158,13 @@ dependencies {
     implementation("com.sksamuel.scrimage:scrimage-formats-extra:$scrimage")
 
     // https://nexus.melijn.com/#browse/browse:maven-public:me%2Fmelijn%2Fjikankt
-    implementation("me.melijn.jikankt:JikanKt:1.3.2")
+//    implementation("me.melijn.jikankt:JikanKt:1.3.2")
 
     // https://mvnrepository.com/artifact/org.mariuszgromada.math/MathParser.org-mXparser
     implementation("org.mariuszgromada.math:MathParser.org-mXparser:5.0.7")
 
-    // https://mvnrepository.com/artifact/com.apollographql.apollo/apollo-runtime
-    implementation("com.apollographql.apollo:apollo-runtime:$apollo")
-    implementation("com.apollographql.apollo:apollo-coroutines-support:$apollo")
+    // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
+    implementation("com.apollographql.apollo3:apollo-runtime:$apollo")
 
     // https://mvnrepository.com/artifact/io.lettuce/lettuce-core
     implementation("io.lettuce:lettuce-core:6.2.0.RELEASE")
@@ -188,12 +177,13 @@ dependencies {
 }
 
 ksp {
-    arg("apkordex_package", "me.melijn.gen")
     arg("ap_package", "me.melijn.gen")
+    arg("ap_kordex_package", "me.melijn.gen")
+    arg("ap_redgres_package", "me.melijn.gen")
+    arg("ap_redgres_redis_key_prefix", "melijn:")
     arg("ap_imports", "import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent;import org.koin.core.component.get;import org.koin.core.parameter.ParametersHolder;")
     arg("ap_interfaces", "KordExKoinComponent")
     arg("ap_init_placeholder", "get<%className%> { ParametersHolder() }")
-    arg("ap_redis_key_prefix", "melijn:")
 }
 
 kotlin {

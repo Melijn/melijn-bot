@@ -3,6 +3,7 @@ package util
 import io.jsonwebtoken.SignatureAlgorithm
 import io.jsonwebtoken.impl.DefaultJwtBuilder
 import io.jsonwebtoken.security.Keys
+import io.ktor.util.*
 import kotlinx.datetime.UtcOffset
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toJavaInstant
@@ -29,13 +30,13 @@ object CookieUtil {
     }
 
     fun generateRandomCookie(): String {
-        val key = Keys.hmacShaKeyFor(Settings.service.jwtKey.toByteArray())
+        val key = Keys.hmacShaKeyFor(Settings.service.jwtKey.decodeBase64Bytes())
         val prevUid = lastSubId++
         val newUid = (prevUid + 1).toString() + Random.nextLong()
 
         return DefaultJwtBuilder()
             .setPayload(newUid)
-            .signWith(key, SignatureAlgorithm.HS256)
+            .signWith(key, SignatureAlgorithm.HS512)
             .compact()
     }
 

@@ -23,7 +23,7 @@ private class Template {
         val hostPattern by string(
             "hostPattern", "http://localhost:8181"
         ) // This pattern will be used to extract te podId
-        val testingServerId by long("testingServerId", 234277444708859904L)
+        val testingServerId by longN("testingServerId")
     }
 
     class Database : BotSettings("db") {
@@ -78,7 +78,7 @@ private class Template {
      * Discord and trusted 3th parties will not be proxied by this.
      * **/
     class HttpProxy : BotSettings("proxy") {
-        val enabled by boolean("enabled", true)
+        val enabled by boolean("enabled", false)
         val host by string("host", "1.1.1.1")
         val port by int("port", 443)
     }

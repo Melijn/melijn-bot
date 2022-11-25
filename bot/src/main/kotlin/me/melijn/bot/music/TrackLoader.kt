@@ -1,13 +1,23 @@
 package me.melijn.bot.music
 
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
+import dev.kord.common.entity.Snowflake
+import dev.kord.core.Kord
+import dev.kord.core.behavior.requestMembers
+import dev.kord.core.entity.User
+import dev.kord.gateway.PrivilegedIntent
 import dev.schlaubi.lavakord.audio.RestNode
 import dev.schlaubi.lavakord.rest.TrackResponse
 import dev.schlaubi.lavakord.rest.loadItem
+import kotlinx.coroutines.flow.firstOrNull
 import me.melijn.ap.injector.Inject
+import me.melijn.bot.Melijn
+import me.melijn.bot.commands.DevExtension
 import me.melijn.bot.database.manager.SongCacheManager
 import me.melijn.bot.model.PartialUser
+import me.melijn.bot.utils.KoinUtil
 import me.melijn.bot.utils.Log
+import me.melijn.bot.web.api.MySpotifyApi.Companion.toTrack
 import me.melijn.bot.web.api.WebManager
 import org.koin.core.component.inject
 
@@ -112,6 +122,7 @@ class TrackLoader : KordExKoinComponent {
                     FetchedTrack.fromLavakordTrackWithData(fullTrack, trackData)
                 }
             }
+
             TrackResponse.LoadType.NO_MATCHES, TrackResponse.LoadType.LOAD_FAILED -> {
                 emptyList()
             }
@@ -122,5 +133,36 @@ class TrackLoader : KordExKoinComponent {
 
     private fun foundTracks(input: String, tracks: List<FetchedTrack>) {
         songCacheManager.storeFetched(input, tracks)
+    }
+
+    @OptIn(PrivilegedIntent::class)
+    suspend fun fetchTrackFromPresence(guildId: Snowflake, target: User): Track? {
+        val kord by KoinUtil.inject<Kord>()
+        val track: Track? = kord.getGuildOrNull(guildId)?.requestMembers {
+            userIds.add(target.id)
+            presences = true
+        }?.firstOrNull()?.let {
+            val musicFields = it.presences.asSequence().map { it.activities }.flatten().map { activity ->
+                DevExtension.getMusicFields(activity.data)
+            }.firstOrNull() ?: return null
+
+            val requester = PartialUser.fromKordUser(target)
+            when (musicFields.detectedProvider.fetchMethod) {
+                DevExtension.TrackFetchMethod.SPOTIFY -> {
+                    val searchTerm = buildList {
+                        add(musicFields.title)
+                        musicFields.author.firstOrNull()?.let { author -> add(author) }
+                    }.joinToString(" ")
+                    webManager.spotifyApi?.searchTrack(searchTerm)?.toTrack(requester)
+                }
+
+                DevExtension.TrackFetchMethod.YT -> {
+                    val query = "\"" + musicFields.title + " " + musicFields.author.joinToString(",")
+                        .replace("-", "") + "\""
+                    searchYT(Melijn.lavalink.nodes.first(), query, requester).firstOrNull()
+                }
+            }
+        }
+        return track
     }
 }

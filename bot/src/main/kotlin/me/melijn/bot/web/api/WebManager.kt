@@ -1,6 +1,7 @@
 package me.melijn.bot.web.api
 
-import com.apollographql.apollo.ApolloClient
+import com.apollographql.apollo3.ApolloClient
+import com.apollographql.apollo3.network.okHttpClient
 import com.kotlindiscord.kord.extensions.utils.getKoin
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
@@ -11,7 +12,9 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import me.melijn.ap.injector.Inject
 import me.melijn.gen.Settings
+import me.melijn.kordkommons.logger.logger
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import java.net.InetSocketAddress
 import java.net.Proxy
 
@@ -49,9 +52,17 @@ class WebManager {
         }
     }
 
-    val aniListApolloClient: ApolloClient = ApolloClient.builder()
+    val logger = logger()
+
+    val aniListApolloClient: ApolloClient = ApolloClient.Builder()
         .serverUrl("https://graphql.anilist.co")
-        .okHttpClient(OkHttpClient())
+        .okHttpClient(OkHttpClient.Builder().apply {
+            addInterceptor(
+                HttpLoggingInterceptor { logger.debug(it) }.apply {
+                    level = HttpLoggingInterceptor.Level.BODY
+                }
+            )
+        }.build())
         .build()
 
     var spotifyApi: MySpotifyApi? = null
