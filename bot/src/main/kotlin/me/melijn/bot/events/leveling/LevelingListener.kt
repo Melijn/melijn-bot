@@ -30,7 +30,7 @@ class LevelingListener {
             val joinedChannelId = this.state.channelId
             val oldChannelId = this.old?.channelId
             val userId = this.state.userId
-            if (oldChannelId != joinedChannelId && joinedChannelId != null){
+            if (oldChannelId != joinedChannelId && joinedChannelId != null) {
                 // joined a channel
 
                 if (!activeTimers.any { snowflake -> snowflake == userId }) {
@@ -45,14 +45,14 @@ class LevelingListener {
                         }
 
                         // give xp
-                        xpManager.increaseGlobalXP(member.id, 5UL)
+                        xpManager.increaseAllXP(this.state.guildId, member.id, 5UL)
                         activeTimers.remove(userId)
                         logger.info { "${member.username} gained 5 xp" }
 
                     })
                     activeTimers.add(userId)
                 }
-            }else if (oldChannelId != null && joinedChannelId == null) {
+            } else if (oldChannelId != null && joinedChannelId == null) {
                 // left a channel
                 activeTimers.remove(userId)
             }
@@ -62,10 +62,11 @@ class LevelingListener {
     private suspend fun handle(event: MessageCreateEvent) {
         val member = event.member?.takeIf { !it.isBot }
         val userId = member?.id ?: return
+        val guildId = event.guildId ?: return
 
         val cooldown = xpManager.getMsgXPCooldown(userId)
         if (cooldown < System.currentTimeMillis()) {
-            xpManager.increaseGlobalXP(userId, 1UL)
+            xpManager.increaseAllXP(guildId, userId, 1UL)
             xpManager.setMsgXPCooldown(userId, 30.seconds)
             logger.info { "${member.username} gained 1 xp" }
         }

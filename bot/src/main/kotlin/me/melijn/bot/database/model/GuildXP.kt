@@ -6,14 +6,16 @@ import org.jetbrains.exposed.sql.Table
 
 @CreateTable
 @Cacheable
-object GlobalXP : Table("global_xp") {
+object GuildXP : Table("guild_xp") {
 
+    var guildId = ulong("guild_id")
     var userId = ulong("user_id")
     var xp = ulong("xp")
 
-    override val primaryKey: PrimaryKey = PrimaryKey(userId)
+    override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId)
 
     init {
-        index(true, userId)
+        index(true, guildId, userId)
+        index(false, guildId, xp)
     }
 }

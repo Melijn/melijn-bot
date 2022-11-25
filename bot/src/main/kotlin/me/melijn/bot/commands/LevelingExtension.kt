@@ -2,7 +2,9 @@ package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
+import com.kotlindiscord.kord.extensions.commands.converters.impl.boolean
 import com.kotlindiscord.kord.extensions.commands.converters.impl.long
+import com.kotlindiscord.kord.extensions.commands.converters.impl.role
 import com.kotlindiscord.kord.extensions.commands.converters.impl.user
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
@@ -11,6 +13,9 @@ import com.sksamuel.scrimage.ImmutableImage
 import dev.kord.rest.Image
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.XPManager
+import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
+import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
+import me.melijn.gen.LevelRolesData
 import org.koin.core.component.inject
 import java.awt.Color
 import java.awt.Font
@@ -73,7 +78,34 @@ class LevelingExtension : Extension() {
                 }
             }
         }
+        publicGuildSlashCommand() {
+            name = "levelroles"
+            description = "You can set a role to a certain role"
 
+            publicGuildSubCommand(::LevelRolesAddArgs) {
+                name = "set"
+                description = "Sets a level role"
+
+                action {
+                    val levelRole = arguments.role
+                    val stay = arguments.stay
+                    val level = arguments.level
+
+                    xpManager.levelRolesManager.store(
+                        LevelRolesData(
+                            guild!!.id.value,
+                            level.toULong(),
+                            levelRole.id.value,
+                            stay
+                        )
+                    )
+
+                    respond {
+                        content = "Set ${levelRole.mention} as the level $level levelRole"
+                    }
+                }
+            }
+        }
     }
 
     private suspend fun PublicSlashCommandContext<Arguments>.drawXpCard(
@@ -147,6 +179,21 @@ class LevelingExtension : Extension() {
         val xp = long {
             name = "xp"
             description = "Sets xp lol"
+        }
+    }
+
+    inner class LevelRolesAddArgs : Arguments() {
+        val level by long {
+            name = "level"
+            description = "The level requirement at which you want to give a role"
+        }
+        val role by role {
+            name = "role"
+            description = "The role you want to give when you achieve a certain level"
+        }
+        val stay by boolean {
+            name = "stay"
+            description = "Role stays when you get the next level role"
         }
     }
 }
