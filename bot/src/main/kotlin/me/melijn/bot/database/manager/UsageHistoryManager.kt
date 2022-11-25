@@ -1,51 +1,149 @@
 package me.melijn.bot.database.manager
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
-import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.UsageHistory
-import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.UsageHistoryImpl
+import dev.kord.common.entity.Snowflake
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import me.melijn.ap.injector.Inject
-import me.melijn.bot.utils.KoinUtil
-import me.melijn.gen.UserCommandUsageHistoryData
-import me.melijn.gen.UserUsageHistoryData
-import me.melijn.gen.database.manager.AbstractUserCommandUsageHistoryManager
-import me.melijn.gen.database.manager.AbstractUserUsageHistoryManager
+import me.melijn.bot.database.model.UseLimitHitType
+import me.melijn.bot.database.model.UserCommandUseLimitHistory
+import me.melijn.bot.database.model.UserUseLimitHistory
+import me.melijn.bot.model.kordex.MelUsageHistory
+import me.melijn.gen.UsageHistoryData
+import me.melijn.gen.database.manager.AbstractUsageHistoryManager
+import me.melijn.gen.database.manager.AbstractUserCommandUseLimitHistoryManager
+import me.melijn.gen.database.manager.AbstractUserUseLimitHistoryManager
 import me.melijn.kordkommons.database.DriverManager
+import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.batchInsert
+import org.jetbrains.exposed.sql.deleteWhere
+import me.melijn.bot.database.model.UsageHistory as DBUsageHistory
+
 inline val Int.b get() = this.toByte()
 
 @Inject
-class UserCommandUsageHistoryManager(override val driverManager: DriverManager) : AbstractUserCommandUsageHistoryManager(driverManager)
+class DBUsageHistoryManager(override val driverManager: DriverManager) :
+    AbstractUsageHistoryManager(driverManager)
+
 @Inject
-class UserUsageHistoryManager(override val driverManager: DriverManager) : AbstractUserUsageHistoryManager(driverManager)
+class UserCommandUseLimitHistoryManager(override val driverManager: DriverManager) :
+    AbstractUserCommandUseLimitHistoryManager(driverManager)
+
+@Inject
+class UserUseLimitHistoryManager(override val driverManager: DriverManager) :
+    AbstractUserUseLimitHistoryManager(driverManager)
 
 @Inject
 class UsageHistoryManager(
-    private val userCommandUsageHistoryManager: UserCommandUsageHistoryManager,
-    private val userUsageHistoryManager: UserUsageHistoryManager,
+    private val usageHistoryManager: DBUsageHistoryManager,
+    private val userCommandUseLimitHistoryManager: UserCommandUseLimitHistoryManager,
+    private val userUseLimitHistoryManager: UserUseLimitHistoryManager,
 ) {
-    private val objectMapper by KoinUtil.inject<ObjectMapper>()
 
-    fun getUserCmdHistDeserialized(userId: ULong, commandId: Int): UsageHistory {
-        val byId = userCommandUsageHistoryManager.getById(userId, commandId)
-        val barr = byId?.usageHistory ?: return UsageHistoryImpl()
-        return objectMapper.readValue<UsageHistoryImpl>(String(barr))
-    }
+    /** utils **/
+    private fun intoUsageHistory(
+        entries: List<UsageHistoryData>,
+        limitHitEntries: Map<UseLimitHitType, List<Long>>
+    ): MelUsageHistory {
+        val usageHistory = entries.map { it.moment.toEpochMilliseconds() }
 
-    fun setUserCmdHistSerialized(userId: ULong, commandId: Int, usageHistory: UsageHistory) {
-        userCommandUsageHistoryManager.store(
-            UserCommandUsageHistoryData(userId, commandId, objectMapper.writeValueAsBytes(usageHistory))
+        return MelUsageHistory(
+            limitHitEntries[UseLimitHitType.COOLDOWN] ?: emptyList(),
+            limitHitEntries[UseLimitHitType.RATELIMIT] ?: emptyList(),
+            false,
+            usageHistory,
         )
     }
 
-    fun getUserHistDeserialized(userId: ULong): UsageHistory {
-        val byId = userUsageHistoryManager.getById(userId)
-        val barr = byId?.usageHistory ?: return UsageHistoryImpl()
-        return objectMapper.readValue<UsageHistoryImpl>(String(barr))
+    private fun runQueriesForHitTypes(
+        usageHistory: MelUsageHistory,
+        deleteFunc: (Instant, UseLimitHitType) -> Int,
+        insertFunc: (List<Long>, UseLimitHitType) -> List<ResultRow>,
+    ) {
+        usageHistoryManager.scopedTransaction {
+            val changes = usageHistory.changes
+            for (type in UseLimitHitType.values()) {
+                val (added, limit) = when (type) {
+                    UseLimitHitType.COOLDOWN -> changes.crossedCooldownsChanges
+                    UseLimitHitType.RATELIMIT -> changes.crossedLimitChanges
+                }
+                if (limit != null) {
+                    val moment = Instant.fromEpochMilliseconds(limit)
+
+                    // Deletes expired entries for this scope
+                    deleteFunc(moment, type)
+                }
+                insertFunc(added, type)
+            }
+        }
     }
 
-    fun setUserHistSerialized(userId: ULong, usageHistory: UsageHistory) {
-        userUsageHistoryManager.store(
-            UserUsageHistoryData(userId, objectMapper.writeValueAsBytes(usageHistory))
-        )
+    /** (userId, commandId) use limit history scope **/
+    fun getUserCmdHistory(userId: ULong, commandId: Int): MelUsageHistory {
+        val usageEntries = usageHistoryManager.getByUserCommandKey(userId, commandId)
+        val limitHitEntries = userCommandUseLimitHistoryManager.getByUserCommandKey(userId, commandId)
+            .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
+        return intoUsageHistory(usageEntries, limitHitEntries)
+    }
+
+    fun setUserCmdHistSerialized(userId: ULong, commandId: Int, usageHistory: MelUsageHistory) =
+        runQueriesForHitTypes(usageHistory, { moment, type ->
+            UserCommandUseLimitHistory.deleteWhere {
+                (UserCommandUseLimitHistory.moment less moment) and
+                        (UserCommandUseLimitHistory.type eq type) and
+                        (UserCommandUseLimitHistory.userId eq userId) and
+                        (UserCommandUseLimitHistory.commandId eq commandId)
+            }
+        }, { added, type ->
+            UserCommandUseLimitHistory.batchInsert(added, shouldReturnGeneratedValues = false, ignore = true) {
+                this[UserCommandUseLimitHistory.userId] = userId
+                this[UserCommandUseLimitHistory.commandId] = commandId
+                this[UserCommandUseLimitHistory.type] = type
+                this[UserCommandUseLimitHistory.moment] = Instant.fromEpochMilliseconds(it)
+            }
+        })
+
+    /** (userId) user limit history scope **/
+    fun getUserHistory(userId: ULong): MelUsageHistory {
+        val usageEntries = usageHistoryManager.getByUserKey(userId)
+        val limitHitEntries = userUseLimitHistoryManager.getByUserKey(userId)
+            .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
+        return intoUsageHistory(usageEntries, limitHitEntries)
+    }
+
+    fun setUserHistSerialized(userId: ULong, usageHistory: MelUsageHistory) =
+        runQueriesForHitTypes(usageHistory, { moment, type ->
+            UserUseLimitHistory.deleteWhere {
+                (UserUseLimitHistory.moment less moment) and
+                        (UserUseLimitHistory.type eq type) and
+                        (UserUseLimitHistory.userId eq userId)
+            }
+        }, { added, type ->
+            UserUseLimitHistory.batchInsert(added, shouldReturnGeneratedValues = false, ignore = true) {
+                this[UserUseLimitHistory.userId] = userId
+                this[UserUseLimitHistory.type] = type
+                this[UserUseLimitHistory.moment] = Instant.fromEpochMilliseconds(it)
+            }
+        })
+
+    fun updateUsage(guildId: Snowflake?, channelId: Snowflake, userId: Snowflake, commandId: Int) {
+        val moment = Clock.System.now()
+        usageHistoryManager.scopedTransaction {
+            usageHistoryManager.store(
+                UsageHistoryData(
+                    guildId?.value,
+                    channelId.value,
+                    userId.value,
+                    commandId,
+                    moment
+                )
+            )
+
+            DBUsageHistory.deleteWhere {
+                (DBUsageHistory.userId eq userId.value) and (DBUsageHistory.moment less moment)
+            }
+        }
     }
 }

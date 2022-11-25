@@ -20,6 +20,7 @@ import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.model.Environment
 import me.melijn.bot.model.PodInfo
 import me.melijn.bot.model.kordex.MelijnCooldownHandler
+import me.melijn.bot.model.kordex.MelijnRatelimiter
 import me.melijn.bot.music.MusicManager
 import me.melijn.bot.services.ServiceManager
 import me.melijn.bot.utils.EnumUtil.lcc
@@ -136,6 +137,7 @@ object Melijn {
 
                 useLimiter {
                     cooldownHandler = MelijnCooldownHandler()
+                    rateLimiter = MelijnRatelimiter()
                 }
             }
 
@@ -153,6 +155,7 @@ object Melijn {
                 }
                 useLimiter {
                     cooldownHandler = MelijnCooldownHandler()
+                    rateLimiter = MelijnRatelimiter()
                 }
             }
 

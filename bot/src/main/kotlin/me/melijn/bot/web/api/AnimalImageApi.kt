@@ -4,8 +4,8 @@ import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import me.melijn.bot.model.AnimalSource
-import me.melijn.bot.model.AnimalType
+import me.melijn.bot.commands.AnimalSource
+import me.melijn.bot.commands.AnimalType
 import me.melijn.bot.utils.KtorUtils.parametersOf
 import me.melijn.bot.utils.Log
 import me.melijn.gen.Settings

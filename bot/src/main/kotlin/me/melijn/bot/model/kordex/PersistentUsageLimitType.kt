@@ -1,15 +1,13 @@
 package me.melijn.bot.model.kordex
 
 import com.kotlindiscord.kord.extensions.usagelimits.DiscriminatingContext
-import com.kotlindiscord.kord.extensions.usagelimits.UsageLimitType
-import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.UsageHistory
 import me.melijn.bot.database.manager.CooldownManager
 import me.melijn.bot.database.manager.UsageHistoryManager
 import me.melijn.bot.utils.KoinUtil
 import me.melijn.gen.UserCommandCooldownData
 import me.melijn.gen.UserCooldownData
 
-enum class PersistentUsageLimitType : UsageLimitType {
+enum class PersistentUsageLimitType : MelUsageLimitType {
 
     COMMAND_USER {
         override fun getCooldown(context: DiscriminatingContext): Long {
@@ -20,14 +18,15 @@ enum class PersistentUsageLimitType : UsageLimitType {
             cooldownManager.storeUserCmdCd(UserCommandCooldownData(context.userId, context.commandId, until))
         }
 
-        override fun getUsageHistory(context: DiscriminatingContext): UsageHistory {
-            return usageHistoryManager.getUserCmdHistDeserialized(context.userId, context.commandId)
+        override fun getUsageHistory(context: DiscriminatingContext): MelUsageHistory {
+            return usageHistoryManager.getUserCmdHistory(context.userId, context.commandId)
         }
 
-        override fun setUsageHistory(context: DiscriminatingContext, usageHistory: UsageHistory) {
+        override fun setUsageHistory(context: DiscriminatingContext, usageHistory: MelUsageHistory) {
             usageHistoryManager.setUserCmdHistSerialized(context.userId, context.commandId, usageHistory)
         }
     },
+
     USER {
         override fun getCooldown(context: DiscriminatingContext): Long {
             return cooldownManager.getUserCd(context.userId)?.until ?: 0
@@ -37,11 +36,11 @@ enum class PersistentUsageLimitType : UsageLimitType {
             cooldownManager.storeUserCd(UserCooldownData(context.userId, until))
         }
 
-        override fun getUsageHistory(context: DiscriminatingContext): UsageHistory {
-             return usageHistoryManager.getUserHistDeserialized(context.userId)
+        override fun getUsageHistory(context: DiscriminatingContext): MelUsageHistory {
+             return usageHistoryManager.getUserHistory(context.userId)
         }
 
-        override fun setUsageHistory(context: DiscriminatingContext, usageHistory: UsageHistory) {
+        override fun setUsageHistory(context: DiscriminatingContext, usageHistory: MelUsageHistory) {
              usageHistoryManager.setUserHistSerialized(context.userId, usageHistory)
         }
 

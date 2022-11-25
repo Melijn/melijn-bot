@@ -26,13 +26,13 @@ apollo {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven("https://oss.sonatype.org/content/repositories/snapshots")
 
     maven("https://reposilite.melijn.com/snapshots")
     maven("https://reposilite.melijn.com/shitpack")
 
-    mavenLocal()
     maven("https://duncte123.jfrog.io/artifactory/maven")
 
     // pooppack mirror
@@ -46,7 +46,7 @@ val kotlinX = "1.6.4" // https://mvnrepository.com/artifact/org.jetbrains.kotlin
 val kotlin = "1.7.10"
 val scrimage = "4.0.22"
 
- val kord = "0.8.0-M17"
+val kord = "0.8.0-M17"
 val kordEx = "1.5.5-SNAPSHOT"
 val kordKommons = "0.0.1-SNAPSHOT"
 

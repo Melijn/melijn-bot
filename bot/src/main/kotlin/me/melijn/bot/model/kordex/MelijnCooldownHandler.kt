@@ -31,14 +31,11 @@ class MelijnCooldownHandler : DefaultCooldownHandler() {
             val usageHistory = type.getUsageHistory(context)
 
             // keeps only the crossedCooldowns which are in the cooldowns range.
-            var i = 0
-            while (i < usageHistory.crossedCooldowns.size && usageHistory.crossedCooldowns[i] < encapsulateStart) {
-                usageHistory.crossedCooldowns.removeAt(i++)
-            }
+            usageHistory.removeExpiredCrossedCooldowns(encapsulateStart)
 
             if (until > currentTime) {
                 if (!shouldSendMessage(until, usageHistory, type)) shouldSendMessage = false
-                usageHistory.crossedCooldowns.add(currentTime)
+                usageHistory.addCrossedCooldown(currentTime)
 
                 hitCooldowns.add(Triple(type, usageHistory, until))
             }
@@ -68,6 +65,30 @@ class MelijnCooldownHandler : DefaultCooldownHandler() {
         return onExecCooldownUpdate(commandContext, context, success)
     }
 
+    override suspend fun getMessage(
+        context: DiscriminatingContext,
+        discordTimeStamp: String,
+        type: CooldownType,
+    ): String {
+        val locale = context.locale()
+        val translationsProvider = context.event.command.translationsProvider
+        val commandName = context.event.command.getFullName(locale)
+        return when (type) {
+            PersistentUsageLimitType.COMMAND_USER -> translationsProvider.translate(
+                "cooldown.notifier.commandUser",
+                locale,
+                replacements = arrayOf(discordTimeStamp, commandName)
+            )
+
+            PersistentUsageLimitType.USER -> translationsProvider.translate(
+                "cooldown.notifier.globalUser",
+                locale,
+                replacements = arrayOf(discordTimeStamp)
+            )
+
+            else -> super.getMessage(context, discordTimeStamp, type)
+        }
+    }
 
     override suspend fun onExecCooldownUpdate(
         commandContext: CommandContext,
