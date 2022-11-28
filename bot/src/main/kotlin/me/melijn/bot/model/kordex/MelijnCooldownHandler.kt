@@ -74,7 +74,7 @@ class MelijnCooldownHandler : DefaultCooldownHandler() {
         val translationsProvider = context.event.command.translationsProvider
         val commandName = context.event.command.getFullName(locale)
         return when (type) {
-            PersistentUsageLimitType.COMMAND_USER -> translationsProvider.translate(
+            PersistentUsageLimitType.USER_COMMAND -> translationsProvider.translate(
                 "cooldown.notifier.commandUser",
                 locale,
                 replacements = arrayOf(discordTimeStamp, commandName)
@@ -82,6 +82,12 @@ class MelijnCooldownHandler : DefaultCooldownHandler() {
 
             PersistentUsageLimitType.USER -> translationsProvider.translate(
                 "cooldown.notifier.globalUser",
+                locale,
+                replacements = arrayOf(discordTimeStamp)
+            )
+
+            PersistentUsageLimitType.GUILD_USER -> translationsProvider.translate(
+                "cooldown.notifier.globalUserGuild",
                 locale,
                 replacements = arrayOf(discordTimeStamp)
             )

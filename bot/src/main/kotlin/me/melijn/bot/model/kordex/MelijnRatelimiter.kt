@@ -25,13 +25,19 @@ class MelijnRatelimiter : DefaultRateLimiter() {
         val translationsProvider = context.event.command.translationsProvider
         val commandName = context.event.command.getFullName(locale)
         return when (type) {
-            PersistentUsageLimitType.COMMAND_USER -> translationsProvider.translate(
+            PersistentUsageLimitType.USER_COMMAND -> translationsProvider.translate(
                 "ratelimit.notifier.commandUser",
                 locale,
                 replacements = arrayOf(discordTimeStamp, commandName)
             )
             PersistentUsageLimitType.USER -> translationsProvider.translate(
                 "ratelimit.notifier.globalUser",
+                locale,
+                replacements = arrayOf(discordTimeStamp)
+            )
+
+            PersistentUsageLimitType.GUILD_USER -> translationsProvider.translate(
+                "ratelimit.notifier.globalGuildUser",
                 locale,
                 replacements = arrayOf(discordTimeStamp)
             )

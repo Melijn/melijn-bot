@@ -40,7 +40,7 @@ class DevExtension : Extension() {
         publicSlashCommand {
             name = "test"
             description = "test"
-            cooldown(PersistentUsageLimitType.COMMAND_USER) {
+            cooldown(PersistentUsageLimitType.USER_COMMAND) {
                 50.seconds
             }
             action {

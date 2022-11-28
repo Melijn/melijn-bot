@@ -1,14 +1,8 @@
 package me.melijn.bot.database.manager
 
 import me.melijn.ap.injector.Inject
-import me.melijn.gen.ChannelCooldownData
-import me.melijn.gen.GuildCooldownData
-import me.melijn.gen.UserCommandCooldownData
-import me.melijn.gen.UserCooldownData
-import me.melijn.gen.database.manager.AbstractChannelCooldownManager
-import me.melijn.gen.database.manager.AbstractGuildCooldownManager
-import me.melijn.gen.database.manager.AbstractUserCommandCooldownManager
-import me.melijn.gen.database.manager.AbstractUserCooldownManager
+import me.melijn.gen.*
+import me.melijn.gen.database.manager.*
 import me.melijn.kordkommons.database.DriverManager
 
 @Inject
@@ -17,6 +11,9 @@ class UserCommandCooldownManager(override val driverManager: DriverManager)
 @Inject
 class UserCooldownManager(override val driverManager: DriverManager)
     : AbstractUserCooldownManager(driverManager)
+@Inject
+class GuildUserCooldownManager(override val driverManager: DriverManager)
+    : AbstractGuildUserCooldownManager(driverManager)
 @Inject
 class ChannelCooldownManager(override val driverManager: DriverManager)
     : AbstractChannelCooldownManager(driverManager)
@@ -29,6 +26,7 @@ class GuildCooldownManager(override val driverManager: DriverManager)
 class CooldownManager(
     private val userCooldownManager: UserCooldownManager,
     private val userCommandCooldownManager: UserCommandCooldownManager,
+    private val guildUserCooldownManager: GuildUserCooldownManager,
     private val channelCooldownManager: ChannelCooldownManager,
     private val guildCooldownManager: GuildCooldownManager,
 ) {
@@ -67,4 +65,14 @@ class CooldownManager(
     fun storeGuildCd(data: GuildCooldownData) {
         guildCooldownManager.store(data)
     }
+
+    fun getGuildUserCd(guildId: ULong, userId: ULong): GuildUserCooldownData? {
+        return guildUserCooldownManager.getById(guildId, userId)
+    }
+
+    fun storeGuildUserCd(data: GuildUserCooldownData) {
+        guildUserCooldownManager.store(data)
+    }
+
+
 }

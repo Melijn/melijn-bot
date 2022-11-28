@@ -2,6 +2,7 @@ package me.melijn.bot.database.model
 
 import me.melijn.apredgres.cacheable.Cacheable
 import me.melijn.apredgres.createtable.CreateTable
+import me.melijn.bot.database.model.ChannelCooldown.nullable
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
@@ -19,10 +20,16 @@ object UsageHistory : Table("usage_history") {
     override val primaryKey: PrimaryKey= PrimaryKey(guildId, channelId, userId, moment)
 
     init {
-        index(false, guildId)
-        index(false, channelId)
+        index(false, guildId) // name = guild_key
+        index(false, guildId, commandId) // name = guild_command_key
+        index(false, channelId) // name = channel_key
+        index(false, channelId, commandId) // name = channel_command_key
         index(false, userId) // name = user_key
         index(false, userId, commandId) // name = user_command_key
+        index(false, guildId, userId) // name = guild_user_key
+        index(false, guildId, userId, commandId) // name = guild_user_command_key
+        index(false, channelId, userId) // name = channel_user_key
+        index(false, channelId, userId, commandId) // name = channel_user_command_key
         index(false, moment) // name = moment_key
     }
 }
@@ -91,22 +98,26 @@ object UserUseLimitHistory : Table("user_use_limit_history") {
 @Cacheable
 object ChannelCooldown : Table("channel_cooldown") {
 
-    val channelId = ulong("user_id")
-    val guildId = ulong("guild_id")
+    val channelId = ulong("channel_id")
+    val guildId = ulong("guild_id").nullable()
     val until = long("until")
 
     override val primaryKey: PrimaryKey = PrimaryKey(channelId)
 }
 @CreateTable
 @Cacheable
-object ChannelUsageHistory : Table("channel_usage_history") {
+object ChannelUseLimitHistory : Table("channel_use_limit_history") {
 
     val channelId = ulong("channel_id")
-    val guildId = ulong("guild_id")
+    val guildId = ulong("guild_id").nullable()
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
 
     override val primaryKey: PrimaryKey = PrimaryKey(channelId, moment, type)
+
+    init {
+        index(false, channelId) // name = channel_key
+    }
 }
 
 /** A cooldown in context of (guildId) **/
@@ -122,20 +133,24 @@ object GuildCooldown : Table("guild_cooldown") {
 
 @CreateTable
 @Cacheable
-object GuildUsageHistory : Table("guild_usage_history") {
+object GuildUseLimitHistory : Table("guild_use_limit_history") {
 
     val guildId = ulong("guild_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, moment, type)
+
+    init {
+        index(false, guildId) // name = guild_key
+    }
 }
 
 
 /** A cooldown in context of (guildId, userId) **/
 @CreateTable
 @Cacheable
-object GuildUserCooldown : Table("guild_cooldown") {
+object GuildUserCooldown : Table("guild_user_cooldown") {
 
     val guildId = ulong("guild_id")
     val userId = ulong("user_id")
@@ -146,7 +161,7 @@ object GuildUserCooldown : Table("guild_cooldown") {
 
 @CreateTable
 @Cacheable
-object GuildUserUsageHistory : Table("guild_user_usage_history") {
+object GuildUserUseLimitHistory : Table("guild_user_use_limit_history") {
 
     val guildId = ulong("guild_id")
     val userId = ulong("user_id")
@@ -154,6 +169,10 @@ object GuildUserUsageHistory : Table("guild_user_usage_history") {
     val type = enumeration<UseLimitHitType>("hit_type")
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId, moment, type)
+
+    init {
+        index(false, guildId, userId) // name = guild_user_key
+    }
 }
 
 
