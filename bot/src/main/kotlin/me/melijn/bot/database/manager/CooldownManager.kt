@@ -20,6 +20,21 @@ class ChannelCooldownManager(override val driverManager: DriverManager)
 @Inject
 class GuildCooldownManager(override val driverManager: DriverManager)
     : AbstractGuildCooldownManager(driverManager)
+@Inject
+class GuildUserCommandCooldownManager(override val driverManager: DriverManager)
+    : AbstractGuildUserCommandCooldownManager(driverManager)
+@Inject
+class ChannelCommandCooldownManager(override val driverManager: DriverManager)
+    : AbstractChannelCommandCooldownManager(driverManager)
+@Inject
+class ChannelUserCommandCooldownManager(override val driverManager: DriverManager)
+    : AbstractChannelUserCommandCooldownManager(driverManager)
+@Inject
+class ChannelUserCooldownManager(override val driverManager: DriverManager)
+    : AbstractChannelUserCooldownManager(driverManager)
+@Inject
+class GuildCommandCooldownManager(override val driverManager: DriverManager)
+    : AbstractGuildCommandCooldownManager(driverManager)
 
 /** Provides a centralized api for storing, retrieving and updating cooldown types. **/
 @Inject
@@ -29,6 +44,11 @@ class CooldownManager(
     private val guildUserCooldownManager: GuildUserCooldownManager,
     private val channelCooldownManager: ChannelCooldownManager,
     private val guildCooldownManager: GuildCooldownManager,
+    private val guildUserCommandCooldownManager: GuildUserCommandCooldownManager,
+    private val channelCommandCooldownManager: ChannelCommandCooldownManager,
+    private val channelUserCommandCooldownManager: ChannelUserCommandCooldownManager,
+    private val channelUserCooldownManager: ChannelUserCooldownManager,
+    private val guildCommandCooldownManager: GuildCommandCooldownManager,
 ) {
 
     /** (User Command) Cooldown context **/
@@ -48,9 +68,9 @@ class CooldownManager(
         userCooldownManager.store(data)
     }
 
-    /** (User) Cooldown context **/
-    fun getChannelCd(userId: ULong): ChannelCooldownData? {
-        return channelCooldownManager.getById(userId)
+    /** (Channel) Cooldown context **/
+    fun getChannelCd(channelId: ULong): ChannelCooldownData? {
+        return channelCooldownManager.getById(channelId)
     }
 
     fun storeChannelCd(data: ChannelCooldownData) {
@@ -66,6 +86,7 @@ class CooldownManager(
         guildCooldownManager.store(data)
     }
 
+    /** (Guild, User) Cooldown context **/
     fun getGuildUserCd(guildId: ULong, userId: ULong): GuildUserCooldownData? {
         return guildUserCooldownManager.getById(guildId, userId)
     }
@@ -74,5 +95,48 @@ class CooldownManager(
         guildUserCooldownManager.store(data)
     }
 
+    /** (Guild, User, Command) Cooldown context **/
+    fun getGuildUserCmdCd(guildId: ULong, userId: ULong, commandId: ULong): GuildUserCommandCooldownData? {
+        return guildUserCommandCooldownManager.getById(guildId, userId, commandId)
+    }
 
+    fun storeGuildUserCmdCd(data: GuildUserCommandCooldownData) {
+        guildUserCommandCooldownManager.store(data)
+    }
+
+    /** (Channel, Command) Cooldown context **/
+    fun getChannelCmdCd(channelId: ULong, commandId: ULong): ChannelCommandCooldownData? {
+        return channelCommandCooldownManager.getById(channelId, commandId)
+    }
+
+    fun storeChannelCmdCd(data: ChannelCommandCooldownData) {
+        channelCommandCooldownManager.store(data)
+    }
+
+    /** (Channel, User, Command) Cooldown context **/
+    fun getChannelUserCmdCd(channelId: ULong, userId: ULong, commandId: ULong): ChannelUserCommandCooldownData? {
+        return channelUserCommandCooldownManager.getById(channelId, userId, commandId)
+    }
+
+    fun storeChannelUserCmdCd(data: ChannelUserCommandCooldownData) {
+        channelUserCommandCooldownManager.store(data)
+    }
+
+    /** (Channel, User) Cooldown context **/
+    fun getChannelUserCd(channelId: ULong, userId: ULong): ChannelUserCooldownData? {
+        return channelUserCooldownManager.getById(channelId, userId)
+    }
+
+    fun storeChannelUserCd(data: ChannelUserCooldownData) {
+        channelUserCooldownManager.store(data)
+    }
+
+    /** (Guild, Command) Cooldown context **/
+    fun getGuildCmdCd(guildId: ULong, commandId: ULong): GuildCommandCooldownData? {
+        return guildCommandCooldownManager.getById(guildId, commandId)
+    }
+
+    fun storeGuildCmdCd(data: GuildCommandCooldownData) {
+        guildCommandCooldownManager.store(data)
+    }
 }
