@@ -181,10 +181,14 @@ object GuildUserCommandCooldown : Table("guild_user_command_cooldown") {
 
     val guildId = ulong("guild_id")
     val userId = ulong("user_id")
-    val commandId = ulong("command_id")
+    val commandId = integer("command_id")
     val until = long("until")
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId, commandId)
+
+    init {
+        index(false, guildId, userId, commandId) // name = guild_user_command_key
+    }
 }
 
 @CreateTable
@@ -192,7 +196,7 @@ object GuildUserCommandCooldown : Table("guild_user_command_cooldown") {
 object GuildUserCommandUseLimitHistory : Table("guild_user_command_use_limit_history") {
     val guildId = ulong("guild_id")
     val userId = ulong("user_id")
-    val commandId = ulong("command_id")
+    val commandId = integer("command_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
 
@@ -211,7 +215,7 @@ object ChannelCommandCooldown : Table("channel_command_cooldown") {
 
     val channelId = ulong("channel_id")
     val guildId = ulong("guild_id")
-    val commandId = ulong("command_id")
+    val commandId = integer("command_id")
     val until = long("until")
 
     override val primaryKey: PrimaryKey = PrimaryKey(channelId, commandId)
@@ -223,11 +227,15 @@ object ChannelCommandUseLimitHistory : Table("channel_command_use_limit_history"
 
     val channelId = ulong("channel_id")
     val guildId = ulong("guild_id")
-    val commandId = ulong("command_id")
+    val commandId = integer("command_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
 
     override val primaryKey: PrimaryKey = PrimaryKey(channelId, guildId, commandId, moment)
+
+    init {
+        index(false, channelId, commandId) // name = channel_command_key
+    }
 }
 
 /** A cooldown in context of (channelId, userId, commandId) **/
@@ -238,7 +246,7 @@ object ChannelUserCommandCooldown : Table("channel_user_command_cooldown") {
     val channelId = ulong("channel_id")
     val guildId = ulong("guild_id")
     val userId = ulong("user_id")
-    val commandId = ulong("command_id")
+    val commandId = integer("command_id")
     val until = long("until")
 
     override val primaryKey: PrimaryKey = PrimaryKey(channelId, userId, commandId)
@@ -251,11 +259,15 @@ object ChannelUserCommandUseLimitHistory : Table("channel_user_command_use_limit
     val channelId = ulong("channel_id")
     val guildId = ulong("guild_id")
     val userId = ulong("user_id")
-    val commandId = ulong("command_id")
+    val commandId = integer("command_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
 
     override val primaryKey: PrimaryKey = PrimaryKey(channelId, guildId, userId, commandId)
+
+    init {
+        index(false, channelId, userId, commandId) // name = channel_user_command_key
+    }
 }
 
 /** A cooldown in context of (channelId, userId) **/
@@ -282,6 +294,10 @@ object ChannelUserUseLimitHistory : Table("channel_user_use_limit_history") {
     val type = enumeration<UseLimitHitType>("hit_type")
 
     override val primaryKey: PrimaryKey = PrimaryKey(channelId, guildId, userId, moment)
+
+    init {
+        index(false, channelId, userId) // name = channel_user_key
+    }
 }
 
 /** A cooldown in context of (guildId, commandId) **/
@@ -290,7 +306,7 @@ object ChannelUserUseLimitHistory : Table("channel_user_use_limit_history") {
 object GuildCommandCooldown : Table("guild_command_cooldown") {
 
     val guildId = ulong("guild_id")
-    val commandId = ulong("command_id")
+    val commandId = integer("command_id")
     val until = long("until")
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, commandId)
@@ -301,9 +317,13 @@ object GuildCommandCooldown : Table("guild_command_cooldown") {
 object GuildCommandUseLimitHistory : Table("guild_command_use_limit_history") {
 
     val guildId = ulong("guild_id")
-    val commandId = ulong("command_id")
+    val commandId = integer("command_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, commandId, moment, type)
+
+    init {
+        index(false, guildId, commandId) // name = guild_command_key
+    }
 }

@@ -96,7 +96,7 @@ class CooldownManager(
     }
 
     /** (Guild, User, Command) Cooldown context **/
-    fun getGuildUserCmdCd(guildId: ULong, userId: ULong, commandId: ULong): GuildUserCommandCooldownData? {
+    fun getGuildUserCmdCd(guildId: ULong, userId: ULong, commandId: Int): GuildUserCommandCooldownData? {
         return guildUserCommandCooldownManager.getById(guildId, userId, commandId)
     }
 
@@ -105,7 +105,7 @@ class CooldownManager(
     }
 
     /** (Channel, Command) Cooldown context **/
-    fun getChannelCmdCd(channelId: ULong, commandId: ULong): ChannelCommandCooldownData? {
+    fun getChannelCmdCd(channelId: ULong, commandId: Int): ChannelCommandCooldownData? {
         return channelCommandCooldownManager.getById(channelId, commandId)
     }
 
@@ -114,7 +114,7 @@ class CooldownManager(
     }
 
     /** (Channel, User, Command) Cooldown context **/
-    fun getChannelUserCmdCd(channelId: ULong, userId: ULong, commandId: ULong): ChannelUserCommandCooldownData? {
+    fun getChannelUserCmdCd(channelId: ULong, userId: ULong, commandId: Int): ChannelUserCommandCooldownData? {
         return channelUserCommandCooldownManager.getById(channelId, userId, commandId)
     }
 
@@ -132,7 +132,7 @@ class CooldownManager(
     }
 
     /** (Guild, Command) Cooldown context **/
-    fun getGuildCmdCd(guildId: ULong, commandId: ULong): GuildCommandCooldownData? {
+    fun getGuildCmdCd(guildId: ULong, commandId: Int): GuildCommandCooldownData? {
         return guildCommandCooldownManager.getById(guildId, commandId)
     }
 
