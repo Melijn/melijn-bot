@@ -55,12 +55,13 @@ class ChannelUserCommandUseLimitHistoryManager(override val driverManager: Drive
 
 @Inject // Channel user
 class ChannelUserUseLimitHistoryManager(override val driverManager: DriverManager) :
-    AbstractChannelUserCommandUseLimitHistoryManager(driverManager)
+    AbstractChannelUserUseLimitHistoryManager(driverManager)
 
 @Inject // Guild command
 class GuildCommandUseLimitHistoryManager(override val driverManager: DriverManager) :
     AbstractGuildCommandUseLimitHistoryManager(driverManager)
 
+@Inject
 class UsageHistoryManager(
     private val usageHistoryManager: DBUsageHistoryManager,
     private val guildUserUseLimitHistoryManager: GuildUserUseLimitHistoryManager,
@@ -303,6 +304,29 @@ class UsageHistoryManager(
                 this[ChannelUserCommandUseLimitHistory.commandId] = commandId
                 this[ChannelUserCommandUseLimitHistory.type] = type
                 this[ChannelUserCommandUseLimitHistory.moment] = moment
+        })
+    }
+
+    /** (channelId, userId) use limit history **/
+    fun getChannelUserUsageHistory(channelId: ULong, userId: ULong): MelUsageHistory {
+        val usageEntries = usageHistoryManager.getByChannelUserKey(channelId, userId)
+        val limitHitEntries = channelUserUseLimitHistory.getByChannelUserKey(channelId
+            , userId)
+            .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
+        return intoUsageHistory(usageEntries, limitHitEntries)
+    }
+
+    fun setChannelUserUsageHistory(channelId: ULong, userId: ULong, usageHistory: MelUsageHistory) {
+        runQueriesForHitTypes(usageHistory, ChannelUserUseLimitHistory, { moment, type   ->
+            (ChannelUserUseLimitHistory.moment less moment) and
+                    (ChannelUserUseLimitHistory.type eq type) and
+                    (ChannelUserUseLimitHistory.channelId eq channelId) and
+                    (ChannelUserUseLimitHistory.userId eq userId)
+        }, { moment, type   ->
+            this[ChannelUserUseLimitHistory.channelId] = channelId
+            this[ChannelUserUseLimitHistory.userId] = userId
+            this[ChannelUserUseLimitHistory.type] = type
+            this[ChannelUserUseLimitHistory.moment] = moment
         })
     }
 

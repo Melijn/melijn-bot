@@ -278,7 +278,7 @@ object ChannelUserCooldown : Table("channel_user_cooldown") {
     val channelId = ulong("channel_id")
     val guildId = ulong("guild_id")
     val userId = ulong("user_id")
-    val until = timestamp("until")
+    val until = long("until")
 
     override val primaryKey: PrimaryKey = PrimaryKey(channelId, userId)
 }

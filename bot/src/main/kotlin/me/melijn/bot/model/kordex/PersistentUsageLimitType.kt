@@ -102,6 +102,94 @@ enum class PersistentUsageLimitType : MelUsageLimitType {
         override fun setUsageHistory(context: DiscriminatingContext, usageHistory: MelUsageHistory) {
             context.guildId?.value?.let { usageHistoryManager.setGuildHistory(it, usageHistory) }
         }
+
+
+    },
+    GUILD_USER_COMMANDID {
+        override fun getCooldown(context: DiscriminatingContext): Long {
+            return context.guildId?.value?.let {
+                cooldownManager.getGuildUserCmdCd(it, context.userId, context.commandId)?.until
+            } ?: 0
+        }
+
+        override fun setCooldown(context: DiscriminatingContext, until: Long) {
+            context.guildId?.value?.let {
+                cooldownManager.storeGuildUserCmdCd(GuildUserCommandCooldownData(it, context.userId, context.commandId, until))
+            }
+        }
+
+        override fun getUsageHistory(context: DiscriminatingContext): MelUsageHistory {
+            return context.guildId?.value?.let { usageHistoryManager.getGuildHistory(it) } ?: emptyHistory
+        }
+
+        override fun setUsageHistory(context: DiscriminatingContext, usageHistory: MelUsageHistory) {
+            context.guildId?.value?.let {
+                usageHistoryManager.setGuildUserCommandUsageHistory(it, context.userId, context.commandId, usageHistory)
+            }
+        }
+    },
+    CHANNEL_COMMANDID {
+        override fun getCooldown(context: DiscriminatingContext): Long {
+            return cooldownManager.getChannelCmdCd(context.channel.id.value, context.commandId)?.until ?: 0
+        }
+
+        override fun setCooldown(context: DiscriminatingContext, until: Long) {
+            context.guildId?.value?.let {
+                cooldownManager.storeChannelCmdCd(
+                    ChannelCommandCooldownData(context.channel.id.value, it, context.commandId, until)
+                )
+            }
+        }
+
+        override fun getUsageHistory(context: DiscriminatingContext): MelUsageHistory {
+            return usageHistoryManager.getChannelHistory(context.channel.id.value)
+        }
+
+        override fun setUsageHistory(context: DiscriminatingContext, usageHistory: MelUsageHistory) {
+            usageHistoryManager.setChannelCommandHistory(context.channel.id.value, context.commandId, usageHistory)
+        }
+    },
+    CHANNEL_USER_COMMANDID {
+        override fun getCooldown(context: DiscriminatingContext): Long {
+           return cooldownManager.getChannelUserCmdCd(context.channel.id.value, context.userId, context.commandId)?.until ?: 0
+        }
+
+        override fun setCooldown(context: DiscriminatingContext, until: Long) {
+            context.guildId?.value?.let {
+                cooldownManager.storeChannelUserCmdCd(
+                    ChannelUserCommandCooldownData(context.channel.id.value, it, context.userId, context.commandId, until)
+                )
+            }
+        }
+
+        override fun getUsageHistory(context: DiscriminatingContext): MelUsageHistory {
+            return usageHistoryManager.getChannelUserCommandUsageHistory(context.channel.id.value, context.userId, context.commandId)
+        }
+
+        override fun setUsageHistory(context: DiscriminatingContext, usageHistory: MelUsageHistory) {
+            usageHistoryManager.setChannelUserCommandUsageHistory(context.channel.id.value, context.userId, context.commandId, usageHistory)
+        }
+    },
+    CHANNEL_USER {
+        override fun getCooldown(context: DiscriminatingContext): Long {
+            return cooldownManager.getChannelUserCd(context.channel.id.value, context.userId)?.until ?: 0
+        }
+
+        override fun setCooldown(context: DiscriminatingContext, until: Long) {
+            context.guildId?.value?.let {
+                cooldownManager.storeChannelUserCd(
+                    ChannelUserCooldownData(context.channel.id.value, it, context.userId, until)
+                )
+            }
+        }
+
+        override fun getUsageHistory(context: DiscriminatingContext): MelUsageHistory {
+            return usageHistoryManager.getChannelUserUsageHistory(context.channel.id.value, context.userId)
+        }
+
+        override fun setUsageHistory(context: DiscriminatingContext, usageHistory: MelUsageHistory) {
+            usageHistoryManager.setChannelUserUsageHistory(context.channel.id.value, context.userId, usageHistory)
+        }
     };
 
     val cooldownManager by KoinUtil.inject<CooldownManager>()
