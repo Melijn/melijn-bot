@@ -23,10 +23,12 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.melijn.apkordex.command.KordExtension
+import me.melijn.bot.model.kordex.PersistentUsageLimitType
 import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.StringsUtil
 import me.melijn.kordkommons.utils.StringUtils
 import org.springframework.boot.ansi.AnsiColor
+import kotlin.time.Duration.Companion.seconds
 
 @KordExtension
 class DevExtension : Extension() {
@@ -38,13 +40,9 @@ class DevExtension : Extension() {
         publicSlashCommand {
             name = "test"
             description = "test"
-//            cooldown {
-//                staticCooldown {
-//                    if (wannes) 50000000.seconds
-//                    else 5.seconds
-//                }
-//
-//            }
+            cooldown(PersistentUsageLimitType.USER_COMMAND) {
+                50.seconds
+            }
             action {
                 respond {
                     content = ":flushed:"

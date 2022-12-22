@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("application")
-    id("com.apollographql.apollo3") version "3.7.0"
+    id("com.apollographql.apollo3") version "3.7.1"
     id("com.github.johnrengelman.shadow") version "7.1.2"
     kotlin("jvm") version "1.7.10"
     id("com.google.devtools.ksp") version "1.7.10-1.0.6"
@@ -26,13 +26,13 @@ apollo {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven("https://oss.sonatype.org/content/repositories/snapshots")
 
     maven("https://reposilite.melijn.com/snapshots")
     maven("https://reposilite.melijn.com/shitpack")
 
-    mavenLocal()
     maven("https://duncte123.jfrog.io/artifactory/maven")
 
     // pooppack mirror
@@ -41,12 +41,12 @@ repositories {
 
 val jackson = "2.13.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
 val ktor = "2.0.3"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
-val apollo = "3.7.0" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
+val apollo = "3.7.1" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
 val kotlinX = "1.6.4" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
 val kotlin = "1.7.10"
 val scrimage = "4.0.22"
 
- val kord = "0.8.0-M17"
+val kord = "0.8.0-M17"
 val kordEx = "1.5.5-SNAPSHOT"
 val kordKommons = "0.0.1-SNAPSHOT"
 

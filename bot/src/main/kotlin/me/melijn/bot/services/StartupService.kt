@@ -17,8 +17,8 @@ import me.melijn.kordkommons.async.TaskManager
 class StartupService {
 
     val logger by Log
-    init {
 
+    init {
         val kord by KoinUtil.inject<Kord>()
         val botRestartTrackEntryManager by KoinUtil.inject<BotRestartTrackEntryManager>()
         val botRestartTrackQueueManager by KoinUtil.inject<BotRestartTrackQueueManager>()
