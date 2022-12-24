@@ -8,10 +8,10 @@ import org.jetbrains.exposed.sql.Table
 @Cacheable
 object CommandEmbedColor : Table("command_embed_color") {
 
-    // guil- or user Id
-    val entityId = ulong("entity_id").nullable()
+    // guild- or userId
+    val entityId = ulong("entity_id")
 
-    // can be disabled or enabled
+    // Color
     val color = integer("color")
 
     override val primaryKey: PrimaryKey = PrimaryKey(entityId)
