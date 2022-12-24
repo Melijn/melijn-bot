@@ -1,6 +1,9 @@
 package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
+import com.kotlindiscord.kord.extensions.commands.application.slash.SlashCommandContext
+import com.kotlindiscord.kord.extensions.commands.application.slash.group
+import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.commands.converters.impl.boolean
 import com.kotlindiscord.kord.extensions.commands.converters.impl.member
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalString
@@ -15,6 +18,8 @@ import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.requestMembers
 import dev.kord.core.cache.data.ActivityData
 import dev.kord.core.entity.channel.MessageChannel
+import dev.kord.core.entity.interaction.GroupCommand
+import dev.kord.core.entity.interaction.RootCommand
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.gateway.PrivilegedIntent
 import dev.kord.rest.builder.message.EmbedBuilder
@@ -45,7 +50,43 @@ class DevExtension : Extension() {
             }
             action {
                 respond {
-                    content = ":flushed:"
+                    val names = getNames()
+
+                    content = "called `${names.joinToString(" ")}`"
+                }
+            }
+        }
+        publicSlashCommand {
+            name = "testsub"
+            description = "test"
+            publicSubCommand {
+                name= "test"
+                description = "testing"
+                action {
+                    respond {
+                        val names = getNames()
+
+                        content = "called `${names.joinToString(" ")}`"
+                    }
+                }
+            }
+        }
+        publicSlashCommand {
+            name = "testsubsub"
+            description = "test"
+            group("sub1") {
+                description = "sin1"
+
+                publicSubCommand {
+                    name= "test"
+                    description = "testing"
+                    action {
+                        respond {
+                            val names = getNames()
+
+                            content = "called `${names.joinToString(" ")}`"
+                        }
+                    }
                 }
             }
         }
@@ -147,6 +188,25 @@ class DevExtension : Extension() {
         }
     }
 
+    private fun SlashCommandContext<*, *>.getNames(): List<String> {
+       return buildList {
+           when (val command = event.interaction.command) {
+                is GroupCommand -> {
+                    add(command.rootName)
+                    add(command.groupName)
+                    add(command.name)
+                }
+                is dev.kord.core.entity.interaction.SubCommand -> {
+                    add(command.rootName)
+                    add(command.name)
+                }
+                is RootCommand -> {
+                    add(command.rootName)
+                }
+            }
+        }
+    }
+    
     companion object {
         fun activityNameMatch(name: String): (activity: ActivityData) -> Boolean  = { it.name == name }
 

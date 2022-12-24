@@ -1,20 +1,33 @@
 package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
+import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.enumChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.group
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
+import com.kotlindiscord.kord.extensions.commands.converters.impl.color
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalInt
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalString
 import com.kotlindiscord.kord.extensions.commands.converters.impl.string
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
+import dev.kord.common.Color
 import dev.kord.common.entity.Permission
+import dev.kord.rest.builder.message.EmbedBuilder
+import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
 import dev.kord.rest.builder.message.create.embed
 import me.melijn.apkordex.command.KordExtension
+import me.melijn.bot.database.manager.CommandEmbedColorManager
 import me.melijn.bot.database.manager.PrefixManager
+import me.melijn.bot.utils.ImageUtil
+import me.melijn.bot.utils.ImageUtil.toInputStream
+import me.melijn.bot.utils.InferredChoiceEnum
 import me.melijn.bot.utils.KordExUtils.inRange
 import me.melijn.bot.utils.KordExUtils.lengthBetween
+import me.melijn.bot.utils.KordExUtils.tr
+import me.melijn.bot.utils.KordUtil.toHex
+import me.melijn.bot.utils.embedWithColor
+import me.melijn.gen.CommandEmbedColorData
 import me.melijn.gen.PrefixesData
 import org.koin.core.component.inject
 
@@ -30,6 +43,47 @@ class SettingsCommand : Extension() {
             description = "Setting SlashCommands"
             check {
                 requireBotPermissions(Permission.SendMessages, Permission.EmbedLinks)
+            }
+
+            group("embedcolor") {
+                description = "embed color commands"
+                publicSubCommand(::SetEmbedColorArgs) {
+                    name = "set"
+                    description = "sets the embedcolor in the provided scope"
+
+                    action {
+                        val scope = arguments.scope
+                        val color = arguments.color
+                        val colorManager by inject<CommandEmbedColorManager>()
+                        val entityId = if (scope == Scope.PRIVATE) user.id else guild?.id ?: return@action
+                        colorManager.store(CommandEmbedColorData(entityId.value, color.rgb))
+                        respond {
+                            embedWithColor {
+                                title = tr("settings.embedColor.menuTitle")
+                                description = tr("settings.embedColor.set", scope, color.toHex())
+                                addSquareThumbnail(color)
+                            }
+                        }
+                    }
+                }
+                publicSubCommand(::ViewEmbedColorArgs) {
+                    name = "view"
+                    description = "view the embedcolor from the provided scope"
+
+                    action {
+                        val scope = arguments.scope
+                        val colorManager by inject<CommandEmbedColorManager>()
+                        val entityId = if (scope == Scope.PRIVATE) user.id else guild?.id ?: return@action
+                        val color = colorManager.getColor(entityId)
+                        respond {
+                            embedWithColor {
+                                title = tr("settings.embedColor.menuTitle")
+                                description = tr("settings.embedColor.view", scope, color.toHex())
+                                addSquareThumbnail(color)
+                            }
+                        }
+                    }
+                }
             }
 
             group("prefixes") {
@@ -91,7 +145,19 @@ class SettingsCommand : Extension() {
         }
     }
 
+    context(FollowupMessageCreateBuilder, EmbedBuilder)
+    private fun addSquareThumbnail(color: Color?) {
+        color?.let {
+            val ins = ImageUtil.createSquare(64, it).toInputStream()
+            val file = this@FollowupMessageCreateBuilder.addFile("file.png", ins)
+            this@EmbedBuilder.thumbnail {
+                url = "attachment://${file.name}"
+            }
+        }
+    }
+
     inner class GuildPrefixRemoveArg : Arguments() {
+
         val prefix by optionalString {
             name = "prefix"
             description = "an existing prefix"
@@ -117,6 +183,7 @@ class SettingsCommand : Extension() {
     }
 
     inner class PrefixArg : Arguments() {
+
         val prefix by string {
             name = "prefix"
             description = "a prefix for the bot"
@@ -124,5 +191,33 @@ class SettingsCommand : Extension() {
                 lengthBetween(name, 1, 32)
             }
         }
+    }
+
+    inner class SetEmbedColorArgs : Arguments() {
+
+        val scope by enumChoice<Scope> {
+            name = "scope"
+            description = "sets the embed color for the server or only for you"
+            typeName = "scope"
+        }
+
+        val color by color {
+            name = "color"
+            description = "color for the embed"
+        }
+    }
+
+    inner class ViewEmbedColorArgs : Arguments() {
+        val scope by enumChoice<Scope> {
+            name = "scope"
+            description = "views the embed color from server or your settings"
+            typeName = "scope"
+        }
+
+    }
+
+    enum class Scope : InferredChoiceEnum {
+        SERVER,
+        PRIVATE
     }
 }

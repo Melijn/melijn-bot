@@ -15,16 +15,18 @@ import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.cache.ButtonCache
 import me.melijn.bot.events.LATEX_DESTROY_BUTTON_ID
 import me.melijn.bot.model.AbstractOwnedMessage
+import me.melijn.bot.utils.ImageUtil
+import me.melijn.bot.utils.ImageUtil.toInputStream
 import org.koin.core.component.inject
 import org.scilab.forge.jlatexmath.TeXConstants
 import org.scilab.forge.jlatexmath.TeXFormula
 import java.awt.Color
+import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
-import kotlin.math.abs
-import kotlin.math.pow
+import kotlin.math.*
 
 
 @KordExtension
@@ -33,6 +35,53 @@ class MathExtension : Extension() {
     override val name: String = "math"
 
     override suspend fun setup() {
+        chatCommand {
+            name = "newtonSqrt"
+
+            action {
+                val function = ::findSquareNewtonsMethod
+                val findSquareNewtonsMethod = function(1.0, 1e-10, 50_000)
+                channel.createMessage {
+                    val canvasImg = ImageUtil.createSquare(401, Color.decode("#ffffff"))
+                    var canvas = canvasImg.createGraphics()
+                    canvas.paint = Color.BLACK
+                    canvas.drawLine(0, 200, 400, 200)
+                    canvas.drawLine(200, 0, 200, 400)
+                    canvas.dispose()
+
+                    var lastY = -1
+                    for (i in -200 until 200) {
+                        val x = i / 20.0
+                        val y = f(x)
+                        val drawX = i + 200
+                        val drawY = (y * 20.0).roundToInt() + 200
+
+                        if (lastY != -1) {
+                            for (j in min(drawY+1, lastY) until max(drawY, lastY)) {
+                                if (j in 1..400 && drawX > 0)
+                                    canvasImg.setRGB(drawX - 1, j, Color.decode("#FF0000").rgb)
+                            }
+                        }
+                        lastY = drawY
+                        if (drawY in 1..400)
+                            canvasImg.setRGB(drawX, drawY, Color.decode("#FF0000").rgb)
+                    }
+
+                    val drawX = (findSquareNewtonsMethod.nextX * 20.0).roundToInt() + 200
+                    canvas = canvasImg.createGraphics()
+                    canvas.paint = Color.MAGENTA
+                    canvas.setRenderingHint(
+                        RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON
+                    )
+                    canvas.fillOval(drawX-2, 200-2, 5, 5)
+                    canvas.dispose()
+
+                    addFile("grid.png", canvasImg.toInputStream())
+                    content = "Result ${function.name}: $findSquareNewtonsMethod"
+                }
+            }
+        }
+
         chatCommand(::TwoNumberArgs) {
             name = "gcd"
 
@@ -58,7 +107,7 @@ class MathExtension : Extension() {
                 val b = arguments.b.parsed.toFloat()
                 val c = arguments.c.parsed.toFloat()
 
-                val d = kotlin.math.sqrt((b / 2).pow(2.0f) - c)
+                val d = sqrt((b / 2).pow(2.0f) - c)
                 val x1v1 = -b / 2 + d
                 var x1v2 = abs(b / 2) + d
                 if (b > 0) x1v2 = -x1v2
@@ -138,6 +187,60 @@ class MathExtension : Extension() {
         }
 
 
+    }
+
+    fun f(x: Double): Double {
+        return if (x == 0.0) 0.0
+        else sin(1.0 / (x/10)) * 10
+    }
+
+    fun fd1(x: Double): Double {
+        return x * 120 % 11
+    }
+
+
+    data class NewtonData(val nextX: Double, val y: Double, val iterations: Int)
+
+    private fun findSquareRootSecant(
+        a: Double,
+        b: Double,
+        error: Double,
+        iterationLimit: Int
+    ): NewtonData {
+        var (prevX, nextX, previousF, nextF) = listOf(a, b, f(a), f(b))
+        var iter = 0
+
+        while (abs(nextF) > error) {
+            val partial = (nextF - previousF) / (nextX - prevX)
+            prevX = nextX
+            nextX -= nextF / partial
+            previousF = nextF
+            nextF = f(nextX)
+            if (++iter > iterationLimit) return NewtonData(nextX, nextF, iter)
+        }
+        return NewtonData(nextX, nextF, iter)
+    }
+
+    /**
+     * Can diverge
+     * Requires knowing the derivative
+     * Convergence alpha is 2
+     * @param a starting point
+     * @param error acceptable error
+     * @param iterationLimit catch divergence by putting a limit on the amount of iterations
+     * @return the first root we find of set function, or undefined values when the iterationLimit is hit
+     */
+    private fun findSquareNewtonsMethod(a: Double, error: Double, iterationLimit: Int): NewtonData {
+        var nextX = a
+        var iter = 0
+        var nextF = f(nextX)
+        while (abs(nextF) > error) {
+            nextX -= nextF / fd1(nextX)
+            nextF = f(nextX)
+            iter++
+            if (iter > iterationLimit) return NewtonData(nextX, nextF, iter)
+        }
+        return NewtonData(nextX, nextF, iter)
     }
 
     /** finds the greatest common denominator **/
