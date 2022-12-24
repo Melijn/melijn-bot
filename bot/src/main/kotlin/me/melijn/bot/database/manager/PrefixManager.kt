@@ -19,7 +19,7 @@ class PrefixManager(driverManager: DriverManager) : AbstractPrefixesManager(driv
     private suspend fun getCachedByIndex0(id: ULong): List<PrefixesData> {
         val key = "melijn:prefixes:${id}"
         driverManager.getCacheEntry(key, 5)?.run {
-            Json.decodeFromString<List<PrefixesData>>(this)
+            return Json.decodeFromString(this)
         }
         val cachable = getByIndex0(id)
         val cachableStr = Json.encodeToString(cachable)
