@@ -11,11 +11,17 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashC
 import com.kotlindiscord.kord.extensions.commands.application.slash.SlashCommand
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.ChoiceEnum
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
+import com.kotlindiscord.kord.extensions.commands.chat.ChatCommand
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandContext
 import com.kotlindiscord.kord.extensions.commands.converters.SingleConverter
 import com.kotlindiscord.kord.extensions.commands.converters.Validator
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
+import com.kotlindiscord.kord.extensions.commands.converters.impl.LongConverterBuilder
+import com.kotlindiscord.kord.extensions.commands.converters.impl.OptionalLongConverterBuilder
+import com.kotlindiscord.kord.extensions.commands.converters.impl.long
+import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalLong
 import com.kotlindiscord.kord.extensions.extensions.Extension
+import com.kotlindiscord.kord.extensions.extensions.chatCommand
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
 import com.kotlindiscord.kord.extensions.modules.annotations.converters.Converter
@@ -27,8 +33,10 @@ import dev.kord.core.event.interaction.ChatInputCommandInteractionCreateEvent
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.interaction.OptionsBuilder
 import dev.kord.rest.builder.interaction.StringChoiceBuilder
+import me.melijn.bot.database.manager.BalanceManager
 import me.melijn.bot.database.manager.PlaylistManager
 import me.melijn.bot.utils.EnumUtil.ucc
+import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.gen.PlaylistData
 import me.melijn.gen.Settings
@@ -111,23 +119,72 @@ object KordExUtils {
     fun TranslationsProvider.tr(
         @PropertyKey(resourceBundle = MELIJN_RESOURCE_BUNDLE) key: String,
         locale: Locale,
-        vararg replacements: Any
+        vararg replacements: Any?
     ): String =
         translate(key, locale, MELIJN_RESOURCE_BUNDLE_KORDEX, replacements.asList().toTypedArray())
 
     suspend fun CommandContext.tr(
         @PropertyKey(resourceBundle = MELIJN_RESOURCE_BUNDLE) key: String,
-        vararg replacements: Any
+        vararg replacements: Any?
     ): String =
-        translationsProvider.translate(key, getLocale(), MELIJN_RESOURCE_BUNDLE_KORDEX, replacements.asList().toTypedArray())
+        translationsProvider.translate(
+            key,
+            getLocale(),
+            MELIJN_RESOURCE_BUNDLE_KORDEX,
+            replacements.asList().toTypedArray()
+        )
 
     suspend fun ValidationContext<*>.tr(
         @PropertyKey(resourceBundle = MELIJN_RESOURCE_BUNDLE) key: String,
-        vararg replacements: Any
+        vararg replacements: Any?
     ): String =
-        translations.translate(key, context.getLocale(), MELIJN_RESOURCE_BUNDLE_KORDEX, replacements.asList().toTypedArray())
+        translations.translate(
+            key,
+            context.getLocale(),
+            MELIJN_RESOURCE_BUNDLE_KORDEX,
+            replacements.asList().toTypedArray()
+        )
 
+    /**
+     * DSL function for easily registering a command.
+     *
+     * Use this in your setup function to register a command that may be executed on Discord.
+     *
+     * @param body Builder lambda used for setting up the command object.
+     */
+    @ExtensionDSL
+    suspend fun <T : Arguments> Extension.guildChatCommand(
+        arguments: () -> T,
+        body: suspend ChatCommand<T>.() -> Unit
+    ): ChatCommand<T> {
+        val commandObj = ChatCommand(this, arguments).apply {
+            check {
+                anyGuild()
+            }
+        }
+        body.invoke(commandObj)
+        return chatCommand(commandObj)
+    }
 
+    /**
+     * DSL function for easily registering a command, without arguments.
+     *
+     * Use this in your setup function to register a command that may be executed on Discord.
+     *
+     * @param body Builder lambda used for setting up the command object.
+     */
+    @ExtensionDSL
+    suspend fun Extension.guildChatCommand(
+        body: suspend ChatCommand<Arguments>.() -> Unit
+    ): ChatCommand<Arguments> {
+        val commandObj = ChatCommand<Arguments>(this).apply {
+            check {
+                anyGuild()
+            }
+        }
+        body.invoke(commandObj)
+        return chatCommand(commandObj)
+    }
 
     /**
      * DSL function for easily registering a public slash command, with arguments.
@@ -176,7 +233,7 @@ object KordExUtils {
      * @param body Builder lambda used for setting up the slash command object.
      */
     @ExtensionDSL
-    suspend fun <T: Arguments> SlashCommand<*, *>.publicGuildSubCommand(
+    suspend fun <T : Arguments> SlashCommand<*, *>.publicGuildSubCommand(
         arguments: () -> T,
         body: suspend PublicSlashCommand<T>.() -> Unit
     ): PublicSlashCommand<T> = publicSubCommand(arguments) {
@@ -202,6 +259,46 @@ object KordExUtils {
             anyGuild()
         }
         body()
+    }
+
+    fun bail(reason: String): Nothing = throw DiscordRelayedException(reason)
+
+    private val balanceManager by inject<BalanceManager>()
+
+    fun Arguments.optionalAvailableCurrency(
+        @PropertyKey(resourceBundle = "translations.melijn.strings") negativeOrZeroAmount: String,
+        @PropertyKey(resourceBundle = "translations.melijn.strings") tooLittleBalance: String,
+        func: OptionalLongConverterBuilder.() -> Unit
+    ) = optionalLong {
+        func()
+        validate {
+            val valueVal = value ?: return@validate
+            validateBalanceAmount(negativeOrZeroAmount, valueVal, tooLittleBalance)
+        }
+    }
+
+    fun Arguments.availableCurrency(
+        @PropertyKey(resourceBundle = "translations.melijn.strings") negativeOrZeroAmount: String,
+        @PropertyKey(resourceBundle = "translations.melijn.strings") tooLittleBalance: String,
+        func: LongConverterBuilder.() -> Unit
+    ) = long {
+        func()
+        validate {
+            validateBalanceAmount(negativeOrZeroAmount, value, tooLittleBalance)
+        }
+    }
+
+    private suspend fun ValidationContext<Long?>.validateBalanceAmount(
+        negativeOrZeroAmount: String,
+        valueVal: Long,
+        tooLittleBalance: String
+    ) {
+        val balance = context.getUser()?.id?.let { userId ->
+            balanceManager.get(userId)
+        }?.balance ?: 0
+
+        failIf(tr(negativeOrZeroAmount)) { valueVal <= 0 }
+        failIf(tr(tooLittleBalance, valueVal, balance)) { valueVal > balance }
     }
 }
 

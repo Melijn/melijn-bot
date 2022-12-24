@@ -1,29 +1,24 @@
 package me.melijn.bot.music
 
-import dev.kord.common.entity.Snowflake
-import dev.kord.core.entity.User
+import dev.kord.core.entity.Member
 import dev.schlaubi.lavakord.audio.Link
 import dev.schlaubi.lavakord.audio.TrackEndEvent
 import dev.schlaubi.lavakord.audio.on
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import me.melijn.bot.commands.SpotifyCommand
-import me.melijn.bot.model.PartialUser
 import me.melijn.bot.model.PremiumIntLimit
 import me.melijn.bot.model.enums.IntLimit
 import me.melijn.bot.model.enums.PremiumTier
-import me.melijn.bot.web.api.MySpotifyApi
-import me.melijn.bot.web.api.MySpotifyApi.Companion.toTrack
-import me.melijn.bot.web.api.WebManager
+import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.kordkommons.async.SafeList
 import me.melijn.kordkommons.async.Task
 import me.melijn.kordkommons.logger.logger
-import org.koin.java.KoinJavaComponent.inject
 import kotlin.random.Random
 
 class TrackManager(val link: Link) {
 
+    private val trackLoader by inject<TrackLoader>()
     private val mutex = Mutex()
 
     val player = link.player
@@ -60,10 +55,9 @@ class TrackManager(val link: Link) {
                 return
             }
 
-            val target1 = target
-            if (target1 != null) {
-                val webManager by inject<WebManager>(WebManager::class.java)
-                webManager.spotifyApi?.let { playFromTarget(it, target1) }
+            val targetVal = target
+            if (targetVal != null) {
+                playFromTarget(targetVal)
                 return
             }
 
@@ -110,6 +104,7 @@ class TrackManager(val link: Link) {
                 val randomIndex = Random.nextInt(queue.size + 1)
                 queue.add(randomIndex, track)
             }
+
             QueuePosition.TOP -> queue.add(0, track)
             QueuePosition.TOP_SKIP -> {
                 queue.add(0, track)
@@ -160,9 +155,9 @@ class TrackManager(val link: Link) {
         }.run()
     }
 
-    var target: User? = null
+    var target: Member? = null
 
-    fun follow(user: User?) {
+    fun follow(user: Member?) {
         target = user
     }
 
@@ -174,9 +169,9 @@ class TrackManager(val link: Link) {
         player.seekTo(position)
     }
 
-    suspend fun playFromTarget(spotifyApi: MySpotifyApi, user: User) {
-        val track = SpotifyCommand.getSpotifyTrackFromUser(Snowflake(link.guildId), user, spotifyApi) ?: return
-        play(track.toTrack(PartialUser.fromKordUser(user)))
+    private suspend fun playFromTarget(target: Member) {
+        val track = trackLoader.fetchTrackFromPresence(target.guildId, target) ?: return
+        play(track)
     }
 
     suspend fun shuffle() {

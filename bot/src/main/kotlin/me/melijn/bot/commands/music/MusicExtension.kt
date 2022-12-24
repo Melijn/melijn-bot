@@ -302,11 +302,12 @@ class MusicExtension : Extension() {
                 if (tryJoinUser(trackManager.link)) return@action
                 trackManager.follow(target)
                 respond {
-                    content = "following ${target?.mention ?: "no one"}"
+                    content = "The music player is now following ${target?.mention ?: "no one"}"
                 }
 
                 if (target == null) return@action
-                webManager.spotifyApi?.let { trackManager.playFromTarget(it, target) }
+                val track = trackLoader.fetchTrackFromPresence(guild.id, target) ?: return@action
+                trackManager.play(track)
             }
         }
 
@@ -703,7 +704,7 @@ class MusicExtension : Extension() {
 
     inner class FollowUserArgs : Arguments() {
 
-        val target = optionalUser {
+        val target = optionalMember {
             name = "target"
             description = "MusicPlayer will follow spotify status"
         }

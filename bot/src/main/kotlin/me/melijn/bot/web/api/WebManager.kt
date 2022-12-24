@@ -1,34 +1,42 @@
 package me.melijn.bot.web.api
 
-import com.apollographql.apollo.ApolloClient
+import com.apollographql.apollo3.ApolloClient
+import com.apollographql.apollo3.network.okHttpClient
+import com.kotlindiscord.kord.extensions.utils.getKoin
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.logging.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import me.melijn.ap.injector.Inject
 import me.melijn.gen.Settings
+import me.melijn.kordkommons.logger.logger
 import okhttp3.OkHttpClient
-import org.koin.java.KoinJavaComponent.inject
+import okhttp3.logging.HttpLoggingInterceptor
 import java.net.InetSocketAddress
 import java.net.Proxy
 
 @Inject
 class WebManager {
 
-    val settings by inject<Settings>(Settings::class.java)
+    val settings by getKoin().inject<Settings>()
 
     val commonClientConfig: HttpClientConfig<OkHttpConfig>.() -> Unit = {
         expectSuccess = false
         install(ContentNegotiation) {
-            json(json = Json {
-                encodeDefaults = true
+            json(Json {
                 ignoreUnknownKeys = true
+                encodeDefaults = true
+                coerceInputValues = true
             })
         }
         install(UserAgent) {
             agent = "Melijn / 3.0.0 Discord bot"
+        }
+        install(Logging) {
+            level = LogLevel.ALL
         }
     }
 
@@ -44,9 +52,17 @@ class WebManager {
         }
     }
 
-    val aniListApolloClient: ApolloClient = ApolloClient.builder()
+    val logger = logger()
+
+    val aniListApolloClient: ApolloClient = ApolloClient.Builder()
         .serverUrl("https://graphql.anilist.co")
-        .okHttpClient(OkHttpClient())
+        .okHttpClient(OkHttpClient.Builder().apply {
+            addInterceptor(
+                HttpLoggingInterceptor { logger.debug(it) }.apply {
+                    level = HttpLoggingInterceptor.Level.BODY
+                }
+            )
+        }.build())
         .build()
 
     var spotifyApi: MySpotifyApi? = null

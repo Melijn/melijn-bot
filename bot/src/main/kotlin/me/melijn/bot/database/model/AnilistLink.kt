@@ -1,11 +1,10 @@
 package me.melijn.bot.database.model
 
-import me.melijn.ap.cacheable.Cacheable
-import me.melijn.ap.createtable.CreateTable
+import me.melijn.apredgres.cacheable.Cacheable
+import me.melijn.apredgres.createtable.CreateTable
 import me.melijn.bot.commands.AniListLanguagePreference
 import org.jetbrains.exposed.sql.Table
 
-@OptIn(ExperimentalUnsignedTypes::class)
 @CreateTable
 @Cacheable
 object AnilistLink : Table("anilist_link") {

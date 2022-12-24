@@ -2,9 +2,9 @@ package me.melijn.bot.music
 
 import me.melijn.bot.Melijn
 import me.melijn.bot.model.TrackSource
+import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.kordkommons.utils.TimeUtil
 import me.melijn.kordkommons.utils.remove
-import org.koin.java.KoinJavaComponent.inject
 import java.lang.StrictMath.abs
 import kotlin.time.Duration
 
@@ -27,7 +27,7 @@ class SpotifyTrack(
     override val sourceType: TrackSource = TrackSource.SPOTIFY
     override val track: String? = null
 
-    private val trackLoader: TrackLoader by inject(TrackLoader::class.java)
+    private val trackLoader: TrackLoader by inject()
 
     override fun getSearchValue(): String {
         return "\"$title ${author.remove(",")}\"".replace("-", "")

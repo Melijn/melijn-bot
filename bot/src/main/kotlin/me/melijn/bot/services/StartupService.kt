@@ -17,8 +17,8 @@ import me.melijn.kordkommons.async.TaskManager
 class StartupService {
 
     val logger by Log
-    init {
 
+    init {
         val kord by KoinUtil.inject<Kord>()
         val botRestartTrackEntryManager by KoinUtil.inject<BotRestartTrackEntryManager>()
         val botRestartTrackQueueManager by KoinUtil.inject<BotRestartTrackQueueManager>()
@@ -31,7 +31,7 @@ class StartupService {
                 queue.forEach { queueData ->
                     val tracks = botRestartTrackEntryManager.getMelijnTracks(queueData.guildId)
 
-                    val guild = kord.getGuild(Snowflake(queueData.guildId)) ?: return@async
+                    val guild = kord.getGuildOrNull(Snowflake(queueData.guildId)) ?: return@async
 
                     val tm = guild.getTrackManager()
                     tm.link.connectAudio(queueData.voiceChannelId)

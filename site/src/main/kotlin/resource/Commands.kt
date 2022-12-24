@@ -48,7 +48,7 @@ class Commands : AbstractPage("/commands", ContentType.Text.Html) {
     """.trimIndent()
 
     override suspend fun render(call: ApplicationCall): String {
-        val json = httpClient.get("https://vps2-melijn.bitflow.dev/commands").body<JsonObject>()
+        val json = httpClient.get("https://bot-api-prod.melijn.com/fullCommands").body<JsonObject>()
         val query = call.request.queryParameters["q"]?.escapeHTML()?.takeIf { it.isNotBlank() }
         val categoryQuery = call.request.queryParameters["c"]?.escapeHTML()?.takeIf { it.isNotBlank() }
         val sb = StringBuilder()

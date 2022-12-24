@@ -2,7 +2,11 @@
 
 package me.melijn.bot.utils
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import me.melijn.kordkommons.async.DeferredNKTRunnable
+import me.melijn.kordkommons.async.TaskManager
 import org.jetbrains.kotlin.script.jsr223.KotlinJsr223JvmLocalScriptEngine
 import org.jetbrains.kotlin.script.jsr223.KotlinJsr223JvmLocalScriptEngineFactory
 import javax.script.ScriptEngine
@@ -13,7 +17,7 @@ object CodeEvalUtil {
     private val standardImports = """
                 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandContext
                 import me.melijn.bot.commands.EvalCommand
-                import me.melijn.bot.utils.threading.TaskManager
+                import me.melijn.bot.utils.CodeEvalUtil
                 import dev.kord.core.behavior.channel.createMessage
                 import dev.kord.core.behavior.edit
                 import org.koin.core.component.inject
@@ -35,7 +39,7 @@ object CodeEvalUtil {
                 $standardImports
                 $suppliedImports
                 $functionDefinition
-                    return TaskManager.evalTaskValueNAsync {
+                    return CodeEvalUtil.evalTaskValueNAsync {
                         $script
                     }
                 }""".trimIndent()
@@ -54,5 +58,21 @@ object CodeEvalUtil {
         } catch (t: Throwable) {
             "ERROR:\n```${t.message}```"
         }
+    }
+
+    class EvalDeferredNTask<T>(private val func: suspend () -> T?) : DeferredNKTRunnable<Pair<T?, String>> {
+        override suspend fun run(): Pair<T?, String> {
+            return try {
+                func() to ""
+            } catch (t: Throwable) {
+                null to (t.message ?: "unknown")
+            }
+        }
+    }
+
+    fun <T> evalTaskValueNAsync(block: suspend CoroutineScope.() -> T?): Deferred<Pair<T?, String>> = TaskManager.coroutineScope.async {
+        EvalDeferredNTask {
+            block.invoke(this)
+        }.run()
     }
 }

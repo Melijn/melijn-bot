@@ -10,12 +10,8 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.common.Color
 import dev.kord.common.entity.Permission
-import dev.kord.common.entity.Snowflake
-import dev.kord.common.entity.optional.value
-import dev.kord.core.Kord
 import dev.kord.core.behavior.requestMembers
 import dev.kord.core.cache.data.ActivityData
-import dev.kord.core.entity.User
 import dev.kord.core.event.guild.MembersChunkEvent
 import dev.kord.gateway.PrivilegedIntent
 import dev.kord.rest.builder.message.create.embed
@@ -25,12 +21,10 @@ import me.melijn.bot.web.api.MySpotifyApi
 import me.melijn.bot.web.api.WebManager
 import org.jetbrains.kotlin.utils.keysToMap
 import org.koin.core.component.inject
-import org.koin.java.KoinJavaComponent
 import java.lang.Double.max
 import java.lang.Double.min
 import kotlin.math.roundToInt
 
-@Suppress("OPT_IN_IS_NOT_ENABLED")
 @KordExtension
 class SpotifyCommand : Extension() {
 
@@ -136,35 +130,6 @@ class SpotifyCommand : Extension() {
 
             return spotifyApi.searchTrack(searchTerm)
         }
-
-        @OptIn(PrivilegedIntent::class)
-        /**
-         * Parses the presence [user] in [guildId], searches the spotify track information from presence info
-         *
-         * @param guildId guild in which presence should be checked, user needs to be a member
-         * @param user target user
-         * @param spotifyApi api with usable session
-         *
-         * @return spotify [se.michaelthelin.spotify.model_objects.specification.Track] object if we found a result otherwise null
-         */
-        suspend fun getSpotifyTrackFromUser(
-            guildId: Snowflake,
-            user: User,
-            spotifyApi: MySpotifyApi
-        ): se.michaelthelin.spotify.model_objects.specification.Track? {
-            val kord by KoinJavaComponent.inject<Kord>(Kord::class.java)
-
-            /**
-             * fetch full discord member which can have spotify presences since
-             * we don't cache or store user presences
-             **/
-            return kord.getGuild(guildId)?.requestMembers {
-                userIds.add(user.id)
-                presences = true
-            }?.firstOrNull()?.let {
-                getSpotifyTrackFromMemberWithPresence(it, spotifyApi)
-            }
-        }
     }
 
     private suspend fun getSaturatedSpotifyDataFromPresence(
@@ -193,8 +158,10 @@ class SpotifyCommand : Extension() {
 
         /** time and progress bar calculations **/
         val created = System.currentTimeMillis()
-        val start = spotifyActivity.timestamps.value?.start.value ?: created
-        val end = spotifyActivity.timestamps.value?.end.value ?: created
+        val start = spotifyActivity.timestamps.value?.start?.value?.toEpochMilliseconds() ?: created
+//        val start = spotifyActivity.timestamps.value?.start?.value ?: created
+        val end = spotifyActivity.timestamps.value?.end?.value?.toEpochMilliseconds() ?: created
+//        val end = spotifyActivity.timestamps.value?.end?.value ?: created
         val lengthMillis = end - start
         val progressMillis = created - start
         var percent = progressMillis.toDouble() / lengthMillis.toDouble()
