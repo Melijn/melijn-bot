@@ -13,7 +13,10 @@ import java.util.*
 
 @Inject
 class TicTacToeGameManager(driverManager: DriverManager) : AbstractTicTacToeManager(driverManager) {
-
+    fun deleteByGameId(gameId: UUID) {
+        deleteById(gameId)
+        driverManager.removeCacheEntry(gameId.toString())
+    }
 }
 
 @Inject
@@ -56,7 +59,7 @@ class TicTacToeManager(val driverManager: DriverManager) {
     fun delete(game: TicTacToeData) {
         val users = ticTacToePlayerManager.getByIndex1(game.gameId)
         users.forEach { ticTacToePlayerManager.delete(it) }
-        ticTacToeGameManager.delete(game)
+        ticTacToeGameManager.deleteByGameId(game.gameId)
     }
 
     fun updateGame(game: TicTacToeData) {

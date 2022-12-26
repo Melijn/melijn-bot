@@ -50,7 +50,7 @@ val scrimage = "4.0.31"
 
 val kord = "0.8.0-M17"
 val kordEx = "1.5.5-SNAPSHOT"
-val kordKommons = "0.0.1-SNAPSHOT"
+val kordKommons = "0.0.2-SNAPSHOT"
 
 dependencies {
     implementation("dev.kord:kord-core:$kord")   // let kord-ex handle kord version
