@@ -176,6 +176,8 @@ dependencies {
 
     // https://github.com/furstenheim/copy-down
     implementation("io.github.furstenheim:copy_down:1.0")
+
+    testImplementation(kotlin("test"))
 }
 
 ksp {
@@ -216,5 +218,9 @@ tasks {
         isZip64 = true
         mergeServiceFiles()
         archiveFileName.set("melijn.jar")
+    }
+
+    test {
+        useJUnitPlatform()
     }
 }

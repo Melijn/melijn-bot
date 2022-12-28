@@ -5,6 +5,7 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalUser
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.common.entity.ButtonStyle
+import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.interaction.response.edit
 import dev.kord.core.entity.User
 import dev.kord.core.entity.interaction.ButtonInteraction
@@ -37,10 +38,14 @@ class TicTacToeExtension : Extension() {
 
     companion object {
         suspend fun handleButton(gameManager: TicTacToeManager, game: TicTacToeData, interaction: ButtonInteraction) {
-            if (interaction.componentId.startsWith(TICTACTOE_ACTION_PREFIX_ID)) {
+            val players = gameManager.ticTacToePlayerManager.getByIndex1(game.gameId)
+            val activeUser = players.first { it.isUser1 == game.is_user1_turn }
+            val waitingUser = players.firstOrNull { it.isUser1 != game.is_user1_turn }
+            if (players.none { it.userId == interaction.user.id.value }) return
+
+            if (interaction.componentId.startsWith(TICTACTOE_ACTION_PREFIX_ID)) { // GAME ACTION
                 // check if user that clicked is active player
-                val waitingUser = gameManager.ticTacToePlayerManager.getByIndex0(game.gameId, !game.is_user1_turn)
-                if (waitingUser?.userId == interaction.user.id.value) return
+                if (activeUser.userId != interaction.user.id.value) return
 
                 val board = parseBoard(game.board).toMutableList()
                 val location = interaction.componentId.removePrefix(TICTACTOE_ACTION_PREFIX_ID).toInt()
@@ -51,9 +56,9 @@ class TicTacToeExtension : Extension() {
                 game.is_user1_turn = !game.is_user1_turn
                 game.board = serializeBoard(board)
 
-                // check if game is done
+                // check if game is won
                 if (isGameDone(board)) {
-                    handleGameDone(interaction, gameManager, game, interaction.user, waitingUser)
+                    handleGameDone(interaction, gameManager, game, interaction.user, waitingUser, isGameWon(board))
                     return
                 }
 
@@ -76,7 +81,7 @@ class TicTacToeExtension : Extension() {
 
                     // check if game is done
                     if (isGameDone(board)) {
-                        handleGameDone(interaction, gameManager, game, interaction.user, null)
+                        handleGameDone(interaction, gameManager, game, interaction.user, null, isGameWon(board))
                         return
                     }
                 }
@@ -87,17 +92,35 @@ class TicTacToeExtension : Extension() {
                     if (waitingUser == null) showGameState(game, interaction.user.id.value, TTTState.O)
                     else showGameState(game, waitingUser.userId, if (game.is_user1_turn) TTTState.O else TTTState.X)
                 }
-            } else if (interaction.componentId == TICTACTOE_ACCEPT_BUTTON_ID) {
+
+            } else if (interaction.componentId == TICTACTOE_ACCEPT_BUTTON_ID) { // START OF THE GAME
+                val balanceManager by KoinUtil.inject<BalanceManager>()
+                if (players.size < 2 || interaction.user.id.value != players[1].userId) return
+                val p1 = players[0]
+
+                balanceManager.min(interaction.user.id, game.bet * 2)
+                balanceManager.min(Snowflake(p1.userId), game.bet)
+
                 interaction.deferPublicMessageUpdate().edit {
-                    val p1 = gameManager.ticTacToePlayerManager.getByIndex0(game.gameId, true)
-                    showGameState(game, p1?.userId ?: interaction.user.id.value, TTTState.O)
+                    showGameState(game, p1.userId, TTTState.O)
                 }
-            } else {
+            } else if (interaction.componentId == TICTACTOE_DENY_BUTTON_ID) {
+                interaction.deferPublicMessageUpdate().edit {
+                    embeds = mutableListOf()
+                    components = mutableListOf()
+                    content = when (interaction.user.id.value) {
+                        waitingUser?.userId -> "${interaction.user.mention} denied <@${activeUser.userId}>'s tic-tac-toe invite."
+                        activeUser.userId -> "${interaction.user.mention} cancelled their tic-tac-toe invite."
+                        else -> return
+                    }
+                }
                 gameManager.delete(game)
             }
         }
 
-        private fun isGameDone(game: List<TTTState>): Boolean {
+        private fun isGameDone(game: List<TTTState>): Boolean = game.all { it != TTTState.EMPTY } || isGameWon(game)
+
+        fun isGameWon(game: List<TTTState>): Boolean {
             var result = false
             for (i in 0 until 3) {
                 val column = game.filterIndexed { index, _ -> index % 3 == i }
@@ -105,28 +128,51 @@ class TicTacToeExtension : Extension() {
                 result = result || column.allSame(TTTState.EMPTY) || row.allSame(TTTState.EMPTY)
             }
             result = result || (game[0] != TTTState.EMPTY && game[0] == game[4] && game[4] == game[8])
-            result = result || (game[2] != TTTState.EMPTY && game[4] == game[4] && game[6] == game[6])
+            result = result || (game[2] != TTTState.EMPTY && game[2] == game[4] && game[4] == game[6])
             return result
         }
 
-        private suspend fun handleGameDone(interaction: ButtonInteraction, gameManager: TicTacToeManager, game: TicTacToeData, user: User, waitingUser: TicTacToePlayerData?) {
-            if (game.is_user1_turn && waitingUser == null) { // bot just played and won
-                interaction.deferPublicMessageUpdate().edit {
-                    showGameState(game, user.id.value, if (game.is_user1_turn) TTTState.O else TTTState.X)
-                    this.content = "Melijn won the game. ${user.mention} lost"
-                }
-            } else { // user won, other user or bot lost
-                interaction.deferPublicMessageUpdate().edit {
-                    showGameState(game, 5UL, if (game.is_user1_turn) TTTState.O else TTTState.X)
-                    this.content = "${user.mention} won the game and gets ${game.bet * 2} mel. ${waitingUser?.userId?.let { "<@$it>" }} lost"
-                }
+        /**
+         * Gives the game winner their mel, changes the game message to display who won, and deletes the game.
+         * **/
+        private suspend fun handleGameDone(
+            interaction: ButtonInteraction,
+            gameManager: TicTacToeManager,
+            game: TicTacToeData,
+            user: User,
+            waitingUser: TicTacToePlayerData?,
+            won: Boolean
+        ) {
+            suspend fun updateGameMessage(content: String) = interaction.deferPublicMessageUpdate().edit {
+                showGameState(game, user.id.value, if (game.is_user1_turn) TTTState.O else TTTState.X)
+                this.content = content
+            }
+
+            if (!won) {
+                val loserTag = waitingUser?.userId?.let { "<@$it>" } ?: "Melijn"
+                updateGameMessage("${user.mention} tied against $loserTag.")
                 val balanceManager by KoinUtil.inject<BalanceManager>()
-                balanceManager.add(user.id, game.bet * 2)
+                balanceManager.add(user.id, game.bet)
+                waitingUser?.userId?.let { balanceManager.add(Snowflake(it), game.bet) }
+            } else {
+                if (game.is_user1_turn && waitingUser == null) { // bot just played and won
+                    updateGameMessage("Melijn won the game. ${user.mention} lost")
+                } else { // user won, other user or bot lost
+                    val melReward = if (game.bet > 0) " and gets ${game.bet * 2} mel" else ""
+                    val loserTag = waitingUser?.userId?.let { "<@$it>" } ?: "Melijn"
+                    updateGameMessage("${user.mention} won the game$melReward. $loserTag lost")
+                    val balanceManager by KoinUtil.inject<BalanceManager>()
+                    balanceManager.add(user.id, game.bet * 2)
+                }
             }
             gameManager.delete(game)
         }
 
-        private fun InteractionResponseModifyBuilder.showGameState(game: TicTacToeData, nextTurnUserId: ULong, nextMove: TTTState) {
+        private fun InteractionResponseModifyBuilder.showGameState(
+            game: TicTacToeData,
+            nextTurnUserId: ULong,
+            nextMove: TTTState
+        ) {
             embeds = mutableListOf()
             components = mutableListOf()
             val board = parseBoard(game.board)

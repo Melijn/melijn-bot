@@ -36,6 +36,6 @@ class BalanceManager(driverManager: DriverManager) : AbstractUserBalanceManager(
                 it.update(balance, exp(balance))
             })
         }
-        driverManager.removeCacheEntry(id.value.toString()) // drop cache due to possible race conditions
+        driverManager.removeCacheEntry("$classKeyPrefix:${id.value}") // drop cache due to possible race conditions
     }
 }

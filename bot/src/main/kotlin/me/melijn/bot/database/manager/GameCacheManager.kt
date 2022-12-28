@@ -12,17 +12,10 @@ import me.melijn.kordkommons.database.DriverManager
 import java.util.*
 
 @Inject
-class TicTacToeGameManager(driverManager: DriverManager) : AbstractTicTacToeManager(driverManager) {
-    fun deleteByGameId(gameId: UUID) {
-        deleteById(gameId)
-        driverManager.removeCacheEntry(gameId.toString())
-    }
-}
+class TicTacToeGameManager(driverManager: DriverManager) : AbstractTicTacToeManager(driverManager) {}
 
 @Inject
-class TicTacToePlayerManager(driverManager: DriverManager) : AbstractTicTacToePlayerManager(driverManager) {
-
-}
+class TicTacToePlayerManager(driverManager: DriverManager) : AbstractTicTacToePlayerManager(driverManager) {}
 
 @Inject
 class TicTacToeManager(val driverManager: DriverManager) {
@@ -59,7 +52,7 @@ class TicTacToeManager(val driverManager: DriverManager) {
     fun delete(game: TicTacToeData) {
         val users = ticTacToePlayerManager.getByIndex1(game.gameId)
         users.forEach { ticTacToePlayerManager.delete(it) }
-        ticTacToeGameManager.deleteByGameId(game.gameId)
+        ticTacToeGameManager.deleteById(game.gameId)
     }
 
     fun updateGame(game: TicTacToeData) {
