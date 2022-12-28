@@ -16,7 +16,7 @@ object UsageHistory : Table("usage_history") {
     val commandId = integer("command_id")
     val moment = timestamp("moment")
 
-    override val primaryKey: PrimaryKey= PrimaryKey(guildId, channelId, userId, moment)
+    override val primaryKey: PrimaryKey = PrimaryKey(channelId, userId, moment)
 
     init {
         index(false, guildId) // name = guild_key
