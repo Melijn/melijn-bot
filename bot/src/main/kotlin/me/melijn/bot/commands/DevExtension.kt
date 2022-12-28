@@ -1,5 +1,6 @@
 package me.melijn.bot.commands
 
+import com.kotlindiscord.kord.extensions.checks.anyGuild
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.SlashCommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.group
@@ -14,6 +15,7 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.utils.getJumpUrl
 import dev.kord.common.entity.Snowflake
+import dev.kord.core.Kord
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.requestMembers
 import dev.kord.core.cache.data.ActivityData
@@ -30,8 +32,11 @@ import kotlinx.serialization.json.Json
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.model.kordex.PersistentUsageLimitType
 import me.melijn.bot.utils.KordExUtils.bail
+import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.StringsUtil
+import me.melijn.gen.Settings
 import me.melijn.kordkommons.utils.StringUtils
+import org.koin.core.component.inject
 import org.springframework.boot.ansi.AnsiColor
 import kotlin.time.Duration.Companion.seconds
 
@@ -42,6 +47,20 @@ class DevExtension : Extension() {
 
     @OptIn(PrivilegedIntent::class)
     override suspend fun setup() {
+        chatCommand {
+            name = "clearServerCommands"
+            check {
+                anyGuild()
+                userIsOwner()
+            }
+            action {
+                val guild = this.guild!!
+                val kord by inject<Kord>()
+                val settings by inject<Settings>()
+                kord.rest.interaction.createGuildApplicationCommands(Snowflake(settings.bot.id), guild.id, emptyList())
+                this.channel.createMessage("Cleared guild commands")
+            }
+        }
         publicSlashCommand {
             name = "test"
             description = "test"
