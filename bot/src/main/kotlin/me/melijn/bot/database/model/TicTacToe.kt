@@ -3,6 +3,7 @@ package me.melijn.bot.database.model
 import me.melijn.apredgres.cacheable.Cacheable
 import me.melijn.apredgres.createtable.CreateTable
 import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
 @CreateTable
 @Cacheable
@@ -12,9 +13,11 @@ object TicTacToe : Table("tictactoe") {
     val guildId = ulong("guild_id")
     val channelId = ulong("channel_id")
     val messageId = ulong("message_id")
-
+z
     // true = user1, false = user2
     val is_user1_turn = bool("is_user1_turn")
+
+    val last_played = timestamp("last_played")
 
     val board = text("board_state")
     val bet = long("bet").default(0)
@@ -26,6 +29,7 @@ object TicTacToe : Table("tictactoe") {
     }
 }
 
+// Separate table for caching purposes
 @CreateTable
 @Cacheable
 object TicTacToePlayer : Table("tictactoe_player") {

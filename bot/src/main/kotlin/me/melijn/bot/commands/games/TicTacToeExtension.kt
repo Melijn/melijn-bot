@@ -14,6 +14,7 @@ import dev.kord.rest.builder.message.create.MessageCreateBuilder
 import dev.kord.rest.builder.message.create.actionRow
 import dev.kord.rest.builder.message.modify.InteractionResponseModifyBuilder
 import dev.kord.rest.builder.message.modify.actionRow
+import kotlinx.datetime.Clock
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.BalanceManager
 import me.melijn.bot.database.manager.TicTacToeManager
@@ -86,6 +87,7 @@ class TicTacToeExtension : Extension() {
                     }
                 }
 
+                game.last_played = Clock.System.now()
                 gameManager.updateGame(game)
 
                 interaction.deferPublicMessageUpdate().edit {
@@ -193,7 +195,7 @@ class TicTacToeExtension : Extension() {
         fun serializeBoard(board: Iterable<TTTState>): String =
             board.joinToString(",") { it.ordinal.toString() }
 
-        private fun parseBoard(board: String) =
+        fun parseBoard(board: String) =
             board.split(",").map { TTTState.values()[it.toInt()] }
     }
 
