@@ -13,7 +13,7 @@ object TicTacToe : Table("tictactoe") {
     val guildId = ulong("guild_id")
     val channelId = ulong("channel_id")
     val messageId = ulong("message_id")
-z
+
     // true = user1, false = user2
     val is_user1_turn = bool("is_user1_turn")
 
