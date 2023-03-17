@@ -72,10 +72,10 @@ object Melijn {
             extensions {
                 helpExtensionBuilder.enableBundledExtension = false
 
-                val sexy = ReflectUtil.getInstanceOfKspClass<ExtensionInterface>(
+                val extensionModule = ReflectUtil.getInstanceOfKspClass<ExtensionInterface>(
                     "me.melijn.gen", "ExtensionAdderModule"
                 )
-                val list = sexy.list
+                val list = extensionModule.list
                 for (ex in list) add { ex }
             }
 

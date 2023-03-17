@@ -1,6 +1,8 @@
 package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
+import com.kotlindiscord.kord.extensions.commands.converters.impl.defaultingBoolean
+import com.kotlindiscord.kord.extensions.commands.converters.impl.int
 import com.kotlindiscord.kord.extensions.commands.converters.impl.long
 import com.kotlindiscord.kord.extensions.commands.converters.impl.string
 import com.kotlindiscord.kord.extensions.extensions.Extension
@@ -21,12 +23,15 @@ import org.koin.core.component.inject
 import org.scilab.forge.jlatexmath.TeXConstants
 import org.scilab.forge.jlatexmath.TeXFormula
 import java.awt.Color
+import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.util.*
 import javax.imageio.ImageIO
 import kotlin.math.*
+import kotlin.random.Random
 
 
 @KordExtension
@@ -35,6 +40,64 @@ class MathExtension : Extension() {
     override val name: String = "math"
 
     override suspend fun setup() {
+        chatCommand(::LineIntersectionsArgs) {
+            name = "lineIntersections"
+
+            action {
+                val size = 401
+                fun rand() = Random.nextInt(size)
+                val lines: List<Line> = buildList {
+                    repeat(arguments.lineCount) { add((rand() to rand()) to (rand() to rand())) }
+                }
+
+                // runthrough with line top to bottom.
+                val sorted = lines.sortedBy { (p1, p2) -> max(p1.second, p2.second) }
+                val pq = PriorityQueue<Pair<Int, EventInfo>> { o1, o2 -> o1.first.compareTo(o2.first) }
+                for (line in lines) {
+                    val (p1, p2) = line
+                    pq.add(p1.second to EventInfo(EventInfo.EventType.START, setOf(line)))
+                    pq.add(p2.second to EventInfo(EventInfo.EventType.END, setOf(line)))
+                }
+
+                val active = TreeMap<Double, Line>()
+
+//                for ((ey, info) in pq) {
+//                    if (info.eventType == EventInfo.EventType.START) {
+//                        for (line in lines)
+//                        active.put(line)
+//                    }
+//                }
+            }
+        }
+
+        chatCommand(::ConvexHullArgs) {
+            name = "convexHull"
+
+            action {
+                val size = 401
+                val points: List<Point> = buildList {
+                    repeat(arguments.pointCount) { add(Random.nextInt(size) to Random.nextInt(size)) }
+                }
+                if (arguments.pointCount < 3) {
+                    channel.createMessage { content = "perhaps think of a bigger number" }
+                    return@action
+                }
+                val canvasImg = ImageUtil.createSquare(size, Color.decode("#ffffff"))
+                val canvas = canvasImg.createGraphics()
+
+                // make convex top hull
+                drawConvexHalve(points, canvas, false)
+                drawConvexHalve(points, canvas, true)
+
+                canvas.dispose()
+
+                for ((x, y) in points) { canvasImg.setRGB(x, y, Color.RED.rgb) }
+                channel.createMessage {
+                    addFile("grid.png", ChannelProvider { canvasImg.toInputStream().toByteReadChannel() })
+                }
+            }
+        }
+
         chatCommand {
             name = "newtonSqrt"
 
@@ -76,7 +139,7 @@ class MathExtension : Extension() {
                     canvas.fillOval(drawX-2, 200-2, 5, 5)
                     canvas.dispose()
 
-                    addFile("grid.png", canvasImg.toInputStream())
+                    addFile("grid.png", ChannelProvider { canvasImg.toInputStream().toByteReadChannel() })
                     content = "Result ${function.name}: $findSquareNewtonsMethod"
                 }
             }
@@ -185,8 +248,50 @@ class MathExtension : Extension() {
                 }
             }
         }
+    }
 
+    data class EventInfo(
+        val eventType: EventType,
+        val lines: Set<Line>
+    ) {
+        enum class EventType {
+            START,
+            END,
+            INTERSECTION
+        }
+    }
 
+    fun drawConnectedPoints(canvas: Graphics2D, active: List<Point>) {
+        var prevPoint = active.first()
+        for (point in active.drop(1)) {
+            canvas.paint = Color.BLACK
+            canvas.drawLine(prevPoint.first, prevPoint.second, point.first, point.second)
+            prevPoint = point
+        }
+    }
+
+    private fun drawConvexHalve(points: List<Point>, canvas: Graphics2D, inverseRico: Boolean) {
+        val sortedX = points.sortedBy { it.first }
+        val active = mutableListOf(sortedX.first(), sortedX[1])
+        fun rico(left: Point, right: Point): Double {
+            val res = (right.second - left.second).toDouble() / (right.first - left.first).toDouble()
+            return if (inverseRico) -res else res
+        }
+        fun prevRico(): Double {
+            val last = active.last()
+            val secondToLast = active.dropLast(1).lastOrNull() ?: return (if (inverseRico) Double.MAX_VALUE else Double.MAX_VALUE)
+            return rico(secondToLast, last)
+        }
+
+        for (new in sortedX.drop(2)) {
+            // naar rechts draaien = rico goes down.
+            while (rico(active.last(), new) > prevRico()) { // LEFT TURN START PRUNING !!!
+                active.removeLast()
+            }
+            active.add(new)
+        }
+
+        drawConnectedPoints(canvas, active)
     }
 
     fun f(x: Double): Double {
@@ -280,7 +385,28 @@ class MathExtension : Extension() {
             description = "number 3"
         }
     }
-
+    inner class LineIntersectionsArgs : Arguments() {
+        val lineCount by int {
+            name = "lines"
+            description = "amount of lines"
+        }
+    }
+    inner class ConvexHullArgs : Arguments() {
+        val pointCount by int {
+            name = "points"
+            description = "amount of points"
+        }
+        val upper by defaultingBoolean {
+            name = "upper-half"
+            description = "True by default"
+            defaultValue = true
+        }
+        val lower = defaultingBoolean {
+            name = "lower-half"
+            description = "True by default"
+            defaultValue = true
+        }
+    }
     inner class TwoNumberArgs : Arguments() {
 
         val a = long {
@@ -293,3 +419,6 @@ class MathExtension : Extension() {
         }
     }
 }
+
+typealias Point = Pair<Int, Int>
+typealias Line = Pair<Point, Point>

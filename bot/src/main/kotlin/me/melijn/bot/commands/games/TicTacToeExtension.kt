@@ -15,7 +15,6 @@ import dev.kord.rest.builder.message.create.actionRow
 import dev.kord.rest.builder.message.modify.InteractionResponseModifyBuilder
 import dev.kord.rest.builder.message.modify.actionRow
 import kotlinx.datetime.Clock
-import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.BalanceManager
 import me.melijn.bot.database.manager.TicTacToeManager
 import me.melijn.bot.events.TICTACTOE_ACCEPT_BUTTON_ID
@@ -31,7 +30,7 @@ import me.melijn.gen.TicTacToePlayerData
 import org.postgresql.util.GT.tr
 import kotlin.random.Random
 
-@KordExtension
+//@KordExtension
 class TicTacToeExtension : Extension() {
 
     override val name: String = "tic-tac-toe"

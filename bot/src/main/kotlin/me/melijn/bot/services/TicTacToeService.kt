@@ -8,13 +8,11 @@ import dev.kord.core.entity.channel.GuildMessageChannel
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import me.melijn.ap.injector.Inject
-import me.melijn.bot.commands.games.TicTacToeExtension
 import me.melijn.bot.database.manager.BalanceManager
 import me.melijn.bot.database.manager.TicTacToeManager
 import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.kordkommons.async.RunnableTask
 import me.melijn.kordkommons.async.TaskManager
-import org.koin.core.component.getScopeId
 import kotlin.time.Duration.Companion.seconds
 
 val maxMoveDuration = 90.seconds
@@ -30,7 +28,7 @@ class TicTacToeService : Service("tic-tac-toe", maxMoveDuration.times(0), maxMov
         tttManager.deleteOlderGames(lastMoveCutoffMoment)
 
         TaskManager.async {
-            for (game in games) {
+            for (game in games) { // go over expired games
 
                 val kord by inject<Kord>()
                 val gameData = game.first
@@ -43,10 +41,9 @@ class TicTacToeService : Service("tic-tac-toe", maxMoveDuration.times(0), maxMov
                 if (message == null) continue // keep this after the delay so we don't spam fetch missing messages
                 // update the message
                 message.edit {
-                    if(gameData.)
-                    content = if (TicTacToeExtension.parseBoard(gameData.board).all { it == TicTacToeExtension.TTTState.EMPTY })
+                    content = if(gameData.is_user1_turn) "user1"
+                    else "user2"
                 }
-
 
                 // give the active player all the mel
                 val balanceManager by inject<BalanceManager>()
