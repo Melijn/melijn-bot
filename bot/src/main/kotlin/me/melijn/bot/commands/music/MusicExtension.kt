@@ -294,7 +294,7 @@ class MusicExtension : Extension() {
             }
 
             action {
-                val target = arguments.target.parsed
+                val target = arguments.target
                 val guild = guild!!
                 val trackManager = guild.getTrackManager()
                 if (tryJoinUser(trackManager.link)) return@action
@@ -696,7 +696,7 @@ class MusicExtension : Extension() {
 
     inner class FollowUserArgs : Arguments() {
 
-        val target = optionalMember {
+        val target by optionalMember {
             name = "target"
             description = "MusicPlayer will follow spotify status"
         }
@@ -705,7 +705,7 @@ class MusicExtension : Extension() {
     inner class SeekArgs : Arguments() {
 
         val time = shortTime {
-            name = "timeStamp"
+            name = "timestamp"
             description = "format mm:ss or hh:mm:ss (e.g. 1:35 for 1 minute 35 seconds)"
         }
     }
@@ -743,9 +743,9 @@ class MusicExtension : Extension() {
             description = "songName or link"
         }
         val queuePosition = optionalEnumChoice<QueuePosition> {
-            name = "queuePosition"
+            name = "queueposition"
             description = "Position the queued track will take"
-            typeName = "queuePosition"
+            typeName = "queueposition"
         }
     }
 
@@ -756,16 +756,16 @@ class MusicExtension : Extension() {
             description = "songName"
         }
         val queuePosition = optionalEnumChoice<QueuePosition> {
-            name = "queuePosition"
+            name = "queueposition"
             description = "Position the queued track will take"
-            typeName = "queuePosition"
+            typeName = "queueposition"
         }
     }
 
     inner class SkipArgs : Arguments() {
 
         val number = optionalInt {
-            name = "trackAmount"
+            name = "trackamount"
             description =
                 "Amount of track you want to skip, equal to the track index of the to play next track after skipping"
 
@@ -774,16 +774,16 @@ class MusicExtension : Extension() {
             }
         }
         val type = optionalEnumChoice<SkipType> {
-            name = "skipType"
+            name = "skiptype"
             description = "Hard won't requeue when looping, Soft will"
-            typeName = "skipType"
+            typeName = "skiptype"
         }
     }
 
     private class VCArgs : Arguments() {
 
         val channel = optionalChannel {
-            name = "voiceChannel"
+            name = "voicechannel"
             description = "Used for advanced summoning spells"
 
             validate {

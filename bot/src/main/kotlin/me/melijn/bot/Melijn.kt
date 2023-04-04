@@ -9,7 +9,6 @@ import com.kotlindiscord.kord.extensions.utils.getKoin
 import com.kotlindiscord.kord.extensions.utils.scheduling.TaskConfig
 import dev.minn.jda.ktx.jdabuilder.injectKTX
 import dev.schlaubi.lavakord.LavaKord
-import dev.schlaubi.lavakord.MutableLavaKordOptions
 import dev.schlaubi.lavakord.jda.LavaKordShardManager
 import dev.schlaubi.lavakord.jda.applyLavakord
 import dev.schlaubi.lavakord.jda.lavakord
@@ -35,6 +34,8 @@ import me.melijn.kordkommons.redis.RedisConfig
 import me.melijn.kordkommons.utils.ReflectUtil
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.sharding.ShardManager
+import net.dv8tion.jda.api.utils.MemberCachePolicy
+import net.dv8tion.jda.api.utils.cache.CacheFlag
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import java.net.InetAddress
@@ -61,6 +62,7 @@ object Melijn {
         val botInstance = ExtensibleBot(settings.api.discord.token) {
             val lShardManager = LavaKordShardManager()
             intents {
+//                addAll(GatewayIntent.getIntents(GatewayIntent.ALL_INTENTS))
                 add(GatewayIntent.DIRECT_MESSAGES)
                 add(GatewayIntent.GUILD_MEMBERS)
                 add(GatewayIntent.GUILD_MESSAGES)
@@ -68,11 +70,14 @@ object Melijn {
                 add(GatewayIntent.GUILD_EMOJIS_AND_STICKERS)
                 add(GatewayIntent.GUILD_MESSAGE_REACTIONS)
                 add(GatewayIntent.GUILD_PRESENCES)
+                add(GatewayIntent.GUILD_VOICE_STATES)
             }
 
             this.kord {
                 setShardsTotal(PodInfo.shardCount)
                 setShards(PodInfo.shardList)
+                enableCache(CacheFlag.VOICE_STATE, CacheFlag.ACTIVITY)
+                setMemberCachePolicy(MemberCachePolicy.DEFAULT)
                 injectKTX()
                 applyLavakord(lShardManager)
             }
@@ -89,7 +94,6 @@ object Melijn {
 
             hooks {
                 beforeKoinSetup {
-                    val koin = getKoin()
                     val objectMapper: ObjectMapper = jacksonObjectMapper()
                         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                     val driverManager = initDriverManager(settings)
@@ -103,8 +107,8 @@ object Melijn {
                 }
 
                 setup {
-
                     this.start()
+
                     val koin = getKoin()
                     HttpServer.startHttpServer()
                     val injectorInterface = ReflectUtil.getInstanceOfKspClass<InjectorInterface>(
@@ -117,8 +121,7 @@ object Melijn {
                     serviceManager.startAll()
 
                     val kord by koin.inject<ShardManager>()
-                    lavalink = kord.lavakord(lShardManager, TaskConfig.dispatcher, MutableLavaKordOptions()) {
-                        require(this is MutableLavaKordOptions)
+                    lavalink = kord.lavakord(lShardManager, TaskConfig.dispatcher) {
                         link {
                             autoReconnect = true
                             retry = RealLinearRetry(1.seconds, 60.seconds, Int.MAX_VALUE)

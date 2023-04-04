@@ -44,7 +44,7 @@ class TrackManager(val link: Link) {
 
     private suspend fun onTrackEnd(event: TrackEndEvent) {
         if (event.reason.mayStartNext)
-            nextTrack(event.track)
+            nextTrack(event.getTrack())
     }
 
     private suspend fun nextTrack(previousTrack: dev.schlaubi.lavakord.audio.player.Track?) {

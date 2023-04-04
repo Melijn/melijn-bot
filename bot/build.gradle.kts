@@ -49,7 +49,7 @@ val scrimage = "4.0.31"
 
 
 val jda = "5.0.0-beta.6"
-val kordEx = "1.5.5-SNAPSHOT"
+val kordEx = "1.5.6-SNAPSHOT"
 val kordKommons = "0.0.3-SNAPSHOT"
 
 dependencies {
@@ -61,7 +61,7 @@ dependencies {
     implementation("org.scilab.forge:jlatexmath:1.0.7")
 
 //    implementation("dev.schlaubi.lavakord", "kord", "3.8.0")
-    implementation("dev.schlaubi.lavakord", "jda", "3.8.0")
+    implementation("dev.schlaubi.lavakord", "jda", "4.0.0")
 //    implementation("dev.schlaubi.lavakord", "jda-java", "3.8.0")
 
     implementation("me.melijn.kommons:kommons:$kordKommons")

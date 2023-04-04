@@ -3,8 +3,8 @@ package me.melijn.bot.music
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import dev.minn.jda.ktx.coroutines.await
 import dev.schlaubi.lavakord.audio.RestNode
-import dev.schlaubi.lavakord.rest.TrackResponse
 import dev.schlaubi.lavakord.rest.loadItem
+import dev.schlaubi.lavakord.rest.models.TrackResponse
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.Melijn
 import me.melijn.bot.commands.DevExtension

@@ -346,9 +346,9 @@ class OsuExtension : Extension() {
         }
         val type by defaultingEnumChoice<ScoreType> {
             defaultValue = ScoreType.BEST
-            name = "Scoretype"
+            name = "scoretype"
             description = "the types of scores you want to fetch (default: ${defaultValue})"
-            typeName = "ScoreType"
+            typeName = "scoretype"
         }
         val offset by defaultingInt {
             defaultValue = 0

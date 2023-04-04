@@ -16,7 +16,6 @@ import me.melijn.gen.database.manager.AbstractBotRestartTrackEntryManager
 import me.melijn.gen.database.manager.AbstractBotRestartTrackQueueManager
 import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.utils.TimeUtil
-import net.dv8tion.jda.api.entities.UserSnowflake
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import me.melijn.bot.database.model.Track as DBTrack
@@ -30,11 +29,11 @@ class BotRestartTrackEntryManager(driverManager: DriverManager) : AbstractBotRes
     fun newTrack(guildId: Long, position: Int, track: Track) {
         val trackId = trackManager.storeMusicTrack(track)
 
-        val userFlake = track.data?.requester?.userFlake ?: UserSnowflake.fromId(settings.bot.id)
+        val userId = track.data?.requester?.idLong ?: settings.bot.id
         val utc = kotlinx.datetime.TimeZone.UTC
         val addedAt = track.data?.requestedAt?.toLocalDateTime(utc) ?: TimeUtil.localDateTimeNow()
 
-        store(BotRestartTrackEntryData(guildId, trackId, position, userFlake.idLong, addedAt))
+        store(BotRestartTrackEntryData(guildId, trackId, position, userId, addedAt))
     }
 
     fun getMelijnTracks(guildId: Long): List<Track> {
@@ -47,7 +46,7 @@ class BotRestartTrackEntryManager(driverManager: DriverManager) : AbstractBotRes
         val trackCollector = { it: ResultRow, trackType: TrackType ->
             val entryData = BotRestartTrackEntryData.fromResRow(it)
             val requester = PartialUser(
-                UserSnowflake.fromId(settings.bot.id),
+                settings.bot.id,
                 Settings.bot.username,
                 Settings.bot.discriminator,
                 null
