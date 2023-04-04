@@ -14,7 +14,7 @@ import net.dv8tion.jda.api.events.session.ReadyEvent
 import net.dv8tion.jda.api.sharding.ShardManager
 
 @Inject(true)
-class StartupService {
+class StartupListener {
 
     val logger by Log
 
