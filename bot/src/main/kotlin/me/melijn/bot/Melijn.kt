@@ -62,7 +62,6 @@ object Melijn {
         val botInstance = ExtensibleBot(settings.api.discord.token) {
             val lShardManager = LavaKordShardManager()
             intents {
-//                addAll(GatewayIntent.getIntents(GatewayIntent.ALL_INTENTS))
                 add(GatewayIntent.DIRECT_MESSAGES)
                 add(GatewayIntent.GUILD_MEMBERS)
                 add(GatewayIntent.GUILD_MESSAGES)
@@ -76,7 +75,7 @@ object Melijn {
             this.kord {
                 setShardsTotal(PodInfo.shardCount)
                 setShards(PodInfo.shardList)
-                enableCache(CacheFlag.VOICE_STATE, CacheFlag.ACTIVITY)
+                enableCache(CacheFlag.VOICE_STATE, CacheFlag.ACTIVITY, CacheFlag.EMOJI)
                 setMemberCachePolicy(MemberCachePolicy.DEFAULT)
                 injectKTX()
                 applyLavakord(lShardManager)

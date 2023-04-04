@@ -22,7 +22,9 @@ import dev.minn.jda.ktx.messages.MessageEdit
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.utils.JDAUtil.asTag
 import me.melijn.bot.utils.JDAUtil.toHex
+import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
+import me.melijn.bot.utils.StringsUtil.batchingJoinToString
 import me.melijn.bot.utils.TimeUtil.format
 import net.dv8tion.jda.api.entities.GuildVoiceState
 import net.dv8tion.jda.api.entities.Role
@@ -57,6 +59,24 @@ class UtilityExtension : Extension() {
                 respond {
                     avatarEmbed(translationsProvider, resolvedLocale.await(), target)
                 }
+            }
+        }
+
+        publicGuildSlashCommand {
+            name = "emotes"
+            description = "Shows you all the server emotes"
+            action {
+                this.guild!!.emojis
+                    .sortedBy { it.idLong }
+                    .batchingJoinToString(2000, "\n") {
+                        "${it.asMention} - (`${it.idLong}`) - ${it.name}"
+                    }.takeIf { it.isNotEmpty() }?.forEach {
+                        respond {
+                            content = it
+                        }
+                    } ?: respond {
+                        content = "No emojis"
+                    }
             }
         }
 
@@ -282,12 +302,12 @@ class UtilityExtension : Extension() {
             return ""
         }
         var list = ""
-        if (voiceState.isSelfDeafened) list += " <:deafened:964134465884553256>"
-        if (voiceState.isMuted) list += " <:server_muted:964134465880342578>"
-        if (voiceState.isDeafened) list += " <:server_deafened:964134465884545094>"
-        if (voiceState.isSelfMuted) list += " <:muted:964134465817440317>"
-        if (voiceState.isSendingVideo) list += " <:video:964140322336698398>"
-        if (voiceState.isStream) list += " <:screen_share:964141257595158588>"
+        if (voiceState.isSelfDeafened) list += " <:deafened:1092828247043084348>"
+        if (voiceState.isDeafened) list += " <:server_deafened:1092828229947109576>"
+        if (voiceState.isSelfMuted) list += " <:muted:1092828179372195920>"
+        if (voiceState.isMuted) list += " <:server_muted:1092828203892097164>"
+        if (voiceState.isSendingVideo) list += " <:video:1092828266127184096>"
+        if (voiceState.isStream) list += " <:screen_share:1092828281310560327>"
         return list
     }
 
@@ -360,21 +380,21 @@ class UtilityExtension : Extension() {
 
     private fun getBadge(flag: User.UserFlag): String {
         return when (flag) {
-            User.UserFlag.STAFF -> "<:furry:907322194156224542>"
-            User.UserFlag.PARTNER -> "<:partnered:907322256567447552>"
-            User.UserFlag.BUG_HUNTER_LEVEL_1 -> "<:no_life:907322130151141416>"
-            User.UserFlag.BUG_HUNTER_LEVEL_2 -> "<:no_life2:907322205917052978>"
-            User.UserFlag.HYPESQUAD -> "<:hypesquad_events_v1:907322220056023080>"
-            User.UserFlag.HYPESQUAD_BRAVERY -> "<:bravery:907322115454300190>"
-            User.UserFlag.HYPESQUAD_BRILLIANCE -> "<:brilliance:907322122580406332>"
-            User.UserFlag.HYPESQUAD_BALANCE -> "<:balance:907321974211108984>"
-            User.UserFlag.EARLY_SUPPORTER -> "<:early_supporter:907322161159626753>"
+            User.UserFlag.STAFF -> "<:furry:1092827519092273202>"
+            User.UserFlag.PARTNER -> "<:partnered:1092827597139869826>"
+            User.UserFlag.BUG_HUNTER_LEVEL_1 -> "<:bug_hunter:1092827225142853764>"
+            User.UserFlag.BUG_HUNTER_LEVEL_2 -> "<:gold_bughunter:1092827412116537394>"
+            User.UserFlag.HYPESQUAD -> "<:hypesquad_events_v1:1092827553330385030>"
+            User.UserFlag.HYPESQUAD_BRAVERY -> "<:bravery:1092827191303221268>"
+            User.UserFlag.HYPESQUAD_BRILLIANCE -> "<:brilliance:1092827209510686881>"
+            User.UserFlag.HYPESQUAD_BALANCE -> "<:balance:1092827173687132171>"
+            User.UserFlag.EARLY_SUPPORTER -> "<:early_supporter:1092827486267646063>"
             User.UserFlag.TEAM_USER -> "`team user`"
             User.UserFlag.VERIFIED_BOT -> "`verified bot`"
-            User.UserFlag.VERIFIED_DEVELOPER -> "<:verified_code_slave:907322174329716818>"
-            User.UserFlag.CERTIFIED_MODERATOR -> "<:certified_virgin:907322144109756426>"
+            User.UserFlag.VERIFIED_DEVELOPER -> "<:early_verified_developer:1092827503992778810>"
+            User.UserFlag.CERTIFIED_MODERATOR -> "<:discordmod:1092828064410501161>"
             User.UserFlag.BOT_HTTP_INTERACTIONS -> "`http bot`"
-            User.UserFlag.ACTIVE_DEVELOPER -> "<:code_slave:>"
+            User.UserFlag.ACTIVE_DEVELOPER -> "<:activedeveloper:1092834795609935923>"
             User.UserFlag.UNKNOWN -> "`\uD83E\uDE78`"
         }
     }
