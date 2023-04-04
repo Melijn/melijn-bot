@@ -11,6 +11,9 @@ class SpotifyAuthRefreshService : Service("spotify", 0.minutes, 25.minutes) {
 
     private val webManager by inject<WebManager>()
     override val service: RunnableTask = RunnableTask {
-        webManager.spotifyApi?.updateSpotifyCredentials()
+        val spotifyApi = webManager.spotifyApi ?: return@RunnableTask
+        spotifyApi.updateSpotifyCredentials()
+        val token = spotifyApi.getToken()
+        logger.info { "Updated spotify credentials. new token: $token" }
     }
 }

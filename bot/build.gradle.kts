@@ -39,7 +39,7 @@ repositories {
     maven("https://nexus.melijn.com/repository/jitpack/")
 }
 
-val jackson = "2.13.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+val jackson = "2.14.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
 
 val ktor = "2.0.3"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 val apollo = "3.7.1" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
@@ -108,7 +108,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.0.1")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.5.0")
+    implementation("org.postgresql:postgresql:42.6.0")
 
     // expiring map, https://search.maven.org/artifact/net.jodah/expiringmap
     implementation("net.jodah:expiringmap:0.5.10")
@@ -130,7 +130,7 @@ dependencies {
     implementation("se.michaelthelin.spotify:spotify-web-api-java:8.0.0")
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-    implementation("ch.qos.logback:logback-classic:1.4.5")
+    implementation("ch.qos.logback:logback-classic:1.4.6")
 
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
@@ -162,7 +162,7 @@ dependencies {
     implementation("com.sksamuel.scrimage:scrimage-formats-extra:$scrimage")
 
     // https://nexus.melijn.com/#browse/browse:maven-public:me%2Fmelijn%2Fjikankt
-//    implementation("me.melijn.jikankt:JikanKt:1.3.2")
+    // implementation("me.melijn.jikankt:JikanKt:1.3.2")
 
     // https://mvnrepository.com/artifact/org.mariuszgromada.math/MathParser.org-mXparser
     implementation("org.mariuszgromada.math:MathParser.org-mXparser:5.2.1")
@@ -171,10 +171,10 @@ dependencies {
     implementation("com.apollographql.apollo3:apollo-runtime:$apollo")
 
     // https://mvnrepository.com/artifact/io.lettuce/lettuce-core
-    implementation("io.lettuce:lettuce-core:6.2.0.RELEASE")
+    implementation("io.lettuce:lettuce-core:6.2.3.RELEASE")
 
     // https://github.com/cdimascio/dotenv-kotlin
-    implementation("io.github.cdimascio:dotenv-kotlin:6.2.2")
+    implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
 
     // https://github.com/furstenheim/copy-down
     implementation("io.github.furstenheim:copy_down:1.0")
