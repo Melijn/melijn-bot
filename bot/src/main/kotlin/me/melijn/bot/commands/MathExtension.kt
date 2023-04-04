@@ -7,18 +7,14 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.long
 import com.kotlindiscord.kord.extensions.commands.converters.impl.string
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
-import dev.kord.common.entity.ButtonStyle
-import dev.kord.core.behavior.channel.createEmbed
-import dev.kord.core.behavior.channel.createMessage
-import dev.kord.rest.builder.message.create.actionRow
-import io.ktor.client.request.forms.*
-import io.ktor.utils.io.jvm.javaio.*
+import dev.minn.jda.ktx.interactions.components.danger
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.cache.ButtonCache
 import me.melijn.bot.events.LATEX_DESTROY_BUTTON_ID
 import me.melijn.bot.model.AbstractOwnedMessage
 import me.melijn.bot.utils.ImageUtil
 import me.melijn.bot.utils.ImageUtil.toInputStream
+import net.dv8tion.jda.api.utils.AttachedFile
 import org.koin.core.component.inject
 import org.scilab.forge.jlatexmath.TeXConstants
 import org.scilab.forge.jlatexmath.TeXFormula
@@ -93,7 +89,7 @@ class MathExtension : Extension() {
 
                 for ((x, y) in points) { canvasImg.setRGB(x, y, Color.RED.rgb) }
                 channel.createMessage {
-                    addFile("grid.png", ChannelProvider { canvasImg.toInputStream().toByteReadChannel() })
+                    this.files += AttachedFile.fromData(canvasImg.toInputStream(), "grid.png")
                 }
             }
         }
@@ -139,7 +135,7 @@ class MathExtension : Extension() {
                     canvas.fillOval(drawX-2, 200-2, 5, 5)
                     canvas.dispose()
 
-                    addFile("grid.png", ChannelProvider { canvasImg.toInputStream().toByteReadChannel() })
+                    this.files += AttachedFile.fromData(canvasImg.toInputStream(), "grid.png")
                     content = "Result ${function.name}: $findSquareNewtonsMethod"
                 }
             }
@@ -209,15 +205,12 @@ class MathExtension : Extension() {
                 val bis = ByteArrayInputStream(baos.toByteArray())
 
                 val sent = channel.createMessage {
-                    addFile("img.png", ChannelProvider { bis.toByteReadChannel() })
-                    actionRow {
-                        interactionButton(ButtonStyle.Danger, LATEX_DESTROY_BUTTON_ID) {
-                            label = "Destroy"
-                        }
-                    }
+                    files += AttachedFile.fromData(bis, "img.png")
+
+                    danger(LATEX_DESTROY_BUTTON_ID, "Destroy")
                 }
 
-                buttonCache.latexButtonOwners[AbstractOwnedMessage.from(guild, user!!, sent)] = true
+                buttonCache.latexButtonOwners[AbstractOwnedMessage.from(guild, user, sent)] = true
             }
         }
 

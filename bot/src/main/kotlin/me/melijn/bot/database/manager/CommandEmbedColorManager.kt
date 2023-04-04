@@ -1,10 +1,10 @@
 package me.melijn.bot.database.manager
 
-import dev.kord.common.Color
-import dev.kord.common.entity.Snowflake
 import me.melijn.ap.injector.Inject
 import me.melijn.gen.database.manager.AbstractCommandEmbedColorManager
 import me.melijn.kordkommons.database.DriverManager
+import net.dv8tion.jda.api.entities.ISnowflake
+import java.awt.Color
 
 @Inject
 class CommandEmbedColorManager(driverManager: DriverManager) : AbstractCommandEmbedColorManager(driverManager) {
@@ -12,8 +12,8 @@ class CommandEmbedColorManager(driverManager: DriverManager) : AbstractCommandEm
     /**
      * @param entityId guildId or userId
      */
-    suspend fun getColor(entityId: Snowflake): Color? {
-        val data = getCachedById(entityId.value)
+    suspend fun getColor(entityId: ISnowflake): Color? {
+        val data = getCachedById(entityId.idLong)
         return data?.color?.let { Color(it) }
     }
 }

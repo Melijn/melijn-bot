@@ -1,6 +1,5 @@
 package me.melijn.bot.database.manager
 
-import dev.kord.common.entity.Snowflake
 import kotlinx.datetime.toLocalDateTime
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.database.model.BotRestartTrackEntry
@@ -17,6 +16,7 @@ import me.melijn.gen.database.manager.AbstractBotRestartTrackEntryManager
 import me.melijn.gen.database.manager.AbstractBotRestartTrackQueueManager
 import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.utils.TimeUtil
+import net.dv8tion.jda.api.entities.UserSnowflake
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import me.melijn.bot.database.model.Track as DBTrack
@@ -27,17 +27,17 @@ class BotRestartTrackEntryManager(driverManager: DriverManager) : AbstractBotRes
     private val trackManager by inject<TrackManager>()
     private val settings by inject<Settings>()
 
-    fun newTrack(guildId: ULong, position: Int, track: Track) {
+    fun newTrack(guildId: Long, position: Int, track: Track) {
         val trackId = trackManager.storeMusicTrack(track)
 
-        val userId = track.data?.requester?.idULong ?: settings.bot.id.toULong()
+        val userFlake = track.data?.requester?.userFlake ?: UserSnowflake.fromId(settings.bot.id)
         val utc = kotlinx.datetime.TimeZone.UTC
         val addedAt = track.data?.requestedAt?.toLocalDateTime(utc) ?: TimeUtil.localDateTimeNow()
 
-        store(BotRestartTrackEntryData(guildId, trackId, position, userId, addedAt))
+        store(BotRestartTrackEntryData(guildId, trackId, position, userFlake.idLong, addedAt))
     }
 
-    fun getMelijnTracks(guildId: ULong): List<Track> {
+    fun getMelijnTracks(guildId: Long): List<Track> {
         val sortableTracks = mutableListOf<Pair<BotRestartTrackEntryData, Track>>()
         val where = { trackType: TrackType ->
             DBTrack.trackType.eq(trackType)
@@ -47,7 +47,7 @@ class BotRestartTrackEntryManager(driverManager: DriverManager) : AbstractBotRes
         val trackCollector = { it: ResultRow, trackType: TrackType ->
             val entryData = BotRestartTrackEntryData.fromResRow(it)
             val requester = PartialUser(
-                Snowflake(settings.bot.id),
+                UserSnowflake.fromId(settings.bot.id),
                 Settings.bot.username,
                 Settings.bot.discriminator,
                 null
@@ -94,7 +94,7 @@ class BotRestartTrackQueueManager(driverManager: DriverManager) : AbstractBotRes
 }
 
 class PodCheckOp(
-    private val guildIdColumn: ExpressionWithColumnType<ULong>,
+    private val guildIdColumn: ExpressionWithColumnType<Long>,
     private val shardId: Int
 ) : Op<Boolean>() {
 

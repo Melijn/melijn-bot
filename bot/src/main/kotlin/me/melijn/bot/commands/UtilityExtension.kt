@@ -16,32 +16,21 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.extensions.publicUserCommand
 import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
 import com.kotlindiscord.kord.extensions.types.respond
-import com.kotlindiscord.kord.extensions.utils.canInteract
-import com.kotlindiscord.kord.extensions.utils.selfMember
-import dev.kord.common.DiscordTimestampStyle
-import dev.kord.common.entity.UserFlag
-import dev.kord.common.toMessageFormat
-import dev.kord.core.behavior.interaction.followup.edit
-import dev.kord.core.entity.User
-import dev.kord.core.entity.VoiceState
-import dev.kord.core.entity.channel.Category
-import dev.kord.core.entity.channel.TextChannel
-import dev.kord.core.entity.channel.VoiceChannel
-import dev.kord.core.supplier.EntitySupplyStrategy
-import dev.kord.rest.Image
-import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
-import dev.kord.rest.builder.message.create.embed
-import dev.kord.rest.builder.message.modify.embed
-import kotlinx.coroutines.flow.count
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.toList
+import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.InlineMessage
+import dev.minn.jda.ktx.messages.MessageEdit
 import me.melijn.apkordex.command.KordExtension
+import me.melijn.bot.utils.JDAUtil.asTag
+import me.melijn.bot.utils.JDAUtil.toHex
 import me.melijn.bot.utils.KordExUtils.tr
-import me.melijn.bot.utils.KordUtil.bannerUrl
-import me.melijn.bot.utils.KordUtil.effectiveAvatarUrl
-import me.melijn.bot.utils.KordUtil.iconUrl
-import me.melijn.bot.utils.KordUtil.splashUrl
+import me.melijn.bot.utils.TimeUtil.format
+import net.dv8tion.jda.api.entities.GuildVoiceState
+import net.dv8tion.jda.api.entities.Role
+import net.dv8tion.jda.api.entities.User
+import net.dv8tion.jda.api.utils.TimeFormat
+import net.dv8tion.jda.api.utils.messages.MessageCreateData
 import org.koin.core.component.inject
+import java.awt.Color
 import java.util.*
 
 
@@ -55,18 +44,18 @@ class UtilityExtension : Extension() {
             name = "avatar"
             description = "Shows avatar"
             action {
-                val target = (arguments.target.parsed ?: this.user).asUser()
+                val target = (arguments.target.parsed ?: this.user)
                 respond {
-                    avatarEmbed(translationsProvider, getLocale(), target)
+                    avatarEmbed(translationsProvider, resolvedLocale.await(), target)
                 }
             }
         }
         publicUserCommand {
             name = "avatar"
             action {
-                val target = this.targetUsers.first()
+                val target = this.target
                 respond {
-                    avatarEmbed(translationsProvider, getLocale(), target)
+                    avatarEmbed(translationsProvider, resolvedLocale.await(), target)
                 }
             }
         }
@@ -76,24 +65,30 @@ class UtilityExtension : Extension() {
             description = "gives roleInfo"
             action {
                 val role = arguments.role.parsed
-                val hex = java.lang.String.format("#%02x%02x%02x", role.color.red, role.color.green, role.color.blue)
+                val roleColor = role.color ?: Color(Role.DEFAULT_COLOR_RAW)
+                val hex = roleColor.toHex()
                 respond {
                     embed {
                         title = tr("roleInfo.infoTitle")
                         description = tr(
                             "roleInfo.infoDescription", role.name, role.id,
-                            role.id.timestamp.toMessageFormat(DiscordTimestampStyle.ShortDateTime), role.rawPosition,
-                            role.guild.roles.count(), role.mentionable, role.hoisted, role.managed,
-                            role.color.rgb.toString(), hex.uppercase(),
-                            "RGB(${role.color.red}, ${role.color.green}, ${role.color.blue})",
-                            role.guild.selfMember().canInteract(role)
+                            TimeFormat.DATE_TIME_SHORT.format(role),
+                            role.positionRaw,
+                            role.guild.roles.count(), role.isMentionable, role.isHoisted, role.isManaged,
+                            roleColor.rgb.toString(), hex.uppercase(),
+                            "RGB(${roleColor.red}, ${roleColor.green}, ${roleColor.blue})",
+                            role.guild.selfMember.canInteract(role)
                         )
-                        color = role.color
-                        role.icon?.url?.let {
-                            thumbnail { url = it }
-                        }
-                        role.unicodeEmoji?.let {
-                            thumbnail { url = Emojis.ofUnicode(it).getTwemojiImageUrl(TwemojiType.X72) }
+                        color = roleColor.rgb
+
+                        // Thumbnail
+                        role.icon?.let {
+                            val emoji = it.emoji
+                            thumbnail = if (emoji != null) {
+                                Emojis.ofUnicode(emoji).getTwemojiImageUrl(TwemojiType.X72)
+                            } else {
+                                it.iconUrl
+                            }
                         }
                     }
                 }
@@ -109,38 +104,35 @@ class UtilityExtension : Extension() {
             }
 
             action {
-                val user = arguments.user.parsed ?: this.user.asUser()
+                val user = arguments.user.parsed ?: this.user
                 val guild = guild!!
-                val member = user.asMember(guild.id)
+                val member = guild.retrieveMember(user).await()
                 val isSupporter = false
-                val banner = user.withStrategy(EntitySupplyStrategy.rest).fetchUser().getBannerUrl(Image.Format.PNG)
-                    ?.plus("?size=2048")
-                val voiceState = member.getVoiceStateOrNull()
+                val profile = user.retrieveProfile().await()
+                val voiceState = member.voiceState
                 val statusIconString = getStatusIcons(voiceState)
                 respond {
                     embed {
-                        description = tr("userInfo.userInfoSection", user.username, user.discriminator,
-                            user.id, user.isBot, isSupporter, user.effectiveAvatarUrl(),
-                            banner != null, banner.toString(),
-                            user.id.timestamp.toMessageFormat(DiscordTimestampStyle.ShortDateTime),
-                            user.publicFlags?.flags?.joinToString(separator = " ") { getBadge(it) } ?: "")
+                        description = tr("userInfo.userInfoSection", user.name, user.discriminator,
+                            user.id, user.isBot, isSupporter, user.effectiveAvatarUrl,
+                            profile.banner != null, profile.bannerUrl,
+                            TimeFormat.DATE_TIME_SHORT.format(user),
+                            user.flags.joinToString(separator = " ") { getBadge(it) })
                         val roleString = member.roles.toList()
-                            .sortedBy { it.rawPosition }
+                            .sortedBy { it.positionRaw }
                             .reversed()
                             .joinToString {
-                                it.mention
+                                it.asMention
                             }
                         description += tr(
                             "userInfo.memberInfoSection", roleString,
                             member.nickname ?: "",
-                            member.isOwner(),
-                            member.joinedAt.toMessageFormat(DiscordTimestampStyle.ShortDateTime),
-                            member.premiumSince?.toMessageFormat(DiscordTimestampStyle.ShortDateTime) ?: "",
-                            voiceState?.channelId != null, statusIconString, guild.selfMember().canInteract(member)
+                            member.isOwner,
+                            TimeFormat.DATE_TIME_SHORT.format(member.timeJoined),
+                            member.timeBoosted?.let { TimeFormat.DATE_TIME_SHORT.format(it) } ?: "",
+                            voiceState?.inAudioChannel(), statusIconString, guild.selfMember.canInteract(member)
                         )
-                        thumbnail {
-                            url = user.effectiveAvatarUrl()
-                        }
+                        thumbnail = user.effectiveAvatarUrl
                     }
                 }
             }
@@ -151,40 +143,39 @@ class UtilityExtension : Extension() {
             description = "gives information about the server"
             action {
                 val guild =
-                    arguments.serverId.parsed?.let { this@UtilityExtension.kord.getGuildOrNull(it) } ?: this.guild?.asGuild()
+                    arguments.serverId.parsed?.let { this@UtilityExtension.shardManager.getGuildById(it.id) }
+                        ?: this.guild
                 if (guild == null) {
                     respond { content = tr("serverInfo.guildOnlyOrArgumentPassed") }
                     return@action
                 }
-                val memberCount = guild.memberCount ?: 0
-                val userCount = guild.members.filter { !it.isBot }.count()
+                val memberCount = guild.memberCount
+                val userCount = guild.members.count { !it.user.isBot }
                 val botCount = guild.members.count() - userCount
-                val iconUrl = guild.iconUrl()
-                val bannerUrl = guild.bannerUrl()
-                val splashUrl = guild.splashUrl()
+                val iconUrl = guild.iconUrl
+                val bannerUrl = guild.bannerUrl
+                val splashUrl = guild.splashUrl
                 respond {
                     embed {
-                        thumbnail {
-                            url = iconUrl.toString()
-                        }
+                        thumbnail = iconUrl.toString()
                         description = tr(
                             "serverInfo.responseDescription", guild.name, guild.id,
-                            guild.owner.asUser().tag,
-                            guild.id.timestamp.toMessageFormat(DiscordTimestampStyle.ShortDateTime),
-                            tr("serverVerificationLevel", guild.verificationLevel.value),
-                            tr("serverMFATier", guild.mfaLevel.value),
-                            tr("serverContentFilterLevel", guild.contentFilter.value),
-                            tr("serverNSFWLevel", guild.nsfw.value),
+                            guild.owner?.asTag,
+                            TimeFormat.DATE_TIME_SHORT.format(guild),
+                            tr("serverVerificationLevel", guild.verificationLevel),
+                            tr("serverMFATier", guild.requiredMFALevel),
+                            tr("serverContentFilterLevel", guild.explicitContentLevel),
+                            tr("serverNSFWLevel", guild.nsfwLevel),
                             true,
                             memberCount,
                             userCount, userCount.toFloat() / memberCount * 100,
                             botCount, botCount.toFloat() / memberCount * 100,
-                            guild.premiumSubscriptionCount ?: 0,
-                            tr("serverBoostTier", guild.premiumTier.value),
-                            guild.roles.count(),
-                            guild.channels.filter { it is TextChannel }.count(),
-                            guild.channels.filter { it is VoiceChannel }.count(),
-                            guild.channels.filter { it is Category }.count(),
+                            guild.boostCount,
+                            tr("serverBoostTier", guild.boostTier),
+                            guild.roles.size,
+                            guild.textChannels.size,
+                            guild.voiceChannels.size,
+                            guild.categories.size,
                             iconUrl != null, iconUrl.toString(), bannerUrl != null, bannerUrl.toString(),
                             splashUrl != null, splashUrl.toString()
                         )
@@ -197,13 +188,13 @@ class UtilityExtension : Extension() {
             name = "idinfo"
             description = "Shows timestamp"
             action {
-                val id = this.arguments.id.parsed
-                val millis = id.timestamp.toEpochMilliseconds()
+                val id = this.arguments.id
+
                 respond {
                     content = tr(
                         "idInfo.info",
-                        id.timestamp.toMessageFormat(DiscordTimestampStyle.ShortDateTime),
-                        millis.toString()
+                        TimeFormat.DATE_TIME_SHORT.format(id.getTimeCreated()),
+                        id.getTimeCreated().toInstant().toEpochMilli().toString()
                     )
                 }
             }
@@ -218,10 +209,10 @@ class UtilityExtension : Extension() {
             action {
                 respond {
                     embed {
-                        thumbnail {
-                            url =
-                                "https://cdn.discordapp.com/avatars/368362411591204865/9326b331e0e42f185318bb305fdaa950.png"
-                        }
+
+                        thumbnail =
+                            "https://cdn.discordapp.com/avatars/368362411591204865/9326b331e0e42f185318bb305fdaa950.png"
+
                         field {
                             name = tr("info.aboutFieldTitle")
                             value = tr(
@@ -255,39 +246,38 @@ class UtilityExtension : Extension() {
         publicSlashCommand {
             name = "ping"
             description = "bot latency"
-            val kord = kord
             action {
                 val timeStamp1 = System.currentTimeMillis()
                 val msg = respond {
                     embed {
                         title = tr("ping.title")
-                        description = tr("ping.gatewayPing", kord.gateway.averagePing?.inWholeMilliseconds ?: 0)
+                        description = tr("ping.gatewayPing", shardManager.averageGatewayPing)
                     }
                 }
                 val timeStamp2 = System.currentTimeMillis()
                 val sendMessagePing = timeStamp2 - timeStamp1
-                val edited = msg.edit {
+                val edited = msg.editMessage(MessageEdit {
                     embed {
                         title = tr("ping.title")
-                        description = msg.message.embeds.first().description + "\n" +
-                            tr("ping.sendMessagePing", sendMessagePing)
+                        description = msg.embeds.first().description + "\n" +
+                                tr("ping.sendMessagePing", sendMessagePing)
                     }
-                }
+                }).await()
                 val timeStamp3 = System.currentTimeMillis()
                 val editMessagePing = timeStamp3 - timeStamp2
-                msg.edit {
+                msg.editMessage(MessageEdit {
                     embed {
                         title = tr("ping.title")
-                        description = edited.message.embeds.first().description + "\n" +
-                            tr("ping.editMessagePing", editMessagePing)
+                        description = edited.embeds.first().description + "\n" +
+                                tr("ping.editMessagePing", editMessagePing)
                     }
-                }
+                }).await()
             }
         }
     }
 
 
-    private fun getStatusIcons(voiceState: VoiceState?): String {
+    private fun getStatusIcons(voiceState: GuildVoiceState?): String {
         if (voiceState == null) {
             return ""
         }
@@ -296,29 +286,29 @@ class UtilityExtension : Extension() {
         if (voiceState.isMuted) list += " <:server_muted:964134465880342578>"
         if (voiceState.isDeafened) list += " <:server_deafened:964134465884545094>"
         if (voiceState.isSelfMuted) list += " <:muted:964134465817440317>"
-        if (voiceState.isSelfVideo) list += " <:video:964140322336698398>"
-        if (voiceState.isSelfStreaming) list += " <:screen_share:964141257595158588>"
+        if (voiceState.isSendingVideo) list += " <:video:964140322336698398>"
+        if (voiceState.isStream) list += " <:screen_share:964141257595158588>"
         return list
     }
 
-    private fun FollowupMessageCreateBuilder.avatarEmbed(
+    private fun InlineMessage<MessageCreateData>.avatarEmbed(
         translationsProvider: TranslationsProvider,
         locale: Locale,
         target: User
     ) {
         embed {
-            title = translationsProvider.tr("avatar.title", locale, target.tag)
+            title = translationsProvider.tr("avatar.title", locale, target.asTag)
             description = translationsProvider.tr(
                 "avatar.description", locale, " **" +
-                    "[direct](${target.effectiveAvatarUrl()}) • " +
-                    "[x64](${target.effectiveAvatarUrl()}?size=64) • " +
-                    "[x128](${target.effectiveAvatarUrl()}?size=128) • " +
-                    "[x256](${target.effectiveAvatarUrl()}?size=256) • " +
-                    "[x512](${target.effectiveAvatarUrl()}?size=512) • " +
-                    "[x1024](${target.effectiveAvatarUrl()}?size=1024) • " +
-                    "[x2048](${target.effectiveAvatarUrl()}?size=2048)**"
+                        "[direct](${target.effectiveAvatarUrl}) • " +
+                        "[x64](${target.effectiveAvatarUrl}?size=64) • " +
+                        "[x128](${target.effectiveAvatarUrl}?size=128) • " +
+                        "[x256](${target.effectiveAvatarUrl}?size=256) • " +
+                        "[x512](${target.effectiveAvatarUrl}?size=512) • " +
+                        "[x1024](${target.effectiveAvatarUrl}?size=1024) • " +
+                        "[x2048](${target.effectiveAvatarUrl}?size=2048)**"
             )
-            image = target.effectiveAvatarUrl() + "?size=2048"
+            image = target.effectiveAvatarUrl + "?size=2048"
         }
     }
 
@@ -333,12 +323,12 @@ class UtilityExtension : Extension() {
     inner class ServerInfoArgs : Arguments() {
 
         val serverId = optionalSnowflake {
-            name = "serverId"
+            name = "serverid"
             description = "Id of the server"
             validate {
                 val betterValue = value ?: return@validate
                 failIf(message = tr("arguments.guildId.noGuild")) {
-                    kord.getGuildOrNull(betterValue) == null
+                    shardManager.getGuildById(betterValue.id) == null
                 }
             }
         }
@@ -346,7 +336,7 @@ class UtilityExtension : Extension() {
 
     inner class IdInfoArgs : Arguments() {
 
-        val id = snowflake {
+        val id by snowflake {
             name = "id"
             description = "id"
         }
@@ -368,24 +358,24 @@ class UtilityExtension : Extension() {
         }
     }
 
-    private fun getBadge(flag: UserFlag): String {
+    private fun getBadge(flag: User.UserFlag): String {
         return when (flag) {
-            UserFlag.DiscordEmployee -> "<:furry:907322194156224542>"
-            UserFlag.DiscordPartner -> "<:partnered:907322256567447552>"
-            UserFlag.BugHunterLevel1 -> "<:bug_hunter:907322130151141416>"
-            UserFlag.BugHunterLevel2 -> "<:gold_bughunter:907322205917052978>"
-            UserFlag.HypeSquad -> "<:hypesquad_events_v1:907322220056023080>"
-            UserFlag.HouseBravery -> "<:bravery:907322115454300190>"
-            UserFlag.HouseBrilliance -> "<:brilliance:907322122580406332>"
-            UserFlag.HouseBalance -> "<:balance:907321974211108984>"
-            UserFlag.EarlySupporter -> "<:early_supporter:907322161159626753>"
-            UserFlag.TeamUser -> "`team user`"
-            UserFlag.VerifiedBot -> "`verified bot`"
-            UserFlag.VerifiedBotDeveloper -> "<:early_verified_developer:907322174329716818>"
-            UserFlag.DiscordCertifiedModerator -> "<:certified_virgin:907322144109756426>"
-            UserFlag.BotHttpInteractions -> "`http bot`"
-            UserFlag.System -> "`System User`"
-//            UserFlag.ActiveDeveloper -> "`Active developer`"
+            User.UserFlag.STAFF -> "<:furry:907322194156224542>"
+            User.UserFlag.PARTNER -> "<:partnered:907322256567447552>"
+            User.UserFlag.BUG_HUNTER_LEVEL_1 -> "<:no_life:907322130151141416>"
+            User.UserFlag.BUG_HUNTER_LEVEL_2 -> "<:no_life2:907322205917052978>"
+            User.UserFlag.HYPESQUAD -> "<:hypesquad_events_v1:907322220056023080>"
+            User.UserFlag.HYPESQUAD_BRAVERY -> "<:bravery:907322115454300190>"
+            User.UserFlag.HYPESQUAD_BRILLIANCE -> "<:brilliance:907322122580406332>"
+            User.UserFlag.HYPESQUAD_BALANCE -> "<:balance:907321974211108984>"
+            User.UserFlag.EARLY_SUPPORTER -> "<:early_supporter:907322161159626753>"
+            User.UserFlag.TEAM_USER -> "`team user`"
+            User.UserFlag.VERIFIED_BOT -> "`verified bot`"
+            User.UserFlag.VERIFIED_DEVELOPER -> "<:verified_code_slave:907322174329716818>"
+            User.UserFlag.CERTIFIED_MODERATOR -> "<:certified_virgin:907322144109756426>"
+            User.UserFlag.BOT_HTTP_INTERACTIONS -> "`http bot`"
+            User.UserFlag.ACTIVE_DEVELOPER -> "<:code_slave:>"
+            User.UserFlag.UNKNOWN -> "`\uD83E\uDE78`"
         }
     }
 }

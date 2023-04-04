@@ -10,9 +10,9 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 @Cacheable
 object UsageHistory : Table("usage_history") {
 
-    val guildId = ulong("guild_id").nullable()
-    val channelId = ulong("channel_id")
-    val userId = ulong("user_id")
+    val guildId = long("guild_id").nullable()
+    val channelId = long("channel_id")
+    val userId = long("user_id")
     val commandId = integer("command_id")
     val moment = timestamp("moment")
 
@@ -38,7 +38,7 @@ object UsageHistory : Table("usage_history") {
 @Cacheable
 object UserCommandCooldown : Table("user_command_cooldown") {
 
-    val userId = ulong("user_id")
+    val userId = long("user_id")
     val commandId = integer("command_id")
     val until = long("until")
 
@@ -48,7 +48,7 @@ object UserCommandCooldown : Table("user_command_cooldown") {
 @Cacheable
 object UserCommandUseLimitHistory : Table("user_command_use_limit_history") {
 
-    val userId = ulong("user_id")
+    val userId = long("user_id")
     val commandId = integer("command_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
@@ -71,7 +71,7 @@ enum class UseLimitHitType {
 @Cacheable
 object UserCooldown : Table("user_cooldown") {
 
-    val userId = ulong("user_id")
+    val userId = long("user_id")
     val until = long("until")
 
     override val primaryKey: PrimaryKey = PrimaryKey(userId)
@@ -80,7 +80,7 @@ object UserCooldown : Table("user_cooldown") {
 @Cacheable
 object UserUseLimitHistory : Table("user_use_limit_history") {
 
-    val userId = ulong("user_id")
+    val userId = long("user_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
 
@@ -97,8 +97,8 @@ object UserUseLimitHistory : Table("user_use_limit_history") {
 @Cacheable
 object ChannelCooldown : Table("channel_cooldown") {
 
-    val channelId = ulong("channel_id")
-    val guildId = ulong("guild_id").nullable()
+    val channelId = long("channel_id")
+    val guildId = long("guild_id").nullable()
     val until = long("until")
 
     override val primaryKey: PrimaryKey = PrimaryKey(channelId)
@@ -107,8 +107,8 @@ object ChannelCooldown : Table("channel_cooldown") {
 @Cacheable
 object ChannelUseLimitHistory : Table("channel_use_limit_history") {
 
-    val channelId = ulong("channel_id")
-    val guildId = ulong("guild_id").nullable()
+    val channelId = long("channel_id")
+    val guildId = long("guild_id").nullable()
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
 
@@ -124,7 +124,7 @@ object ChannelUseLimitHistory : Table("channel_use_limit_history") {
 @Cacheable
 object GuildCooldown : Table("guild_cooldown") {
 
-    val guildId = ulong("guild_id")
+    val guildId = long("guild_id")
     val until = long("until")
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId)
@@ -134,7 +134,7 @@ object GuildCooldown : Table("guild_cooldown") {
 @Cacheable
 object GuildUseLimitHistory : Table("guild_use_limit_history") {
 
-    val guildId = ulong("guild_id")
+    val guildId = long("guild_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
 
@@ -151,8 +151,8 @@ object GuildUseLimitHistory : Table("guild_use_limit_history") {
 @Cacheable
 object GuildUserCooldown : Table("guild_user_cooldown") {
 
-    val guildId = ulong("guild_id")
-    val userId = ulong("user_id")
+    val guildId = long("guild_id")
+    val userId = long("user_id")
     val until = long("until")
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId)
@@ -162,8 +162,8 @@ object GuildUserCooldown : Table("guild_user_cooldown") {
 @Cacheable
 object GuildUserUseLimitHistory : Table("guild_user_use_limit_history") {
 
-    val guildId = ulong("guild_id")
-    val userId = ulong("user_id")
+    val guildId = long("guild_id")
+    val userId = long("user_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
 
@@ -179,8 +179,8 @@ object GuildUserUseLimitHistory : Table("guild_user_use_limit_history") {
 @Cacheable
 object GuildUserCommandCooldown : Table("guild_user_command_cooldown") {
 
-    val guildId = ulong("guild_id")
-    val userId = ulong("user_id")
+    val guildId = long("guild_id")
+    val userId = long("user_id")
     val commandId = integer("command_id")
     val until = long("until")
 
@@ -194,8 +194,8 @@ object GuildUserCommandCooldown : Table("guild_user_command_cooldown") {
 @CreateTable
 @Cacheable
 object GuildUserCommandUseLimitHistory : Table("guild_user_command_use_limit_history") {
-    val guildId = ulong("guild_id")
-    val userId = ulong("user_id")
+    val guildId = long("guild_id")
+    val userId = long("user_id")
     val commandId = integer("command_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
@@ -213,8 +213,8 @@ object GuildUserCommandUseLimitHistory : Table("guild_user_command_use_limit_his
 @Cacheable
 object ChannelCommandCooldown : Table("channel_command_cooldown") {
 
-    val channelId = ulong("channel_id")
-    val guildId = ulong("guild_id")
+    val channelId = long("channel_id")
+    val guildId = long("guild_id")
     val commandId = integer("command_id")
     val until = long("until")
 
@@ -225,8 +225,8 @@ object ChannelCommandCooldown : Table("channel_command_cooldown") {
 @Cacheable
 object ChannelCommandUseLimitHistory : Table("channel_command_use_limit_history") {
 
-    val channelId = ulong("channel_id")
-    val guildId = ulong("guild_id")
+    val channelId = long("channel_id")
+    val guildId = long("guild_id")
     val commandId = integer("command_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
@@ -243,9 +243,9 @@ object ChannelCommandUseLimitHistory : Table("channel_command_use_limit_history"
 @Cacheable
 object ChannelUserCommandCooldown : Table("channel_user_command_cooldown") {
 
-    val channelId = ulong("channel_id")
-    val guildId = ulong("guild_id")
-    val userId = ulong("user_id")
+    val channelId = long("channel_id")
+    val guildId = long("guild_id")
+    val userId = long("user_id")
     val commandId = integer("command_id")
     val until = long("until")
 
@@ -256,9 +256,9 @@ object ChannelUserCommandCooldown : Table("channel_user_command_cooldown") {
 @Cacheable
 object ChannelUserCommandUseLimitHistory : Table("channel_user_command_use_limit_history") {
 
-    val channelId = ulong("channel_id")
-    val guildId = ulong("guild_id")
-    val userId = ulong("user_id")
+    val channelId = long("channel_id")
+    val guildId = long("guild_id")
+    val userId = long("user_id")
     val commandId = integer("command_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
@@ -275,9 +275,9 @@ object ChannelUserCommandUseLimitHistory : Table("channel_user_command_use_limit
 @Cacheable
 object ChannelUserCooldown : Table("channel_user_cooldown") {
 
-    val channelId = ulong("channel_id")
-    val guildId = ulong("guild_id")
-    val userId = ulong("user_id")
+    val channelId = long("channel_id")
+    val guildId = long("guild_id")
+    val userId = long("user_id")
     val until = long("until")
 
     override val primaryKey: PrimaryKey = PrimaryKey(channelId, userId)
@@ -287,9 +287,9 @@ object ChannelUserCooldown : Table("channel_user_cooldown") {
 @Cacheable
 object ChannelUserUseLimitHistory : Table("channel_user_use_limit_history") {
 
-    val channelId = ulong("channel_id")
-    val guildId = ulong("guild_id")
-    val userId = ulong("user_id")
+    val channelId = long("channel_id")
+    val guildId = long("guild_id")
+    val userId = long("user_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")
 
@@ -305,7 +305,7 @@ object ChannelUserUseLimitHistory : Table("channel_user_use_limit_history") {
 @Cacheable
 object GuildCommandCooldown : Table("guild_command_cooldown") {
 
-    val guildId = ulong("guild_id")
+    val guildId = long("guild_id")
     val commandId = integer("command_id")
     val until = long("until")
 
@@ -316,7 +316,7 @@ object GuildCommandCooldown : Table("guild_command_cooldown") {
 @Cacheable
 object GuildCommandUseLimitHistory : Table("guild_command_use_limit_history") {
 
-    val guildId = ulong("guild_id")
+    val guildId = long("guild_id")
     val commandId = integer("command_id")
     val moment = timestamp("moment")
     val type = enumeration<UseLimitHitType>("hit_type")

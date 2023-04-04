@@ -1,8 +1,8 @@
 package me.melijn.bot.model
 
-import dev.kord.core.behavior.MessageBehavior
-import dev.kord.core.behavior.UserBehavior
-import dev.kord.core.entity.interaction.ButtonInteraction
+import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.UserSnowflake
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonInteraction
 
 open class OwnedPrivateMessage(
     override val ownerId: Long,
@@ -12,11 +12,11 @@ open class OwnedPrivateMessage(
 
     companion object {
         fun from(interaction: ButtonInteraction): OwnedPrivateMessage = from(interaction.user,  interaction.message)
-        fun from(user: UserBehavior, message: MessageBehavior): OwnedPrivateMessage {
+        fun from(user: UserSnowflake, message: Message): OwnedPrivateMessage {
             return OwnedPrivateMessage(
-                user.id.value.toLong(),
-                message.channel.id.value.toLong(),
-                message.id.value.toLong()
+                message.channel.idLong,
+                user.idLong,
+                message.idLong
             )
         }
     }

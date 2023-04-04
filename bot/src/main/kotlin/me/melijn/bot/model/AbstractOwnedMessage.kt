@@ -1,10 +1,10 @@
 package me.melijn.bot.model
 
-import dev.kord.core.behavior.GuildBehavior
-import dev.kord.core.behavior.MessageBehavior
-import dev.kord.core.behavior.UserBehavior
-import dev.kord.core.entity.interaction.ButtonInteraction
-import dev.kord.core.entity.interaction.GuildButtonInteraction
+import net.dv8tion.jda.api.entities.ISnowflake
+import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.UserSnowflake
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonInteraction
+
 
 /**
  * Represents a discord message 'owned' by another user (for example the invoker of a command owns the melijn response, used for intractable menus)
@@ -16,21 +16,18 @@ abstract class AbstractOwnedMessage(
 ) {
 
     companion object {
-        fun from(interaction: ButtonInteraction): AbstractOwnedMessage = when (interaction) {
-            is GuildButtonInteraction -> OwnedGuildMessage.from(interaction)
-            else -> OwnedPrivateMessage.from(interaction)
-        }
+        fun from(interaction: ButtonInteraction): AbstractOwnedMessage = OwnedPrivateMessage.from(interaction)
 
-        fun from(guild: GuildBehavior?, user: UserBehavior, message: MessageBehavior): AbstractOwnedMessage =
+        fun from(guild: ISnowflake?, user: UserSnowflake, message: Message): AbstractOwnedMessage =
             if (guild == null) OwnedPrivateMessage(
-                message.channel.id.value.toLong(),
-                user.id.value.toLong(),
-                message.id.value.toLong()
+                message.channel.idLong,
+                user.idLong,
+                message.idLong
             ) else OwnedGuildMessage(
-                guild.id.value.toLong(),
-                message.channel.id.value.toLong(),
-                user.id.value.toLong(),
-                message.id.value.toLong()
+                guild.idLong,
+                message.channel.idLong,
+                user.idLong,
+                message.idLong
             )
     }
 

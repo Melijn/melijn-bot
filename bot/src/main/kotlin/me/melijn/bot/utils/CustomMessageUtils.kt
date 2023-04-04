@@ -1,24 +1,22 @@
 package me.melijn.bot.utils
 
 import com.kotlindiscord.kord.extensions.commands.CommandContext
-import dev.kord.common.Color
-import dev.kord.rest.builder.message.EmbedBuilder
-import dev.kord.rest.builder.message.create.MessageCreateBuilder
-import dev.kord.rest.builder.message.create.embed
+import dev.minn.jda.ktx.messages.InlineEmbed
+import dev.minn.jda.ktx.messages.InlineMessage
 import me.melijn.bot.database.manager.CommandEmbedColorManager
 import me.melijn.bot.utils.KoinUtil.inject
+import net.dv8tion.jda.api.utils.messages.MessageCreateData
+import java.awt.Color
 
 
-context(CommandContext, MessageCreateBuilder)
-suspend inline fun embedWithColor(fallback: Color = Color(161, 180, 237), embedBuilder: EmbedBuilder.() -> Unit) {
+context(CommandContext, InlineMessage<MessageCreateData>)
+suspend inline fun embedWithColor(fallback: Color = Color(161, 180, 237), embedBuilder: InlineEmbed.() -> Unit) {
     val commandEmbedColorManager by inject<CommandEmbedColorManager>()
-    val user = this@CommandContext.getUser()
-    val guild = this@CommandContext.getGuild()
+    val userColor = commandEmbedColorManager.getColor(this@CommandContext.user)
+    val guildColor = this@CommandContext.guild?.let { commandEmbedColorManager.getColor(it) }
 
-    this@MessageCreateBuilder.embed {
-        color = user?.id?.let { commandEmbedColorManager.getColor(it) }
-            ?: guild?.id?.let { commandEmbedColorManager.getColor(it) }
-                ?: fallback
+    this@InlineMessage.embed {
+        color = (userColor ?: guildColor ?: fallback).rgb
         embedBuilder(this)
     }
 }

@@ -9,7 +9,7 @@ import org.jetbrains.exposed.sql.Table
 object CommandEmbedColor : Table("command_embed_color") {
 
     // guild- or userId
-    val entityId = ulong("entity_id")
+    val entityId = long("entity_id")
 
     // Color
     val color = integer("color")

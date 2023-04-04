@@ -9,7 +9,7 @@ import org.jetbrains.exposed.sql.Table
 @Cacheable
 object AnilistLink : Table("anilist_link") {
 
-    val userId = ulong("user_id")
+    val userId = long("user_id")
     val anilistId = integer("anilist_id").nullable()
     val preference = enumeration<AniListLanguagePreference>("preference").nullable()
 

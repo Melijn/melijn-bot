@@ -31,7 +31,7 @@ class EffectsExtension : Extension() {
     class TimeScaleEffectArgs(private val uCamelName: String, private val lowerName: String) : Arguments() {
 
         val percent = optionalInt {
-            name = "player${uCamelName}"
+            name = "player${uCamelName.lowercase()}"
             description = "in percentage, 100% is default 1:1"
 
             validate {
@@ -58,7 +58,7 @@ class EffectsExtension : Extension() {
                     description = "change the music player $lowerName"
 
                     action {
-                        val guild = guild!!.asGuild()
+                        val guild = guild!!
                         val final = if (arguments.reset.parsed == true) 1.0f else arguments.percent.parsed?.div(100.0f)
                         val trackManager = guild.getTrackManager()
 
@@ -90,7 +90,7 @@ class EffectsExtension : Extension() {
                 description = "configures audio bands"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val trackManager = guild.getTrackManager()
                     if (arguments.args.isEmpty()) {
                         respond {
@@ -165,7 +165,7 @@ class EffectsExtension : Extension() {
                 description = "change the music player channel mix"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val trackManager = guild.getTrackManager()
 
                     when (arguments.preset.parsed) {
@@ -243,7 +243,7 @@ class EffectsExtension : Extension() {
                 description = "change the music player distortion"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val trackManager = guild.getTrackManager()
 
                     if (arguments.reset.parsed == true) {
@@ -327,7 +327,7 @@ class EffectsExtension : Extension() {
                 description = "stereo rotation effect"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val trackManager = guild.getTrackManager()
 
                     if (arguments.reset.parsed == true) {
@@ -366,7 +366,7 @@ class EffectsExtension : Extension() {
                 description = "muffles vocal frequencies to make it easier to sing along"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val trackManager = guild.getTrackManager()
 
                     if (arguments.reset.parsed == true) {
@@ -416,7 +416,7 @@ class EffectsExtension : Extension() {
                 description = "suppresses higher frequencies"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val trackManager = guild.getTrackManager()
 
                     if (arguments.reset.parsed == true) {
@@ -458,7 +458,7 @@ class EffectsExtension : Extension() {
                     description = "musicPlayer $name effects"
 
                     action {
-                        val guild = guild!!.asGuild()
+                        val guild = guild!!
                         val trackManager = guild.getTrackManager()
 
                         if (arguments.reset.parsed == true) {

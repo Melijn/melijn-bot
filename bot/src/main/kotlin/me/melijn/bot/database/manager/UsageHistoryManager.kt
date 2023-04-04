@@ -1,6 +1,5 @@
 package me.melijn.bot.database.manager
 
-import dev.kord.common.entity.Snowflake
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import me.melijn.ap.injector.Inject
@@ -9,6 +8,7 @@ import me.melijn.bot.model.kordex.MelUsageHistory
 import me.melijn.gen.UsageHistoryData
 import me.melijn.gen.database.manager.*
 import me.melijn.kordkommons.database.DriverManager
+import net.dv8tion.jda.api.entities.ISnowflake
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
@@ -120,34 +120,34 @@ class UsageHistoryManager(
     }
 
     /** Usage history tracker **/
-    fun updateUsage(guildId: Snowflake?, channelId: Snowflake, userId: Snowflake, commandId: Int) {
+    fun updateUsage(guildId: Long?, channelId: ISnowflake, userId: ISnowflake, commandId: Int) {
         val moment = Clock.System.now()
         usageHistoryManager.scopedTransaction {
             usageHistoryManager.store(
                 UsageHistoryData(
-                    guildId?.value,
-                    channelId.value,
-                    userId.value,
+                    guildId,
+                    channelId.idLong,
+                    userId.idLong,
                     commandId,
                     moment
                 )
             )
 
             DBUsageHistory.deleteWhere {
-                (DBUsageHistory.userId eq userId.value) and (DBUsageHistory.moment less moment)
+                (DBUsageHistory.userId eq userId.idLong) and (DBUsageHistory.moment less moment)
             }
         }
     }
 
     /** (userId, commandId) use limit history scope **/
-    fun getUserCmdHistory(userId: ULong, commandId: Int): MelUsageHistory {
+    fun getUserCmdHistory(userId: Long, commandId: Int): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByUserCommandKey(userId, commandId)
         val limitHitEntries = userCommandUseLimitHistoryManager.getByUserCommandKey(userId, commandId)
             .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
 
-    fun setUserCmdHistSerialized(userId: ULong, commandId: Int, usageHistory: MelUsageHistory) =
+    fun setUserCmdHistSerialized(userId: Long, commandId: Int, usageHistory: MelUsageHistory) =
         runQueriesForHitTypes(usageHistory, UserCommandUseLimitHistory, { moment, type ->
             (UserCommandUseLimitHistory.moment less moment) and
                     (UserCommandUseLimitHistory.type eq type) and
@@ -161,14 +161,14 @@ class UsageHistoryManager(
         })
 
     /** (userId) use limit history scope **/
-    fun getUserHistory(userId: ULong): MelUsageHistory {
+    fun getUserHistory(userId: Long): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByUserKey(userId)
         val limitHitEntries = userUseLimitHistoryManager.getByUserKey(userId)
             .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
 
-    fun setUserHistory(userId: ULong, usageHistory: MelUsageHistory) =
+    fun setUserHistory(userId: Long, usageHistory: MelUsageHistory) =
         runQueriesForHitTypes(usageHistory, UserUseLimitHistory, { moment, type ->
             (UserUseLimitHistory.moment less moment) and
                     (UserUseLimitHistory.type eq type) and
@@ -180,14 +180,14 @@ class UsageHistoryManager(
         })
 
     /** (guildId, userId) use limit history scope **/
-    fun getGuildUserHistory(guildId: ULong, userId: ULong): MelUsageHistory {
+    fun getGuildUserHistory(guildId: Long, userId: Long): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByGuildUserKey(guildId, userId)
         val limitHitEntries = guildUserUseLimitHistoryManager.getByGuildUserKey(guildId, userId)
             .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
 
-    fun setGuildUserHistory(guildId: ULong, userId: ULong, usageHistory: MelUsageHistory) =
+    fun setGuildUserHistory(guildId: Long, userId: Long, usageHistory: MelUsageHistory) =
         runQueriesForHitTypes(usageHistory, GuildUserUseLimitHistory, { moment, type ->
             (GuildUserUseLimitHistory.moment less moment) and
                     (GuildUserUseLimitHistory.type eq type) and
@@ -201,14 +201,14 @@ class UsageHistoryManager(
         })
 
     /** (channelId) use limit history scope **/
-    fun getChannelHistory(channelId: ULong): MelUsageHistory {
+    fun getChannelHistory(channelId: Long): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByChannelKey(channelId)
         val limitHitEntries = channelUseLimitHistoryManager.getByChannelKey(channelId)
             .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
 
-    fun setChannelHistory(channelId: ULong, usageHistory: MelUsageHistory) =
+    fun setChannelHistory(channelId: Long, usageHistory: MelUsageHistory) =
         runQueriesForHitTypes(usageHistory, ChannelUseLimitHistory, { moment, type ->
             (ChannelUseLimitHistory.moment less moment) and
                     (ChannelUseLimitHistory.type eq type) and
@@ -220,14 +220,14 @@ class UsageHistoryManager(
         })
 
     /** (guildId) use limit history scope **/
-    fun getGuildHistory(guildId: ULong): MelUsageHistory {
+    fun getGuildHistory(guildId: Long): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByGuildKey(guildId)
         val limitHitEntries = guildUseLimitHistoryManager.getByGuildKey(guildId)
             .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
 
-    fun setGuildHistory(guildId: ULong, usageHistory: MelUsageHistory) =
+    fun setGuildHistory(guildId: Long, usageHistory: MelUsageHistory) =
         runQueriesForHitTypes(usageHistory, GuildUseLimitHistory, { moment, type ->
             (GuildUseLimitHistory.moment less moment) and
                     (GuildUseLimitHistory.type eq type) and
@@ -239,14 +239,14 @@ class UsageHistoryManager(
         })
 
     /** (guildId, userId, commandId) use limit history scope **/
-    fun getGuildUserCommandUsageHistory(guildId: ULong, userId: ULong, commandId: Int): MelUsageHistory {
+    fun getGuildUserCommandUsageHistory(guildId: Long, userId: Long, commandId: Int): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByGuildUserCommandKey(guildId, userId, commandId)
         val limitHitEntries = guildUserCommandUseLimitHistory.getByGuildUserCommandKey(guildId, userId, commandId)
             .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
 
-    fun setGuildUserCommandUsageHistory(guildId: ULong, userId: ULong, commandId: Int, usageHistory: MelUsageHistory) =
+    fun setGuildUserCommandUsageHistory(guildId: Long, userId: Long, commandId: Int, usageHistory: MelUsageHistory) =
         runQueriesForHitTypes(usageHistory, GuildUserCommandUseLimitHistory, { moment, type ->
             (GuildUserCommandUseLimitHistory.moment less moment) and
                     (GuildUserCommandUseLimitHistory.type eq type) and
@@ -262,14 +262,14 @@ class UsageHistoryManager(
         })
 
     /** (channelId, commandId) use limit history scope **/
-    fun getChannelCommandHistory(channelId: ULong, commandId: Int): MelUsageHistory {
+    fun getChannelCommandHistory(channelId: Long, commandId: Int): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByChannelKey(channelId)
         val limitHitEntries = channelCommandUseLimitHistory.getByChannelCommandKey(channelId, commandId)
             .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
 
-    fun setChannelCommandHistory(channelId: ULong, commandId: Int, usageHistory: MelUsageHistory) =
+    fun setChannelCommandHistory(channelId: Long, commandId: Int, usageHistory: MelUsageHistory) =
         runQueriesForHitTypes(usageHistory, ChannelCommandUseLimitHistory, { moment, type ->
             (ChannelCommandUseLimitHistory.moment less moment) and
                     (ChannelCommandUseLimitHistory.type eq type) and
@@ -283,7 +283,7 @@ class UsageHistoryManager(
         })
 
     /** (channelId, userId, commandId) use limit history **/
-    fun getChannelUserCommandUsageHistory(channelId: ULong, userId: ULong, commandId: Int): MelUsageHistory {
+    fun getChannelUserCommandUsageHistory(channelId: Long, userId: Long, commandId: Int): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByChannelUserCommandKey(channelId, userId, commandId)
         val limitHitEntries = channelUserCommandUseLimitHistory.getByChannelUserCommandKey(channelId
                , userId, commandId)
@@ -291,7 +291,7 @@ class UsageHistoryManager(
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
 
-    fun setChannelUserCommandUsageHistory(channelId: ULong, userId: ULong, commandId: Int, usageHistory: MelUsageHistory) {
+    fun setChannelUserCommandUsageHistory(channelId: Long, userId: Long, commandId: Int, usageHistory: MelUsageHistory) {
         runQueriesForHitTypes(usageHistory, ChannelUserCommandUseLimitHistory, { moment, type   ->
             (ChannelUserCommandUseLimitHistory.moment less moment) and
                     (ChannelUserCommandUseLimitHistory.type eq type) and
@@ -308,7 +308,7 @@ class UsageHistoryManager(
     }
 
     /** (channelId, userId) use limit history **/
-    fun getChannelUserUsageHistory(channelId: ULong, userId: ULong): MelUsageHistory {
+    fun getChannelUserUsageHistory(channelId: Long, userId: Long): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByChannelUserKey(channelId, userId)
         val limitHitEntries = channelUserUseLimitHistory.getByChannelUserKey(channelId
             , userId)
@@ -316,7 +316,7 @@ class UsageHistoryManager(
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
 
-    fun setChannelUserUsageHistory(channelId: ULong, userId: ULong, usageHistory: MelUsageHistory) {
+    fun setChannelUserUsageHistory(channelId: Long, userId: Long, usageHistory: MelUsageHistory) {
         runQueriesForHitTypes(usageHistory, ChannelUserUseLimitHistory, { moment, type   ->
             (ChannelUserUseLimitHistory.moment less moment) and
                     (ChannelUserUseLimitHistory.type eq type) and
@@ -331,14 +331,14 @@ class UsageHistoryManager(
     }
 
     /** (guildId, commandId) use limit history **/
-    fun getGuildCommandUsageHistory(guildId: ULong, commandId: Int): MelUsageHistory {
+    fun getGuildCommandUsageHistory(guildId: Long, commandId: Int): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByGuildCommandKey(guildId, commandId)
         val limitHitEntries = guildCommandUseLimitHistory.getByGuildCommandKey(guildId, commandId)
            .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
 
-    fun setGuildCommandUsageHistory(guildId: ULong, commandId: Int, usageHistory: MelUsageHistory) {
+    fun setGuildCommandUsageHistory(guildId: Long, commandId: Int, usageHistory: MelUsageHistory) {
         runQueriesForHitTypes(usageHistory, GuildCommandUseLimitHistory, { moment, type ->
             (GuildCommandUseLimitHistory.moment less moment) and
                     (GuildCommandUseLimitHistory.type eq type) and

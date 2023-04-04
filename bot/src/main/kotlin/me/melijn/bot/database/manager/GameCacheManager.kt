@@ -1,6 +1,5 @@
 package me.melijn.bot.database.manager
 
-import dev.kord.common.entity.Snowflake
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import me.melijn.ap.injector.Inject
@@ -13,6 +12,8 @@ import me.melijn.gen.TicTacToePlayerData
 import me.melijn.gen.database.manager.AbstractTicTacToeManager
 import me.melijn.gen.database.manager.AbstractTicTacToePlayerManager
 import me.melijn.kordkommons.database.DriverManager
+import net.dv8tion.jda.api.entities.ISnowflake
+import net.dv8tion.jda.api.entities.UserSnowflake
 import org.jetbrains.exposed.sql.JoinType
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
 import org.jetbrains.exposed.sql.deleteWhere
@@ -33,27 +34,27 @@ class TicTacToeManager(val driverManager: DriverManager) {
 
     /** Creates the database game entries **/
     fun setupGame(
-        guildId: Snowflake,
-        channelId: Snowflake,
-        messageId: Snowflake,
-        userId1: Snowflake,
-        userId2: Snowflake?,
+        guildId: ISnowflake,
+        channelId: ISnowflake,
+        messageId: ISnowflake,
+        userId1: UserSnowflake,
+        userId2: UserSnowflake?,
         bet: Long,
     ): TicTacToeData {
         val defaultBoard = buildList { repeat(9) { add(TicTacToeExtension.TTTState.EMPTY) } }
         val data = TicTacToeData(
-            UUID.randomUUID(), guildId.value, channelId.value, messageId.value, true,
+            UUID.randomUUID(), guildId.idLong, channelId.idLong, messageId.idLong, true,
             Clock.System.now(), TicTacToeExtension.serializeBoard(defaultBoard), bet
         )
         ticTacToeGameManager.store(data)
-        ticTacToePlayerManager.store(TicTacToePlayerData(data.gameId, userId1.value, true))
+        ticTacToePlayerManager.store(TicTacToePlayerData(data.gameId, userId1.idLong, true))
         if (userId2 != null)
-            ticTacToePlayerManager.store(TicTacToePlayerData(data.gameId, userId2.value, false))
+            ticTacToePlayerManager.store(TicTacToePlayerData(data.gameId, userId2.idLong, false))
         return data
     }
 
-    suspend fun getGameByUser(id: Snowflake): TicTacToeData? {
-        val player = ticTacToePlayerManager.getCachedById(id.value) ?: return null
+    suspend fun getGameByUser(id: UserSnowflake): TicTacToeData? {
+        val player = ticTacToePlayerManager.getCachedById(id.idLong) ?: return null
         return ticTacToeGameManager.getCachedById(player.gameId)
     }
 

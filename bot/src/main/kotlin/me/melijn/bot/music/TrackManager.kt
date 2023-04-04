@@ -1,6 +1,5 @@
 package me.melijn.bot.music
 
-import dev.kord.core.entity.Member
 import dev.schlaubi.lavakord.audio.Link
 import dev.schlaubi.lavakord.audio.TrackEndEvent
 import dev.schlaubi.lavakord.audio.on
@@ -14,6 +13,7 @@ import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.kordkommons.async.SafeList
 import me.melijn.kordkommons.async.Task
 import me.melijn.kordkommons.logger.logger
+import net.dv8tion.jda.api.entities.Member
 import kotlin.random.Random
 
 class TrackManager(val link: Link) {
@@ -170,7 +170,7 @@ class TrackManager(val link: Link) {
     }
 
     private suspend fun playFromTarget(target: Member) {
-        val track = trackLoader.fetchTrackFromPresence(target.guildId, target) ?: return
+        val track = trackLoader.fetchTrackFromPresence(target.guild, target.user) ?: return
         play(track)
     }
 

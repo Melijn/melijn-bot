@@ -6,12 +6,13 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kotlindiscord.kord.extensions.ExtensibleBot
 import com.kotlindiscord.kord.extensions.koin.KordExContext
 import com.kotlindiscord.kord.extensions.utils.getKoin
-import dev.kord.core.Kord
-import dev.kord.gateway.Intent
-import dev.kord.gateway.PrivilegedIntent
-import dev.kord.gateway.builder.Shards
+import com.kotlindiscord.kord.extensions.utils.scheduling.TaskConfig
+import dev.minn.jda.ktx.jdabuilder.injectKTX
 import dev.schlaubi.lavakord.LavaKord
-import dev.schlaubi.lavakord.kord.lavakord
+import dev.schlaubi.lavakord.MutableLavaKordOptions
+import dev.schlaubi.lavakord.jda.LavaKordShardManager
+import dev.schlaubi.lavakord.jda.applyLavakord
+import dev.schlaubi.lavakord.jda.lavakord
 import io.sentry.Sentry
 import me.melijn.ap.injector.InjectorInterface
 import me.melijn.apkordex.command.ExtensionInterface
@@ -32,6 +33,8 @@ import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.logger.logger
 import me.melijn.kordkommons.redis.RedisConfig
 import me.melijn.kordkommons.utils.ReflectUtil
+import net.dv8tion.jda.api.requests.GatewayIntent
+import net.dv8tion.jda.api.sharding.ShardManager
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import java.net.InetAddress
@@ -56,17 +59,22 @@ object Melijn {
         // initSentry(settings)
 
         val botInstance = ExtensibleBot(settings.api.discord.token) {
-
-            @OptIn(PrivilegedIntent::class)
+            val lShardManager = LavaKordShardManager()
             intents {
-                +Intent.DirectMessages
-                +Intent.Guilds
-                +Intent.GuildMembers
-                +Intent.GuildMessages
-                +Intent.GuildBans
-                +Intent.GuildEmojis
-                +Intent.GuildMessageReactions
-                +Intent.GuildPresences
+                add(GatewayIntent.DIRECT_MESSAGES)
+                add(GatewayIntent.GUILD_MEMBERS)
+                add(GatewayIntent.GUILD_MESSAGES)
+                add(GatewayIntent.GUILD_MODERATION)
+                add(GatewayIntent.GUILD_EMOJIS_AND_STICKERS)
+                add(GatewayIntent.GUILD_MESSAGE_REACTIONS)
+                add(GatewayIntent.GUILD_PRESENCES)
+            }
+
+            this.kord {
+                setShardsTotal(PodInfo.shardCount)
+                setShards(PodInfo.shardList)
+                injectKTX()
+                applyLavakord(lShardManager)
             }
 
             extensions {
@@ -92,26 +100,25 @@ object Melijn {
                     }))
 
                     HttpServer.startProbeServer()
+                }
 
+                setup {
+
+                    this.start()
+                    val koin = getKoin()
+                    HttpServer.startHttpServer()
                     val injectorInterface = ReflectUtil.getInstanceOfKspClass<InjectorInterface>(
                         "me.melijn.gen", "InjectionKoinModule"
                     )
                     koin.loadModules(listOf(injectorInterface.module))
+                    injectorInterface.initInjects()
 
                     val serviceManager by koin.inject<ServiceManager>()
                     serviceManager.startAll()
-                }
 
-                setup {
-                    HttpServer.startHttpServer()
-
-                    val injectorInterface = ReflectUtil.getInstanceOfKspClass<InjectorInterface>(
-                        "me.melijn.gen", "InjectionKoinModule"
-                    )
-                    injectorInterface.initInjects()
-
-                    val kord by getKoin().inject<Kord>()
-                    lavalink = kord.lavakord {
+                    val kord by koin.inject<ShardManager>()
+                    lavalink = kord.lavakord(lShardManager, TaskConfig.dispatcher, MutableLavaKordOptions()) {
+                        require(this is MutableLavaKordOptions)
                         link {
                             autoReconnect = true
                             retry = RealLinearRetry(1.seconds, 60.seconds, Int.MAX_VALUE)
@@ -125,15 +132,11 @@ object Melijn {
                 }
             }
 
-            cache {
-                cachedMessages = 0
-            }
-
             applicationCommands {
                 enabled = true
 
                 if (settings.process.environment == Environment.TESTING)
-                    defaultGuild(settings.process.testingServerId?.toULong())
+                    defaultGuild(settings.process.testingServerId)
 
                 useLimiter {
                     cooldownHandler = MelijnCooldownHandler()
@@ -146,10 +149,10 @@ object Melijn {
                 prefix callback@{ _ ->
                     val event = this
                     val prefixManager by getKoin().inject<PrefixManager>()
-                    val prefixes = (event.guildId?.let { prefixManager.getPrefixes(it) } ?: emptyList()) +
-                            (event.message.author?.let { prefixManager.getPrefixes(it.id) } ?: emptyList())
+                    val prefixes = prefixManager.getPrefixes(event.guild) +
+                            prefixManager.getPrefixes(event.message.author)
                     prefixes.sortedByDescending { it.prefix.length }.forEach {
-                        if (message.content.startsWith(it.prefix)) return@callback it.prefix
+                        if (message.contentRaw.startsWith(it.prefix)) return@callback it.prefix
                     }
                     return@callback settings.bot.prefix
                 }
@@ -159,17 +162,10 @@ object Melijn {
                 }
             }
 
-            kord {
-                sharding {
-                    Shards(shardCount, PodInfo.shardList)
-                }
-            }
-
             i18n {
                 interactionUserLocaleResolver()
             }
         }
-        botInstance.start()
     }
 
     private fun initDriverManager(settings: Settings): DriverManager {

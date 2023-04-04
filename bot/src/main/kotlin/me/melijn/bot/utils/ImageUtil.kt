@@ -16,8 +16,6 @@ object ImageUtil {
         graphics2D.fillRect(0, 0, bufferedImage.width, bufferedImage.height)
         return bufferedImage
     }
-    fun createSquare(size: Int, color: dev.kord.common.Color): BufferedImage =
-        createSquare(size, Color(color.rgb))
 
     fun BufferedImage.toInputStream(format: String = "png"): InputStream {
         val baos = ByteArrayOutputStream()

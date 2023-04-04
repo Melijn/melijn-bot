@@ -8,19 +8,16 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalUser
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
-import dev.kord.common.Color
-import dev.kord.common.entity.Permission
-import dev.kord.core.behavior.requestMembers
-import dev.kord.core.cache.data.ActivityData
-import dev.kord.core.event.guild.MembersChunkEvent
-import dev.kord.gateway.PrivilegedIntent
-import dev.kord.rest.builder.message.create.embed
-import kotlinx.coroutines.flow.firstOrNull
+import dev.minn.jda.ktx.coroutines.await
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.web.api.MySpotifyApi
 import me.melijn.bot.web.api.WebManager
+import net.dv8tion.jda.api.Permission
+import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.RichPresence
 import org.jetbrains.kotlin.utils.keysToMap
 import org.koin.core.component.inject
+import java.awt.Color
 import java.lang.Double.max
 import java.lang.Double.min
 import kotlin.math.roundToInt
@@ -38,42 +35,35 @@ class SpotifyCommand : Extension() {
         }
     }
 
-    @OptIn(PrivilegedIntent::class)
+
     override suspend fun setup() {
         publicSlashCommand(::SpotifyArguments) {
             name = "spotify"
             description = "shows the target's playing song information"
 
             check {
-                requireBotPermissions(Permission.SendMessages, Permission.EmbedLinks)
+                requireBotPermissions(Permission.MESSAGE_SEND, Permission.MESSAGE_EMBED_LINKS)
                 anyGuild()
             }
 
             action {
-                val target = arguments.target ?: user.asUser()
-                val userId = target.id
+                val target = arguments.target ?: user
 
                 /**
                  * fetch full discord member which can have spotify presences since
                  * we don't cache or store user presences
                  **/
-                val targetMember = guild?.requestMembers {
-                    userIds.add(userId)
-                    presences = true
-                }?.firstOrNull()
+                val targetMember = guild?.retrieveMembers(true, listOf(target))
+                    ?.await()?.firstOrNull()
 
                 // get spotify presences
-                val presences = targetMember?.data?.presences?.value
-                val possibleSpotifyActivities = presences?.mapNotNull { presence ->
-                    presence.activities.firstOrNull { it.name == "Spotify" }
-                } ?: emptyList()
-                val spotifyActivity = possibleSpotifyActivities.firstOrNull() ?: run {
+                val spotifyActivity = targetMember?.activities?.firstOrNull()?.asRichPresence() ?: run {
                     respond {
                         embed { title = "No spotify status found." }
                     }
                     return@action
                 }
-                val songName = spotifyActivity.details.value
+                val songName = spotifyActivity.details
 
                 val spotifyData = getSaturatedSpotifyDataFromPresence(targetMember, spotifyActivity)
 
@@ -81,18 +71,16 @@ class SpotifyCommand : Extension() {
                 respond {
                     embed {
                         spotifyData.run {
-                            title = target.username + " listening to spotify"
-                            thumbnail {
-                                if (songIcon != null) url = songIcon
-                            }
-                            color = Color(30, 215, 96)
+                            title = target.name + " listening to spotify"
+                            thumbnail = songIcon
+                            color = Color(30, 215, 96).rgb
                             description = """
                                 **[$songName]($songLink)**
                                 by ${authorLinkMap.entries.joinToString { "[`${it.key}`](${it.value})" }}
                                 on [`$albumName`]($albumLink)
                             """.trimIndent()
                             footer {
-                                text = "$songProgress  $songProgressBar  $songLength"
+                                name = "$songProgress  $songProgressBar  $songLength"
                             }
                         }
                     }
@@ -111,17 +99,17 @@ class SpotifyCommand : Extension() {
          * @return spotify [se.michaelthelin.spotify.model_objects.specification.Track] object if we found a result otherwise null
          */
         suspend fun getSpotifyTrackFromMemberWithPresence(
-            member: MembersChunkEvent,
+            member: Member,
             spotifyApi: MySpotifyApi
         ): se.michaelthelin.spotify.model_objects.specification.Track? {
             // get spotify presences
-            val presences = member.data.presences.value
-            val possibleSpotifyActivities = presences?.mapNotNull { presence ->
-                presence.activities.firstOrNull { it.name == "Spotify" }
-            } ?: emptyList()
-            val spotifyActivity = possibleSpotifyActivities.firstOrNull() ?: return null
-            val songName = spotifyActivity.details.value
-            val songAuthors = spotifyActivity.state.value?.split("; ") ?: emptyList()
+            val presences = member.activities
+            val possibleSpotifyActivities = presences.filter { presence ->
+                presence.name == "Spotify" && presence.isRich
+            }
+            val spotifyActivity = possibleSpotifyActivities.firstOrNull()?.asRichPresence() ?: return null
+            val songName = spotifyActivity.details
+            val songAuthors = spotifyActivity.state?.split("; ") ?: emptyList()
 
             val searchTerm = buildList {
                 songName?.let { add(it) }
@@ -133,14 +121,14 @@ class SpotifyCommand : Extension() {
     }
 
     private suspend fun getSaturatedSpotifyDataFromPresence(
-        member: MembersChunkEvent?,
-        spotifyActivity: ActivityData
+        member: Member?,
+        spotifyActivity: RichPresence
     ): SaturatedSpotifyDiscordPresence {
         /** extract info from the presence **/
-        val songName = spotifyActivity.details.value
-        val albumName = spotifyActivity.assets.value?.largeText?.value
-        val songAuthors = spotifyActivity.state.value?.split("; ") ?: emptyList()
-        val spotifyThumbnailId = spotifyActivity.assets.value?.largeImage?.value?.drop(8)
+        val songName = spotifyActivity.details
+        val albumName =spotifyActivity.largeImage?.text
+        val songAuthors = spotifyActivity.state?.split("; ") ?: emptyList()
+        val spotifyThumbnailId = spotifyActivity.largeImage?.key?.drop(8)
 
         val spotifyApi = webManager.spotifyApi
 
@@ -158,10 +146,9 @@ class SpotifyCommand : Extension() {
 
         /** time and progress bar calculations **/
         val created = System.currentTimeMillis()
-        val start = spotifyActivity.timestamps.value?.start?.value?.toEpochMilliseconds() ?: created
-//        val start = spotifyActivity.timestamps.value?.start?.value ?: created
-        val end = spotifyActivity.timestamps.value?.end?.value?.toEpochMilliseconds() ?: created
-//        val end = spotifyActivity.timestamps.value?.end?.value ?: created
+        val start = spotifyActivity.timestamps?.start ?: created
+        val end = spotifyActivity.timestamps?.end ?: created
+
         val lengthMillis = end - start
         val progressMillis = created - start
         var percent = progressMillis.toDouble() / lengthMillis.toDouble()

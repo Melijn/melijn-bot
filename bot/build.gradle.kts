@@ -48,19 +48,21 @@ val kotlin = "1.7.10"
 val scrimage = "4.0.31"
 
 
-val kord = "0.8.0-M17"
+val jda = "5.0.0-beta.6"
 val kordEx = "1.5.5-SNAPSHOT"
 val kordKommons = "0.0.3-SNAPSHOT"
 
 dependencies {
-    implementation("dev.kord:kord-core:$kord")   // let kord-ex handle kord version
+    implementation("net.dv8tion:JDA:$jda")   // let kord-ex handle kord version
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
     ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
 
     // https://mvnrepository.com/artifact/org.scilab.forge/jlatexmath
     implementation("org.scilab.forge:jlatexmath:1.0.7")
 
-    implementation("dev.schlaubi.lavakord", "kord", "3.8.0")
+//    implementation("dev.schlaubi.lavakord", "kord", "3.8.0")
+    implementation("dev.schlaubi.lavakord", "jda", "3.8.0")
+//    implementation("dev.schlaubi.lavakord", "jda-java", "3.8.0")
 
     implementation("me.melijn.kommons:kommons:$kordKommons")
     implementation("me.melijn.kommons:kord-kommons:$kordKommons")

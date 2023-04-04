@@ -9,8 +9,8 @@ import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 @Cacheable
 object BotRestartTrackQueue : Table("bot_restart_track_queue") {
 
-    val guildId = ulong("guild_id")
-    val voiceChannelId = ulong("voice_channel_id")
+    val guildId = long("guild_id")
+    val voiceChannelId = long("voice_channel_id")
     val playerPosition = long("position")
     val paused = bool("paused")
     val looped = bool("looped")
@@ -27,11 +27,11 @@ object BotRestartTrackQueue : Table("bot_restart_track_queue") {
 @Cacheable
 object BotRestartTrackEntry : TrackJoinTable("bot_restart_track_entry") {
 
-    val guildId = ulong("guild_id")
+    val guildId = long("guild_id")
     override val trackId = uuid("track_id").references(Track.trackId)
     val position = integer("position")
 
-    val userId = ulong("user_id")
+    val userId = long("user_id")
 
     val addedAt = datetime("added_time")
 

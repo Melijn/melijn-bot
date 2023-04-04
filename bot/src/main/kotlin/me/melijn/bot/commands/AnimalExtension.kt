@@ -6,13 +6,14 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.converters.i
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
-import dev.kord.rest.builder.message.create.MessageCreateBuilder
+import dev.minn.jda.ktx.messages.InlineMessage
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.utils.EnumUtil.ucc
 import me.melijn.bot.utils.InferredChoiceEnum
 import me.melijn.bot.utils.MISSING_IMAGE_URL
 import me.melijn.bot.utils.embedWithColor
 import me.melijn.bot.web.api.WebManager
+import net.dv8tion.jda.api.utils.messages.MessageCreateData
 import org.koin.core.component.inject
 
 @KordExtension
@@ -43,7 +44,7 @@ class AnimalExtension : Extension() {
         }
     }
 
-    context(CommandContext, MessageCreateBuilder)
+    context(CommandContext, InlineMessage<MessageCreateData>)
     private suspend fun animalEmbed(animal: AnimalType) {
         embedWithColor {
             title = animal.ucc()

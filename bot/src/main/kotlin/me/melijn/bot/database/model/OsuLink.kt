@@ -9,7 +9,7 @@ import org.jetbrains.exposed.sql.Table
 @Cacheable
 object OsuLink : Table("osu_link") {
 
-    val userId = ulong("user_id")
+    val userId = long("user_id")
     val osuId = integer("osu_id").nullable()
     val modePreference = enumeration<GameMode>("preferred_game_mode").nullable()
 

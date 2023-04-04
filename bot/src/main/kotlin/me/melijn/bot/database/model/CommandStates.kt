@@ -14,13 +14,13 @@ import org.jetbrains.exposed.sql.Table
 @CreateTable
 @Cacheable
 object CommandStates : Table("command_states") {
-    val guildId = ulong("guild_id")
+    val guildId = long("guild_id")
 
     // channelId, can be null
-    val scopeId = ulong("scope_id").nullable()
+    val scopeId = long("scope_id").nullable()
 
     // roleId or userId
-    val entityId = ulong("entity_id").nullable()
+    val entityId = long("entity_id").nullable()
     // can be a category or * so you can disable a group of commands or just a command id (top name, group name, subcmdname)
     // disabling a top level command with children will automatically disable all the child commands ect.
     val commandsId = text("commands_id")

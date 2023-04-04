@@ -6,7 +6,6 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.string
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.types.editingPaginator
 import com.kotlindiscord.kord.extensions.types.respond
-import com.kotlindiscord.kord.extensions.utils.suggestStringMap
 import kotlinx.datetime.UtcOffset
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toJavaInstant
@@ -49,9 +48,9 @@ class PlaylistCommand : Extension() {
                 description = "Loads all tracks of the playlist into the queue"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val playlist = arguments.playlist.parsed
-                    val requester = PartialUser.fromKordUser(user.asUser())
+                    val requester = PartialUser.fromKordUser(user)
                     val tracks = playlistTrackManager.getMelijnTracksInPlaylist(playlist, requester)
                     val trackManager = guild.getTrackManager()
                     val link = trackManager.link
@@ -70,7 +69,7 @@ class PlaylistCommand : Extension() {
                 description = "Adds a track to your playlist"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val playlistName = arguments.playlist.parsed
                     val trackManager = guild.getTrackManager()
                     val playingTrack = trackManager.playingTrack
@@ -89,7 +88,7 @@ class PlaylistCommand : Extension() {
                     } ?: buildList { playingTrack?.let { add(it) } }
 
                     // potentially create non-existant playlist
-                    val existingPlaylist = playlistManager.getByNameOrDefault(user.id, playlistName)
+                    val existingPlaylist = playlistManager.getByNameOrDefault(user, playlistName)
                     playlistManager.store(existingPlaylist)
 
                     val oldTrackCount = playlistTrackManager.getTrackCount(existingPlaylist)
@@ -163,7 +162,7 @@ class PlaylistCommand : Extension() {
                 description = "Lists all your playlists"
 
                 action {
-                    val existingPlaylist = playlistManager.getPlaylistsOfUserWithTrackCount(user.id)
+                    val existingPlaylist = playlistManager.getPlaylistsOfUserWithTrackCount(user)
 
                     var description = "```INI\n# index - public - [name] - tracks - [created]"
 
@@ -180,7 +179,7 @@ class PlaylistCommand : Extension() {
                         val parts = StringUtils.splitMessageWithCodeBlocks(description)
                         for (part in parts) {
                             page {
-                                this.title = tr("playlist.list.all.listTitle", user.asUser().tag)
+                                this.title = tr("playlist.list.all.listTitle", user.asTag)
                                 this.description = part
                             }
                         }
@@ -217,7 +216,7 @@ class PlaylistCommand : Extension() {
                         val parts = StringUtils.splitMessage(description)
                         for (part in parts) {
                             page {
-                                this.title = tr("playlist.list.listTitle", user.asUser().tag)
+                                this.title = tr("playlist.list.listTitle", user.asTag)
                                 this.description = part
                             }
                         }
@@ -232,8 +231,8 @@ class PlaylistCommand : Extension() {
             name = "playlist"
             description = "New or existing playlist name or existing playlist index"
             autoComplete {
-                val playlists = playlistManager.getByIndex1(user.id.value)
-                suggestStringMap(playlists.associate { it.name to it.name })
+                val playlists = playlistManager.getByIndex1(user.idLong)
+                replyChoiceStrings(playlists.map { it.name })
             }
         }
         val trackIndexes = optionalIntRanges {
@@ -241,7 +240,7 @@ class PlaylistCommand : Extension() {
             description = "Index of a track in queue, see /queue"
             validate {
                 val varmoment = value ?: return@validate
-                val trackManager = context.getGuild()!!.asGuild().getTrackManager()
+                val trackManager = context.guild!!.getTrackManager()
                 varmoment.list.forEach {
                     for (i in it) if (i != 0) failIfInvalidTrackIndex(i) { trackManager }
                 }
@@ -255,8 +254,8 @@ class PlaylistCommand : Extension() {
             description = "Existing playlist name"
 
             autoComplete {
-                val playlists = playlistManager.getByIndex1(user.id.value)
-                suggestStringMap(playlists.associate { it.name to it.name })
+                val playlists = playlistManager.getByIndex1(user.idLong)
+                replyChoiceStrings(playlists.map { it.name })
             }
         }
         val trackIndexes = intRanges {
@@ -286,8 +285,8 @@ class PlaylistCommand : Extension() {
             description = "Existing playlist name"
 
             autoComplete {
-                val playlists = playlistManager.getByIndex1(user.id.value)
-                suggestStringMap(playlists.associate { it.name to it.name })
+                val playlists = playlistManager.getByIndex1(user.idLong)
+                replyChoiceStrings(playlists.map { it.name })
             }
         }
     }

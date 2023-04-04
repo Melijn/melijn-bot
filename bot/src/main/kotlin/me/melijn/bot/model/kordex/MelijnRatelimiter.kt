@@ -12,7 +12,7 @@ class MelijnRatelimiter : DefaultRateLimiter() {
 
     override suspend fun checkCommandRatelimit(context: DiscriminatingContext): Boolean {
         val result = super.checkCommandRatelimit(context)
-        usageHistoryManager.updateUsage(context.guildId, context.channel.id, context.user.id, context.event.command.getFullName().hashCode())
+        usageHistoryManager.updateUsage(context.guildId, context.channel, context.user, context.event.command.getFullName().hashCode())
         return result
     }
 
