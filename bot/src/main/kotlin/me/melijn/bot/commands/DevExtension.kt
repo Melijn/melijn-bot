@@ -1,6 +1,10 @@
 package me.melijn.bot.commands
 
+import com.kotlindiscord.kord.extensions.checks.anyGuild
 import com.kotlindiscord.kord.extensions.commands.Arguments
+import com.kotlindiscord.kord.extensions.commands.application.slash.SlashCommandContext
+import com.kotlindiscord.kord.extensions.commands.application.slash.group
+import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.commands.converters.impl.boolean
 import com.kotlindiscord.kord.extensions.commands.converters.impl.member
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalString
@@ -9,45 +13,88 @@ import com.kotlindiscord.kord.extensions.extensions.chatCommand
 import com.kotlindiscord.kord.extensions.extensions.chatGroupCommand
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
-import com.kotlindiscord.kord.extensions.utils.getJumpUrl
-import dev.kord.common.entity.Snowflake
-import dev.kord.core.behavior.channel.createMessage
-import dev.kord.core.behavior.requestMembers
-import dev.kord.core.cache.data.ActivityData
-import dev.kord.core.entity.channel.MessageChannel
-import dev.kord.core.event.message.MessageCreateEvent
-import dev.kord.gateway.PrivilegedIntent
-import dev.kord.rest.builder.message.EmbedBuilder
-import dev.kord.rest.builder.message.create.embed
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.InlineEmbed
+import dev.minn.jda.ktx.messages.InlineMessage
+import dev.minn.jda.ktx.messages.MessageCreate
 import me.melijn.apkordex.command.KordExtension
+import me.melijn.bot.model.kordex.PersistentUsageLimitType
 import me.melijn.bot.utils.KordExUtils.bail
+import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.StringsUtil
 import me.melijn.kordkommons.utils.StringUtils
+import net.dv8tion.jda.api.entities.Activity
+import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.RichPresence
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.utils.messages.MessageCreateData
 import org.springframework.boot.ansi.AnsiColor
+import kotlin.time.Duration.Companion.seconds
 
 @KordExtension
 class DevExtension : Extension() {
 
     override val name: String = "dev"
 
-    @OptIn(PrivilegedIntent::class)
     override suspend fun setup() {
+        chatCommand {
+            name = "clearServerCommands"
+            check {
+                anyGuild()
+                userIsOwner()
+            }
+            action {
+                val guild = this.guild!!
+                guild.updateCommands().await()
+                this.channel.sendMessage("Cleared guild commands").await()
+            }
+        }
         publicSlashCommand {
             name = "test"
             description = "test"
-//            cooldown {
-//                staticCooldown {
-//                    if (wannes) 50000000.seconds
-//                    else 5.seconds
-//                }
-//
-//            }
+            cooldown(PersistentUsageLimitType.USER_COMMAND) {
+                50.seconds
+            }
             action {
                 respond {
-                    content = ":flushed:"
+                    val names = getNames()
+
+                    content = "called `${names.joinToString(" ")}`"
+                }
+            }
+        }
+        publicSlashCommand {
+            name = "testsub"
+            description = "test"
+            publicSubCommand {
+                name= "test"
+                description = "testing"
+                action {
+                    respond {
+                        val names = getNames()
+
+                        content = "called `${names.joinToString(" ")}`"
+                    }
+                }
+            }
+        }
+        publicSlashCommand {
+            name = "testsubsub"
+            description = "test"
+            group("sub1") {
+                description = "sin1"
+
+                publicSubCommand {
+                    name= "test"
+                    description = "testing"
+                    action {
+                        respond {
+                            val names = getNames()
+
+                            content = "called `${names.joinToString(" ")}`"
+                        }
+                    }
                 }
             }
         }
@@ -69,24 +116,16 @@ class DevExtension : Extension() {
             action {
                 val target = arguments.user
 
-                val member = this@DevExtension.kord.getGuildOrNull(this.guild!!.id)?.requestMembers {
-                    userIds.add(target.id)
-                    presences = true
-                }?.firstOrNull() ?: bail("Couldn't fetch their presence")
+                val member = this.guild!!.retrieveMembers(true, listOf(target)).await()
+                    ?.firstOrNull() ?: bail("Couldn't fetch their presence")
 
                 // get presence lines
-                val presences = member.data.presences.value
+                val possibleMusicActivities = member.activities
                 if (arguments.raw) {
-                    this.channel.createMessage {
-                        content = "```${presences.toString()}```"
-                    }
+                    this.channel.createMessage( "```$possibleMusicActivities```")
                 }
 
-                val possibleMusicActivities = presences?.map { presence ->
-                    presence.activities
-                } ?: emptyList()
-
-                val split = possibleMusicActivities.flatten().chunked(5)
+                val split = possibleMusicActivities.chunked(5)
 
                 for (activities in split) {
                     this.channel.createMessage {
@@ -107,33 +146,32 @@ class DevExtension : Extension() {
             action {
                 val linkArg = arguments.messageLink.parsed
                 val message = if (linkArg != null) {
-                    val parts = linkArg.split("/").takeLast(3).map { it.toULong() }
-                    val guild = this@DevExtension.kord.getGuildOrNull(Snowflake(parts[0]))
-                    val channel = guild?.getChannelOrNull(Snowflake(parts[1]))
-                    if (channel == null || channel !is MessageChannel) {
+                    val parts = linkArg.split("/").takeLast(3).map { it }
+                    val guild = shardManager.getGuildById(parts[0])
+                    val channel = guild?.getChannelById(MessageChannel::class.java, parts[1])
+                    if (channel == null) {
                         this.channel.createMessage("that link is veeery stinky")
                         return@action
                     }
-                    channel.getMessage(Snowflake(parts[2]))
+                    channel.retrieveMessageById(parts[2]).await()
                 } else {
                     message.referencedMessage!!
                 }
                 val blue = StringsUtil.ansiFormat(AnsiColor.BLUE)
                 val reset = StringsUtil.ansiFormat(AnsiColor.DEFAULT)
                 var content = ""
-                content += "${blue}content: ${reset}${message.content.replace("```", "'''")}\n"
+                content += "${blue}content: ${reset}${message.contentRaw.replace("```", "'''")}\n"
                 content += "${blue}embed: $reset"
                 if (message.embeds.isNotEmpty()) {
                     content += "[\n" + message.embeds.joinToString(",\n") {
-                        Json.encodeToString(
-                            it.data
-                        ).replace("```", "'''")
+                        it.toData().toPrettyString()
+                            .replace("```", "'''")
                     } + "\n]"
                 }
                 content += "\n"
                 content += "${blue}attachments: $reset"
                 if (message.attachments.isNotEmpty()) {
-                    content += "[\n" + message.attachments.joinToString("\n") { it.filename + " - " + it.url } + "\n]"
+                    content += "[\n" + message.attachments.joinToString("\n") { it.fileName + " - " + it.url } + "\n]"
                 }
                 content += "\n"
                 paginator(targetChannel = channel) {
@@ -149,14 +187,23 @@ class DevExtension : Extension() {
         }
     }
 
+    private fun SlashCommandContext<*, *>.getNames(): List<String> {
+       return buildList {
+           add(event.interaction.name)
+           event.interaction.subcommandGroup?.let { add(it) }
+           event.interaction.subcommandName?.let { add(it) }
+        }
+    }
+    
     companion object {
-        fun activityNameMatch(name: String): (activity: ActivityData) -> Boolean  = { it.name == name }
+        fun activityNameMatch(name: String): (activity: Activity) -> Boolean  = { it.name == name }
 
-        context(EmbedBuilder)
-        fun addActivityIntoEmbed(activity: ActivityData) {
+        context(InlineEmbed)
+        fun addActivityIntoEmbed(activity: Activity) {
+            val richPresence = activity.asRichPresence()
             when {
                 maybeMusicAction(activity) -> {
-                    val musicData = getMusicFields(activity) ?: bail("\uD83D\uDC12")
+                    val musicData = richPresence?.let { getMusicFields(it) } ?: bail("\uD83D\uDC12")
                     title = musicData.title
                     author {
                         name = musicData.author.joinToString(", ")
@@ -164,28 +211,26 @@ class DevExtension : Extension() {
                 }
 
                 else -> {
-                    url = activity.url.value
-                    thumbnail {
-                        url = activity.assets.value?.largeImage?.value.toString()
-                    }
-                    timestamp = activity.timestamps.value?.start?.value
+                    url = activity.url
+                    thumbnail = richPresence?.largeImage?.url
+                    timestamp = activity.timestamps?.startTime
                     description = """$activity"""
                 }
             }
         }
 
-        fun getMusicFields(activity: ActivityData): PresenceMusicFields? {
+        fun getMusicFields(activity: RichPresence): PresenceMusicFields? {
             return when {
                 PresenceMusicProviders.SPOTIFY.detectingFunction(activity) -> {
-                    val songName = activity.details.value ?: return null
-                    val songAuthors = activity.state.value?.split("; ") ?: emptyList()
+                    val songName = activity.details ?: return null
+                    val songAuthors = activity.state?.split("; ") ?: emptyList()
 
                     PresenceMusicFields(songName, songAuthors, PresenceMusicProviders.SPOTIFY)
                 }
 
                 PresenceMusicProviders.YOUTUBE_MUSIC_OSS.detectingFunction(activity) -> {
-                    val songName = activity.details.value ?: return null
-                    val songAuthors = activity.state.value?.split("; ") ?: emptyList()
+                    val songName = activity.details ?: return null
+                    val songAuthors = activity.state?.split("; ") ?: emptyList()
 
                     PresenceMusicFields(songName, songAuthors, PresenceMusicProviders.YOUTUBE_MUSIC_OSS)
                 }
@@ -194,9 +239,9 @@ class DevExtension : Extension() {
             }
         }
 
-        private fun maybeMusicAction(activity: ActivityData): Boolean {
+        private fun maybeMusicAction(activity: Activity): Boolean {
             val musicActionCheck = activity.name == "Spotify" || activity.name == "YouTube Music"
-            return musicActionCheck && getMusicFields(activity) != null
+            return musicActionCheck && activity.asRichPresence()?.let { getMusicFields(it) } != null
         }
     }
 
@@ -205,7 +250,7 @@ class DevExtension : Extension() {
         YT
     }
 
-    enum class PresenceMusicProviders(val fetchMethod: TrackFetchMethod, val detectingFunction: (ActivityData) -> Boolean) {
+    enum class PresenceMusicProviders(val fetchMethod: TrackFetchMethod, val detectingFunction: (Activity) -> Boolean) {
         YOUTUBE_MUSIC_OSS(TrackFetchMethod.YT, activityNameMatch("YouTube Music")),
         SPOTIFY(TrackFetchMethod.SPOTIFY, activityNameMatch("Spotify"));
     }
@@ -238,10 +283,10 @@ class DevExtension : Extension() {
                     failIf("Not a normal message link!") { !".*/\\d+|@me/\\d+/\\d+".toRegex().matches(a) }
                 } else {
                     val eventObj = context.eventObj
-                    val ref = if (eventObj is MessageCreateEvent) {
+                    val ref = if (eventObj is MessageReceivedEvent) {
                         eventObj.message.referencedMessage
                     } else null
-                    failIf("stinkert!") { ref?.getJumpUrl() == null }
+                    failIf("stinkert!") { ref?.jumpUrl == null }
                 }
             }
         }
@@ -250,4 +295,16 @@ class DevExtension : Extension() {
             messageLink.parsed
         }
     }
+}
+
+suspend inline fun MessageChannel.createMessage(s: String): Message {
+    return sendMessage(s).await()
+}
+
+suspend inline fun MessageChannel.createMessage(builder: InlineMessage<MessageCreateData>.() -> Unit): Message {
+    return sendMessage(MessageCreate { builder() }).await()
+}
+
+suspend inline fun MessageChannel.createEmbed(builder: InlineEmbed.() -> Unit): Message {
+    return sendMessage(MessageCreate { embed { builder() } }).await()
 }

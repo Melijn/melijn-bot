@@ -12,7 +12,7 @@ private class Template {
         val username by string("prefix", "Melijn")
         val discriminator by string("discrim", "0001")
         val ownerIds by string("ownerIds", "")
-        val id by string("id", "")
+        val id by long("id")
         val version by string("version")
     }
 

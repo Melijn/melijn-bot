@@ -4,8 +4,8 @@ import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.impl.stringList
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
-import dev.kord.core.behavior.channel.createMessage
-import dev.kord.core.behavior.edit
+import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.MessageEdit
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.utils.CodeEvalUtil
 import me.melijn.bot.utils.KordExUtils.userIsOwner
@@ -31,9 +31,9 @@ class EvalCommand : Extension() {
                 val paramStr = "context: ChatCommandContext<out EvalCommand.EvalArgs>"
                 val result = CodeEvalUtil.runCode(argString, paramStr, this)
 
-                msg.edit {
+                msg.editMessage(MessageEdit {
                     content = "Done!\nResult: $result"
-                }
+                }).await()
             }
         }
     }

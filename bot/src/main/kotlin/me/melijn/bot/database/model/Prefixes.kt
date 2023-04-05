@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.Table
 @Cacheable
 object Prefixes : Table("prefixes") {
 
-    val entityId = ulong("entity_id")
+    val entityId = long("entity_id")
     val prefix = text("prefix")
 
     override val primaryKey = PrimaryKey(entityId, prefix)

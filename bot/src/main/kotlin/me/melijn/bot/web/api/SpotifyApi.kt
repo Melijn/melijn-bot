@@ -31,6 +31,10 @@ class MySpotifyApi(spotifySettings: Settings.Api.Spotify) {
         api.accessToken = credentialsRequest.executeAsync().await().accessToken
     }
 
+    fun getToken(): String {
+        return api.accessToken
+    }
+
     companion object {
         private val spotifyTrackUrl = Regex("https://open\\.spotify\\.com/track/(\\w+)(?:\\?\\S+)?")
         private val spotifyTrackUri = Regex("spotify:track:(\\w+)")

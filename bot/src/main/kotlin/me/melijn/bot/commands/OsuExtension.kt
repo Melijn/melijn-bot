@@ -1,5 +1,3 @@
-@file:Suppress("ArrayInDataClass")
-
 package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.DiscordRelayedException
@@ -16,18 +14,12 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
 import com.sksamuel.scrimage.ImmutableImage
-import dev.kord.common.DiscordTimestampStyle
-import dev.kord.common.kColor
-import dev.kord.common.toMessageFormat
-import dev.kord.rest.builder.message.EmbedBuilder
-import dev.kord.rest.builder.message.create.MessageCreateBuilder
-import dev.kord.rest.builder.message.create.embed
+import dev.minn.jda.ktx.messages.InlineEmbed
+import dev.minn.jda.ktx.messages.InlineMessage
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toJavaInstant
 import kotlinx.serialization.SerialName
@@ -43,10 +35,14 @@ import me.melijn.bot.utils.InferredChoiceEnum
 import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.TableBuilder
+import me.melijn.bot.utils.TimeUtil.format
 import me.melijn.bot.web.api.WebManager
 import me.melijn.gen.OsuLinkData
 import me.melijn.gen.Settings
 import me.melijn.kordkommons.utils.escapeCodeBlock
+import net.dv8tion.jda.api.utils.AttachedFile
+import net.dv8tion.jda.api.utils.TimeFormat
+import net.dv8tion.jda.api.utils.messages.MessageCreateData
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 import org.koin.core.component.inject
 import java.awt.Color
@@ -82,7 +78,7 @@ class OsuExtension : Extension() {
 
                 action {
                     val mode = arguments.gameMode
-                    val currentProfile = linkManager.get(user.id)
+                    val currentProfile = linkManager.get(user)
                     val currentModeName = currentProfile.modePreference?.readableName
                     if (mode == null) {
                         respond {
@@ -107,7 +103,7 @@ class OsuExtension : Extension() {
                 action {
                     val account = arguments.account
                     val token = assertToken()
-                    val currentProfile = linkManager.get(user.id)
+                    val currentProfile = linkManager.get(user)
 
                     if (arguments.reset == true) {
                         val updatedProfile = currentProfile.apply { osuId = null }
@@ -134,7 +130,6 @@ class OsuExtension : Extension() {
                     respond {
                         content = tr("osu.link.succeeded")
                     }
-
                 }
             }
 
@@ -200,7 +195,7 @@ class OsuExtension : Extension() {
                                 author {
                                     name = osuScoreUser.username
                                     url = "https://osu.ppy.sh/users/" + score.user_id
-                                    icon = osuScoreUser.avatar_url
+                                    iconUrl = osuScoreUser.avatar_url
                                 }
                                 title = "Score #${i}"
                                 url = "https://osu.ppy.sh/scores/osu/${score.id}"
@@ -235,14 +230,13 @@ class OsuExtension : Extension() {
                                         stats.count_geki,
                                         stats.count_katu,
                                         table,
-                                        score.created_at.toMessageFormat(DiscordTimestampStyle.LongDateTime)
+                                        TimeFormat.DATE_TIME_LONG.format(score.created_at)
+
                                     )
                                     inline = false
                                 }
 
-                                thumbnail {
-                                    url = beatmapSet.covers.list2x ?: beatmapSet.covers.list
-                                }
+                                thumbnail = beatmapSet.covers.list2x ?: beatmapSet.covers.list
                             }
                         }
                     }.send()
@@ -273,20 +267,21 @@ class OsuExtension : Extension() {
     }
 
     context(ApplicationCommandContext)
-            private suspend fun assertAccount(
+    private suspend fun assertAccount(
         osuId: String?,
-        user: dev.kord.core.entity.User?
+        user: net.dv8tion.jda.api.entities.User?
     ): Pair<OsuLinkData?, String> {
         if (osuId != null) return null to osuId
 
-        val target = user?.asUser() ?: getUser().asUser()
-        val authorOsuSettings = linkManager.get(target.id)
+        val invoker: net.dv8tion.jda.api.entities.User = this@ApplicationCommandContext.user
+        val target = user ?: invoker
+        val authorOsuSettings = linkManager.get(target)
         val osuSettings =
-            linkManager.get(target.id).takeIf { it.modePreference != null } ?: authorOsuSettings
+            linkManager.get(target).takeIf { it.modePreference != null } ?: authorOsuSettings
 
         val assertedOsuId = osuSettings.osuId?.toString() ?: bail(
-            if (target.id == getUser().id) tr("osu.profile.you.noLink")
-            else tr("osu.profile.other.noLink", target.mention)
+            if (target == invoker) tr("osu.profile.you.noLink")
+            else tr("osu.profile.other.noLink", target.asMention)
         )
         return osuSettings to assertedOsuId
     }
@@ -351,9 +346,9 @@ class OsuExtension : Extension() {
         }
         val type by defaultingEnumChoice<ScoreType> {
             defaultValue = ScoreType.BEST
-            name = "Scoretype"
+            name = "scoretype"
             description = "the types of scores you want to fetch (default: ${defaultValue})"
-            typeName = "ScoreType"
+            typeName = "scoretype"
         }
         val offset by defaultingInt {
             defaultValue = 0
@@ -442,15 +437,13 @@ class OsuExtension : Extension() {
             Result.failure(body<ErrorResponse>())
         }
 
-    context(EmbedBuilder, MessageCreateBuilder, CommandContext)
-            private suspend fun presentUser(user: User, gameMode: GameMode) {
-        thumbnail {
-            url = user.avatar_url
-        }
+    context(InlineEmbed, InlineMessage<MessageCreateData>, CommandContext)
+    private suspend fun presentUser(user: User, gameMode: GameMode) {
+        thumbnail = user.avatar_url
 
         title = tr("osu.user.title", user.username, gameMode.readableName)
         url = user.siteUrl(gameMode)
-        user.profile_colour?.let { color = Color.decode(it).kColor }
+        user.profile_colour?.let { color = Color.decode(it).rgb }
 
         user.statistics?.let {
             field(tr("osu.user.gamesPlayed"), inline = true) { tr("osu.user.gamesPlayed.format", it.play_count) }
@@ -487,10 +480,10 @@ class OsuExtension : Extension() {
         user.rank_history?.let { points ->
             val barr = drawRankHistoryWithSplines(points.data.toMutableList())
             val bais = ByteArrayInputStream(barr)
-            addFile("image.png", ChannelProvider { bais.toByteReadChannel() })
+            files.plusAssign(AttachedFile.fromData(bais, "image.png"))
 
             footer {
-                text = tr("osu.user.joined", Date.from(user.join_date?.toJavaInstant()))
+                name = tr("osu.user.joined", Date.from(user.join_date?.toJavaInstant()))
             }
         }
     }

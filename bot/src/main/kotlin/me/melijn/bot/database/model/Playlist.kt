@@ -10,7 +10,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 object Playlist : Table("playlist") {
 
     val playlistId = uuid("id")
-    val userId = ulong("user_id")
+    val userId = long("user_id")
     val created = datetime("created")
     val name = text("name")
     val public = bool("public")

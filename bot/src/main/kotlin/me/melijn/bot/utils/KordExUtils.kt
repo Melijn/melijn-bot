@@ -27,12 +27,6 @@ import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
 import com.kotlindiscord.kord.extensions.modules.annotations.converters.Converter
 import com.kotlindiscord.kord.extensions.modules.annotations.converters.ConverterType
 import com.kotlindiscord.kord.extensions.parser.StringParser
-import dev.kord.core.entity.interaction.OptionValue
-import dev.kord.core.entity.interaction.StringOptionValue
-import dev.kord.core.event.interaction.ChatInputCommandInteractionCreateEvent
-import dev.kord.core.event.message.MessageCreateEvent
-import dev.kord.rest.builder.interaction.OptionsBuilder
-import dev.kord.rest.builder.interaction.StringChoiceBuilder
 import me.melijn.bot.database.manager.BalanceManager
 import me.melijn.bot.database.manager.PlaylistManager
 import me.melijn.bot.utils.EnumUtil.ucc
@@ -42,27 +36,32 @@ import me.melijn.gen.PlaylistData
 import me.melijn.gen.Settings
 import me.melijn.kordkommons.utils.SPACE_PATTERN
 import me.melijn.kordkommons.utils.escapeMarkdown
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.interactions.commands.OptionMapping
+import net.dv8tion.jda.api.interactions.commands.OptionType
+import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import org.jetbrains.annotations.PropertyKey
 import org.koin.core.component.inject
 import java.util.*
 
 object KordExUtils {
 
-    suspend fun CheckContext<MessageCreateEvent>.userIsOwner() {
+    suspend fun CheckContext<MessageReceivedEvent>.userIsOwner() {
         val botSettings by inject<Settings>()
         failIfNot("bot owner command") {
             botSettings.bot.ownerIds.split(",").any {
-                it.trim() == this.event.message.author?.id?.value.toString()
+                it.trim() == this.event.author.id
             }
         }
     }
 
     @JvmName("userIsOwnerChatInputCommandInteractionCreateEvent")
-    suspend fun CheckContext<ChatInputCommandInteractionCreateEvent>.userIsOwner() {
+    suspend fun CheckContext<SlashCommandInteractionEvent>.userIsOwner() {
         val botSettings by inject<Settings>()
         failIfNot("bot owner command") {
             botSettings.bot.ownerIds.split(",").any {
-                it.trim() == this.event.interaction.user.id.value.toString()
+                it.trim() == this.event.interaction.user.id
             }
         }
     }
@@ -129,7 +128,7 @@ object KordExUtils {
     ): String =
         translationsProvider.translate(
             key,
-            getLocale(),
+            resolvedLocale.await(),
             MELIJN_RESOURCE_BUNDLE_KORDEX,
             replacements.asList().toTypedArray()
         )
@@ -140,7 +139,7 @@ object KordExUtils {
     ): String =
         translations.translate(
             key,
-            context.getLocale(),
+            context.resolvedLocale.await(),
             MELIJN_RESOURCE_BUNDLE_KORDEX,
             replacements.asList().toTypedArray()
         )
@@ -293,9 +292,7 @@ object KordExUtils {
         valueVal: Long,
         tooLittleBalance: String
     ) {
-        val balance = context.getUser()?.id?.let { userId ->
-            balanceManager.get(userId)
-        }?.balance ?: 0
+        val balance = balanceManager.get(context.user).balance
 
         failIf(tr(negativeOrZeroAmount)) { valueVal <= 0 }
         failIf(tr(tooLittleBalance, valueVal, balance)) { valueVal > balance }
@@ -327,11 +324,11 @@ class ShortTimeConverter(
         return true
     }
 
-    override suspend fun toSlashOption(arg: Argument<*>): OptionsBuilder =
-        StringChoiceBuilder(arg.displayName, arg.description).apply { required = true }
+    override suspend fun toSlashOption(arg: Argument<*>): OptionData =
+        OptionData(OptionType.STRING, arg.displayName, arg.description, required)
 
-    override suspend fun parseOption(context: CommandContext, option: OptionValue<*>): Boolean {
-        val optionValue = (option as? StringOptionValue)?.value ?: return false
+    override suspend fun parseOption(context: CommandContext, option: OptionMapping): Boolean {
+        val optionValue = if (option.type == OptionType.STRING) option.asString else return false
 
         parsed = parse(context, optionValue)
 
@@ -382,11 +379,11 @@ class PlaylistConverter(
         return true
     }
 
-    override suspend fun toSlashOption(arg: Argument<*>): OptionsBuilder =
-        StringChoiceBuilder(arg.displayName, arg.description).apply { required = true }
+    override suspend fun toSlashOption(arg: Argument<*>): OptionData =
+        OptionData(OptionType.STRING, arg.displayName, arg.description, required)
 
-    override suspend fun parseOption(context: CommandContext, option: OptionValue<*>): Boolean {
-        val optionValue = (option as? StringOptionValue)?.value ?: return false
+    override suspend fun parseOption(context: CommandContext, option: OptionMapping): Boolean {
+        val optionValue = if (option.type == OptionType.STRING) option.asString else return false
 
         parsed = parse(context, optionValue)
 
@@ -394,10 +391,7 @@ class PlaylistConverter(
     }
 
     private suspend fun parse(context: CommandContext, arg: String): PlaylistData {
-        val id = context.getUser()?.id
-            ?: throw DiscordRelayedException(context.translate("commandContext.userNull"))
-
-        val playlists = playlistManager.getPlaylistsOfUser(id)
+        val playlists = playlistManager.getPlaylistsOfUser(context.user)
 
         return playlists.firstOrNull { it.name == arg }
             ?: throw DiscordRelayedException(
@@ -428,11 +422,11 @@ class IntRangesConverter(
         return true
     }
 
-    override suspend fun toSlashOption(arg: Argument<*>): OptionsBuilder =
-        StringChoiceBuilder(arg.displayName, arg.description).apply { required = true }
+    override suspend fun toSlashOption(arg: Argument<*>): OptionData =
+        OptionData(OptionType.STRING, arg.displayName, arg.description, required)
 
-    override suspend fun parseOption(context: CommandContext, option: OptionValue<*>): Boolean {
-        val optionValue = (option as? StringOptionValue)?.value ?: return false
+    override suspend fun parseOption(context: CommandContext, option: OptionMapping): Boolean {
+        val optionValue = if (option.type == OptionType.STRING) option.asString else return false
 
         parsed = parse(context, optionValue)
 

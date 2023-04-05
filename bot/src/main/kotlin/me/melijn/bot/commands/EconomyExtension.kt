@@ -9,7 +9,6 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.user
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
-import dev.kord.rest.builder.message.create.embed
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.BalanceManager
 import me.melijn.bot.utils.KordExUtils.availableCurrency
@@ -31,7 +30,7 @@ class EconomyExtension : Extension() {
             description = "Shows your mel balance"
 
             action {
-                val balance = balanceManager.get(this.user.id).balance
+                val balance = balanceManager.get(this.user).balance
                 respond {
                     embed {
                         description = tr("balance.show", balance)
@@ -46,8 +45,8 @@ class EconomyExtension : Extension() {
             action {
                 val target = arguments.target.parsed
                 val amount = arguments.amount.parsed
-                val balancePayer = balanceManager.get(user.id)
-                val balanceReceiver = balanceManager.get(target.id)
+                val balancePayer = balanceManager.get(user)
+                val balanceReceiver = balanceManager.get(target)
                 balancePayer.balance -= amount
                 balanceReceiver.balance += amount
                 balanceManager.store(balancePayer)
@@ -55,7 +54,7 @@ class EconomyExtension : Extension() {
                 respond {
                     content = tr(
                         "pay.payed",
-                        target.mention, amount, balancePayer.balance
+                        target.asMention, amount, balancePayer.balance
                     )
                 }
             }
@@ -66,7 +65,7 @@ class EconomyExtension : Extension() {
 
             action {
                 val balanceManager by inject<BalanceManager>()
-                val balanceData = balanceManager.get(this.user.id)
+                val balanceData = balanceManager.get(this.user)
                 balanceData.balance += 100
                 balanceManager.store(balanceData)
                 respond {
@@ -88,7 +87,7 @@ class EconomyExtension : Extension() {
                     val side = arguments.coinSide.parsed
 
                     val balanceManager by inject<BalanceManager>()
-                    val balanceData = balanceManager.get(user.id)
+                    val balanceData = balanceManager.get(user)
                     val amount = balanceData.balance
                     if (amount == 0L) {
                         respond {
@@ -109,7 +108,7 @@ class EconomyExtension : Extension() {
                     val amount = arguments.amount.parsed
                     val side = arguments.coinSide.parsed
 
-                    val balanceData = balanceManager.get(user.id)
+                    val balanceData = balanceManager.get(user)
 
                     flipAmount(side, balanceData, amount, balanceManager)
                 }
@@ -124,7 +123,7 @@ class EconomyExtension : Extension() {
                 // TODO: 1h cooldown
                 // implement hourly beg cooldown
                 val receivedAmount = Random.nextInt(11)
-                val recipient = balanceManager.get(user.id)
+                val recipient = balanceManager.get(user)
                 recipient.balance += receivedAmount
                 balanceManager.store(recipient)
                 respond {
@@ -167,7 +166,7 @@ class EconomyExtension : Extension() {
             name = "target"
             description = "user that will receive the mels"
             validate {
-                failIf(translations.translate("pay.triedPayingSelf")) { value.id == context.getUser()?.id }
+                failIf(translations.translate("pay.triedPayingSelf")) { value.id == context.user.id }
             }
         }
         val amount = availableCurrency("pay.triedPayingNothing", "pay.triedOverPaying") {
