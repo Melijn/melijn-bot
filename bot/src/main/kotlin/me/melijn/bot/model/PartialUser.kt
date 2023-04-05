@@ -1,16 +1,15 @@
 package me.melijn.bot.model
 
-import dev.kord.common.entity.Snowflake
-import dev.kord.core.entity.User
+import net.dv8tion.jda.api.entities.User
 
 @kotlinx.serialization.Serializable
 data class PartialUser(
-    val id: Snowflake,
+    val idLong: Long,
     val username: String,
     val discriminator: String,
     val avatarUrl: String?
 ) {
-    val idULong = id.value
+    val idULong = idLong.toULong()
     val tag
         get() = "${username}#${discriminator}"
     val effectiveAvatarUrl
@@ -18,7 +17,7 @@ data class PartialUser(
 
     companion object {
         fun fromKordUser(user: User) = user.run {
-            PartialUser(id, username, discriminator, avatar?.url)
+            PartialUser(this.idLong, name, discriminator, effectiveAvatarUrl)
         }
     }
 

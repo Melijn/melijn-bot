@@ -7,14 +7,11 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.converters.i
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
-import com.kotlindiscord.kord.extensions.types.editingPaginator
 import com.kotlindiscord.kord.extensions.types.respond
-import dev.kord.common.entity.ButtonStyle
-import dev.kord.common.entity.ChannelType
-import dev.kord.rest.builder.message.create.actionRow
-import dev.kord.rest.builder.message.create.embed
+import com.kotlindiscord.kord.extensions.types.respondingPaginator
+import dev.minn.jda.ktx.interactions.components.danger
+import dev.minn.jda.ktx.interactions.components.secondary
 import dev.schlaubi.lavakord.audio.Link
-import dev.schlaubi.lavakord.kord.connectAudio
 import kotlinx.coroutines.delay
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.Melijn
@@ -40,6 +37,7 @@ import me.melijn.bot.utils.shortTime
 import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.utils.StringUtils
 import me.melijn.kordkommons.utils.escapeMarkdown
+import net.dv8tion.jda.api.entities.channel.ChannelType
 import org.koin.core.component.inject
 import org.springframework.boot.ansi.AnsiColor
 import kotlin.math.max
@@ -60,7 +58,7 @@ class MusicExtension : Extension() {
         suspend fun ValidationContext<*>.failIfInvalidTrackIndex(
             index: Int?,
             trackManagerFun: suspend ValidationContext<*>.() -> TrackManager = {
-                context.getGuild()!!.asGuild().getTrackManager()
+                context.guild!!.getTrackManager()
             }
         ) {
             val noVarMoment = index ?: return
@@ -76,14 +74,14 @@ class MusicExtension : Extension() {
          */
         suspend fun PublicSlashCommandContext<*>.tryJoinUser(link: Link): Boolean {
             if (link.state != Link.State.CONNECTED) {
-                val vc = member?.getVoiceStateOrNull()?.channelId
+                val vc = member?.voiceState?.channel?.idLong
                 if (vc == null) {
                     respond {
                         content = tr("music.userNotInVC")
                     }
                     return true
                 }
-                link.connectAudio(vc.value)
+                link.connectAudio(vc.toULong())
             }
             return false
         }
@@ -95,7 +93,7 @@ class MusicExtension : Extension() {
             description = "shuffles the queue once"
 
             action {
-                val guild = guild!!.asGuild()
+                val guild = guild!!
                 val trackManager = guild.getTrackManager()
                 trackManager.shuffle()
                 respond {
@@ -109,7 +107,7 @@ class MusicExtension : Extension() {
             description = "try to fix broken player"
 
             action {
-                val guild = guild!!.asGuild()
+                val guild = guild!!
                 val trackManager = guild.getTrackManager()
                 if (!trackManager.link.node.available) {
                     respond {
@@ -140,7 +138,7 @@ class MusicExtension : Extension() {
                 name = "queue"
                 description = "Loops the queue"
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val trackManager = guild.getTrackManager()
                     trackManager.loopedQueue = !trackManager.loopedQueue
                     respond {
@@ -152,7 +150,7 @@ class MusicExtension : Extension() {
                 name = "single"
                 description = "Loops the playing track"
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val trackManager = guild.getTrackManager()
                     trackManager.looped = !trackManager.looped
                     respond {
@@ -168,7 +166,7 @@ class MusicExtension : Extension() {
 
             action {
                 val from = arguments.positions.parsed
-                val guild = guild!!.asGuild()
+                val guild = guild!!
                 val trackManager = guild.getTrackManager()
 
                 // collect tracks from queue to remove from intRanges
@@ -194,7 +192,7 @@ class MusicExtension : Extension() {
             action {
                 val from = arguments.from.parsed - 1
                 val to = arguments.to.parsed - 1
-                val guild = guild!!.asGuild()
+                val guild = guild!!
                 val trackManager = guild.getTrackManager()
 
                 val trackList = trackManager.queue
@@ -216,7 +214,7 @@ class MusicExtension : Extension() {
                 description = "Seek to a position in the track"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val position = arguments.time.parsed
                     val trackManager = guild.getTrackManager()
                     trackManager.seek(position)
@@ -235,7 +233,7 @@ class MusicExtension : Extension() {
                 description = "Forward to a position in the track"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val position = arguments.time.parsed
                     val trackManager = guild.getTrackManager()
                     val newPos = trackManager.player.position + position
@@ -255,7 +253,7 @@ class MusicExtension : Extension() {
                 description = "Rewind to a position in the track"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val position = arguments.time.parsed
                     val trackManager = guild.getTrackManager()
                     val newPos = trackManager.player.position - position
@@ -278,7 +276,7 @@ class MusicExtension : Extension() {
             description = "Clears the queue"
 
             action {
-                val guild = guild!!.asGuild()
+                val guild = guild!!
                 val trackManager = guild.getTrackManager()
                 trackManager.clear()
                 respond {
@@ -296,17 +294,17 @@ class MusicExtension : Extension() {
             }
 
             action {
-                val target = arguments.target.parsed
-                val guild = guild!!.asGuild()
+                val target = arguments.target
+                val guild = guild!!
                 val trackManager = guild.getTrackManager()
                 if (tryJoinUser(trackManager.link)) return@action
                 trackManager.follow(target)
                 respond {
-                    content = "The music player is now following ${target?.mention ?: "no one"}"
+                    content = "The music player is now following ${target?.asMention ?: "no one"}"
                 }
 
                 if (target == null) return@action
-                val track = trackLoader.fetchTrackFromPresence(guild.id, target) ?: return@action
+                val track = trackLoader.fetchTrackFromPresence(guild, target.user) ?: return@action
                 trackManager.play(track)
             }
         }
@@ -316,7 +314,7 @@ class MusicExtension : Extension() {
             description = "shows queued tracks"
 
             action {
-                val guild = guild!!.asGuild()
+                val guild = guild!!
                 val trackManager = guild.getTrackManager()
                 val player = trackManager.player
                 val playing = trackManager.playingTrack
@@ -344,7 +342,7 @@ class MusicExtension : Extension() {
                     )
                 }
 
-                val locale = getLocale()
+                val locale = resolvedLocale.await()
                 queue.indexedForEach { index, track ->
                     totalDuration += track.length
                     description += "\n" + translationsProvider.tr(
@@ -358,8 +356,7 @@ class MusicExtension : Extension() {
                     queue.size + (playing?.let { 1 } ?: 0)
                 )
 
-
-                editingPaginator {
+                respondingPaginator {
                     val parts = StringUtils.splitMessage(description)
                     for (part in parts) {
                         page {
@@ -376,7 +373,7 @@ class MusicExtension : Extension() {
             description = "Skip tracks"
 
             check {
-                val guild = guildFor(this.event)!!.asGuild()
+                val guild = guildFor(this.event)!!
                 failIf("No songs to skip!") {
                     guild.getTrackManager().playingTrack == null
                 }
@@ -385,7 +382,7 @@ class MusicExtension : Extension() {
             action {
                 val amount = arguments.number.parsed ?: 1
                 val type = arguments.type.parsed ?: SkipType.HARD
-                val guild = guild!!.asGuild()
+                val guild = guild!!
                 val trackManager = guild.getTrackManager()
                 val player = trackManager.player
                 val skipped = trackManager.playingTrack ?: return@action
@@ -405,7 +402,7 @@ class MusicExtension : Extension() {
                 }
                 respond {
                     embed {
-                        title = tr("skip.title", user.asUser().tag)
+                        title = tr("skip.title", user.asTag)
                         description = """
                             $skippedPart
                             $nextPart
@@ -420,7 +417,7 @@ class MusicExtension : Extension() {
             description = "shows current playing song information"
 
             action {
-                val guild = guild!!.asGuild()
+                val guild = guild!!
                 val trackManager = guild.getTrackManager()
                 val player = trackManager.player
                 val playing = trackManager.playingTrack
@@ -459,12 +456,12 @@ class MusicExtension : Extension() {
                             value = tr("nowplaying.statusFieldValue", status)
                             inline = false
                         }
-                        thumbnail {
-                            url = when (playing.sourceType) {
+
+                             thumbnail = when (playing.sourceType) {
                                 TrackSource.YOUTUBE -> "https://img.youtube.com/vi/${playing.identifier}/hqdefault.jpg"
                                 else -> ""
                             }
-                        }
+
                     }
                 }
             }
@@ -475,18 +472,18 @@ class MusicExtension : Extension() {
             description = "bot joins your channel"
 
             action {
-                val guild = guild!!.asGuild()
+                val guild = guild!!
                 val trackManager = guild.getTrackManager()
                 val channel = this.arguments.channel.parsed
                 val link = trackManager.link
                 if (channel == null && tryJoinUser(link)) return@action
                 if (channel != null) {
-                    link.connectAudio(channel.id)
+                    link.connectAudio(channel.id.toULong())
                 }
 
                 respond {
-                    val botVC = channel ?: member?.getVoiceState()?.getChannelOrNull()?.asChannel()
-                    content = tr("connect.success", botVC?.mention ?: "error")
+                    val botVC = channel ?: member?.voiceState?.channel
+                    content = tr("connect.success", botVC?.asMention ?: "error")
                 }
             }
         }
@@ -497,8 +494,8 @@ class MusicExtension : Extension() {
             description = "Search the first 5 tracks and lets you choose the best one"
 
             action {
-                val guild = guild!!.asGuild()
-                val user = user.asUser()
+                val guild = guild!!
+                val user = user
                 val trackManager = guild.getTrackManager()
                 val link = trackManager.link
 
@@ -509,7 +506,7 @@ class MusicExtension : Extension() {
 
                 val requester = PartialUser.fromKordUser(user)
                 val tracks = trackLoader.searchFetchedTracks(link.node, query, requester, trackSearchKeep = 5)
-                val locale = getLocale()
+                val locale = resolvedLocale.await()
                 val entries = tracks.withIndex().joinToString("\n") { (index, track) ->
                     translationsProvider.tr(
                         "splay.entry",
@@ -528,7 +525,7 @@ class MusicExtension : Extension() {
                             trackManager.queue(track, queuePosition)
 
                             embed {
-                                title = tr("play.title", user.tag)
+                                title = tr("play.title", user.asTag)
                                 description = tr(
                                     "play.addedOne",
                                     trackManager.queue.size,
@@ -540,27 +537,21 @@ class MusicExtension : Extension() {
                         }
                         tracks.size > 1 -> {
                             embed {
-                                title = tr("splay.menuTitle", user.tag)
+                                title = tr("splay.menuTitle", user.asTag)
                                 description = entries
                             }
-                            actionRow {
-                                for (i in tracks.indices) {
-                                    interactionButton(ButtonStyle.Secondary, "${SPLAY_BTN_ID_PREFIX}$i") {
-                                        label = "$i"
-                                    }
+                            actionRow(
+                                tracks.indices.map {  i ->
+                                    secondary("${SPLAY_BTN_ID_PREFIX}$i", "$i")
                                 }
-                            }
-                            actionRow {
-                                interactionButton(ButtonStyle.Danger, "${SPLAY_BTN_ID_PREFIX}${SPLAY_BTN_CANCEL}") {
-                                    label = tr("cancelButton")
-                                }
-                            }
+                            )
+                            actionRow(danger(SPLAY_BTN_ID_PREFIX + SPLAY_BTN_CANCEL, tr("cancelButton")))
                         }
                         else -> content = tr("play.noMatches")
                     }
                 }
 
-                searchPlayMenuCache.cache[OwnedGuildMessage.from(guild, user, msg.message)] = SearchPlayMenu(
+                searchPlayMenuCache.cache[OwnedGuildMessage.from(guild, user, msg.referencedMessage!!)] = SearchPlayMenu(
                     tracks.toTypedArray(),
                     queuePosition
                 )
@@ -573,8 +564,8 @@ class MusicExtension : Extension() {
             description = "bot joins your channel and plays moosic"
 
             action {
-                val guild = guild!!.asGuild()
-                val user = user.asUser()
+                val guild = guild!!
+                val user = user
                 val trackManager = guild.getTrackManager()
                 val oldQueueSize = trackManager.queue.size
                 val link = trackManager.link
@@ -598,7 +589,7 @@ class MusicExtension : Extension() {
                             val track = tracks.first()
 
                             embed {
-                                title = tr("play.title", user.tag)
+                                title = tr("play.title", user.asTag)
                                 description = tr(
                                     "play.addedOne",
                                     trackManager.queue.size,
@@ -610,7 +601,7 @@ class MusicExtension : Extension() {
                         }
                         tracks.size > 1 -> {
                             embed {
-                                title = tr("play.manyAddedTitle", user.tag)
+                                title = tr("play.manyAddedTitle", user.asTag)
                                 description = tr(
                                     "play.manyAddedDescription",
                                     tracks.size,
@@ -630,7 +621,7 @@ class MusicExtension : Extension() {
             description = "stops music"
 
             action {
-                val guild = guild!!.asGuild()
+                val guild = guild!!
                 val trackManager = guild.getTrackManager()
                 trackManager.stopAndDestroy()
 
@@ -645,8 +636,8 @@ class MusicExtension : Extension() {
             description = "leaves channel"
 
             action {
-                val guildId = guild?.id?.value!!
-                val link = Melijn.lavalink.getLink(guildId)
+                val guildId = guild!!.idLong
+                val link = Melijn.lavalink.getLink(guildId.toULong())
                 link.destroy()
 
                 respond {
@@ -660,7 +651,7 @@ class MusicExtension : Extension() {
             description = "pause music"
 
             action {
-                val guild = guild!!.asGuild()
+                val guild = guild!!
                 val trackManager = guild.getTrackManager()
                 trackManager.player.pause(!trackManager.player.paused)
                 respond {
@@ -674,7 +665,7 @@ class MusicExtension : Extension() {
             description = "Shows detailed information about the current node"
 
             action {
-                val guild = guild!!.asGuild()
+                val guild = guild!!
                 val trackManager = guild.getTrackManager()
                 val stats = trackManager.link.node.lastStatsEvent
                 respond {
@@ -691,8 +682,8 @@ class MusicExtension : Extension() {
                             trackManager.link.node.available,
                             stats.playingPlayers, stats.players,
                             stats.cpu.cores, stats.cpu.lavalinkLoad,
-                            StringUtils.humanReadableByteCountBin(stats.memory.used, getLocale()),
-                            StringUtils.humanReadableByteCountBin(stats.memory.allocated, getLocale()),
+                            StringUtils.humanReadableByteCountBin(stats.memory.used, resolvedLocale.await()),
+                            StringUtils.humanReadableByteCountBin(stats.memory.allocated, resolvedLocale.await()),
                             stats.frameStats?.deficit ?: 0, stats.frameStats?.nulled ?: 0, stats.frameStats?.sent ?: 0,
                             stats.uptime.toDuration(DurationUnit.MILLISECONDS).formatRelative()
                         )
@@ -704,7 +695,7 @@ class MusicExtension : Extension() {
 
     inner class FollowUserArgs : Arguments() {
 
-        val target = optionalMember {
+        val target by optionalMember {
             name = "target"
             description = "MusicPlayer will follow spotify status"
         }
@@ -713,7 +704,7 @@ class MusicExtension : Extension() {
     inner class SeekArgs : Arguments() {
 
         val time = shortTime {
-            name = "timeStamp"
+            name = "timestamp"
             description = "format mm:ss or hh:mm:ss (e.g. 1:35 for 1 minute 35 seconds)"
         }
     }
@@ -751,9 +742,9 @@ class MusicExtension : Extension() {
             description = "songName or link"
         }
         val queuePosition = optionalEnumChoice<QueuePosition> {
-            name = "queuePosition"
+            name = "queueposition"
             description = "Position the queued track will take"
-            typeName = "queuePosition"
+            typeName = "queueposition"
         }
     }
 
@@ -764,16 +755,16 @@ class MusicExtension : Extension() {
             description = "songName"
         }
         val queuePosition = optionalEnumChoice<QueuePosition> {
-            name = "queuePosition"
+            name = "queueposition"
             description = "Position the queued track will take"
-            typeName = "queuePosition"
+            typeName = "queueposition"
         }
     }
 
     inner class SkipArgs : Arguments() {
 
         val number = optionalInt {
-            name = "trackAmount"
+            name = "trackamount"
             description =
                 "Amount of track you want to skip, equal to the track index of the to play next track after skipping"
 
@@ -782,24 +773,24 @@ class MusicExtension : Extension() {
             }
         }
         val type = optionalEnumChoice<SkipType> {
-            name = "skipType"
+            name = "skiptype"
             description = "Hard won't requeue when looping, Soft will"
-            typeName = "skipType"
+            typeName = "skiptype"
         }
     }
 
     private class VCArgs : Arguments() {
 
         val channel = optionalChannel {
-            name = "voiceChannel"
+            name = "voicechannel"
             description = "Used for advanced summoning spells"
 
             validate {
                 val channel = this.value
                 failIf("This is not a voiceChannel!") {
                     channel != null
-                        && channel.type != ChannelType.GuildVoice
-                        && channel.type != ChannelType.GuildStageVoice
+                        && channel.type != ChannelType.VOICE
+                        && channel.type != ChannelType.STAGE
                 }
             }
         }

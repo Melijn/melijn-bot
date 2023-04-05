@@ -2,11 +2,10 @@ package me.melijn.bot.events.buttons
 
 import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
 import com.kotlindiscord.kord.extensions.utils.getLocale
-import dev.kord.core.Kord
-import dev.kord.core.behavior.interaction.updatePublicMessage
-import dev.kord.core.event.interaction.GuildButtonInteractionCreateEvent
-import dev.kord.core.on
-import dev.kord.rest.builder.message.create.embed
+import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.events.listener
+import dev.minn.jda.ktx.messages.MessageEdit
+
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.cache.SearchPlayMenuCache
 import me.melijn.bot.model.OwnedGuildMessage
@@ -14,6 +13,8 @@ import me.melijn.bot.music.MusicManager.getTrackManager
 import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.TimeUtil.formatElapsed
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
+import net.dv8tion.jda.api.sharding.ShardManager
 
 @Inject(true)
 class SPlayMenuButtonHandler {
@@ -22,10 +23,10 @@ class SPlayMenuButtonHandler {
     private val translationsProvider by inject<TranslationsProvider>()
 
     init {
-        val kord by inject<Kord>()
-        kord.on<GuildButtonInteractionCreateEvent> {
-            if (!interaction.componentId.startsWith(SPLAY_BTN_ID_PREFIX)) return@on
-            handle(this)
+        val kord by inject<ShardManager>()
+        kord.listener<ButtonInteractionEvent> { interaction ->
+            if (!interaction.isFromGuild || !interaction.componentId.startsWith(SPLAY_BTN_ID_PREFIX)) return@listener
+            handle(interaction)
         }
     }
 
@@ -34,12 +35,12 @@ class SPlayMenuButtonHandler {
         const val SPLAY_BTN_CANCEL = "cancel"
     }
 
-    private suspend fun handle(event: GuildButtonInteractionCreateEvent) {
+    private suspend fun handle(event: ButtonInteractionEvent) {
         val interaction = event.interaction
         val ownedGuildMessage = OwnedGuildMessage.from(interaction)
         val searchPlayMenu = searchPlayMenuCache.cache[ownedGuildMessage] ?: return
 
-        val guild = event.interaction.getGuild()
+        val guild = event.interaction.guild!!
         val locale = event.getLocale()
 
         val title: String
@@ -56,7 +57,7 @@ class SPlayMenuButtonHandler {
 
                 trackManager.queue(selected, searchPlayMenu.queuePosition)
 
-                title = translationsProvider.tr("play.title", locale, event.interaction.user.tag)
+                title = translationsProvider.tr("play.title", locale, event.interaction.user.asTag)
                 description = translationsProvider.tr(
                     "play.addedOne",
                     locale,
@@ -68,11 +69,11 @@ class SPlayMenuButtonHandler {
             }
         }
         searchPlayMenuCache.cache.remove(ownedGuildMessage)
-        event.interaction.updatePublicMessage {
+        event.interaction.editMessage(MessageEdit {
             embed {
                 this.title = title
                 this.description = description
             }
-        }
+        }).await()
     }
 }

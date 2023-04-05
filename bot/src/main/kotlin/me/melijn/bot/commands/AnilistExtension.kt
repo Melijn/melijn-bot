@@ -12,16 +12,12 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCom
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalBoolean
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalUser
 import com.kotlindiscord.kord.extensions.commands.converters.impl.string
-import com.kotlindiscord.kord.extensions.components.components
-import com.kotlindiscord.kord.extensions.components.publicButton
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
-import dev.kord.common.entity.ButtonStyle.Secondary
-import dev.kord.common.kColor
-import dev.kord.rest.builder.message.EmbedBuilder
-import dev.kord.rest.builder.message.create.MessageCreateBuilder
-import dev.kord.rest.builder.message.create.embed
+import dev.minn.jda.ktx.interactions.components.button
+import dev.minn.jda.ktx.messages.InlineEmbed
+import dev.minn.jda.ktx.messages.InlineMessage
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.commands.AnilistExtension.LookupArg.AnilistItemType.CHARACTER
 import me.melijn.bot.commands.AnilistExtension.LookupArg.AnilistItemType.USER
@@ -39,9 +35,10 @@ import me.melijn.kordkommons.utils.escapeMarkdown
 import me.melijn.kordkommons.utils.remove
 import me.melijn.melijnbot.anilist.*
 import me.melijn.melijnbot.anilist.type.MediaType
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.utils.messages.MessageCreateData
 import org.koin.core.component.inject
 import java.awt.Color
-import kotlin.time.Duration.Companion.minutes
 
 @KordExtension
 class AnilistExtension : Extension() {
@@ -81,7 +78,7 @@ class AnilistExtension : Extension() {
 
                                 linkManager.store(
                                     AnilistLinkData(
-                                        user.id.value,
+                                        user.idLong,
                                         anilistId,
                                         AniListLanguagePreference.ROMAJI
                                     )
@@ -100,9 +97,9 @@ class AnilistExtension : Extension() {
 
                 action {
                     val pref = arguments.preference.parsed
-                    val userId = user.id
-                    when (val storage = linkManager.get(userId)) {
-                        null -> linkManager.store(AnilistLinkData(userId.value, null, pref))
+                    val userId = user.idLong
+                    when (val storage = linkManager.get(user)) {
+                        null -> linkManager.store(AnilistLinkData(userId, null, pref))
                         else -> linkManager.store(storage.apply {
                             preference = pref
                         })
@@ -121,17 +118,19 @@ class AnilistExtension : Extension() {
                 action {
                     val id = (arguments.user.parsed
                         ?.let {
-                            linkManager.get(it.id)?.anilistId ?: bail(
+                            linkManager.get(it)?.anilistId ?: bail(
                                 tr(
                                     "anilist.profile.other.noLink",
-                                    it.mention
+                                    it.asMention
                                 )
                             )
                         }
-                        ?: (linkManager.get(getUser().id)?.anilistId ?: bail(tr("anilist.profile.you.noLink"))))
+                        ?: (linkManager.get(user)?.anilistId ?: bail(tr("anilist.profile.you.noLink"))))
 
                     respond {
-                        embeds.add(presentUser(id))
+                        embed {
+                            presentUser(id)
+                        }
                     }
                 }
             }
@@ -149,6 +148,7 @@ class AnilistExtension : Extension() {
         val type = arguments.type.parsed
         val name = arguments.name.parsed
         val search = arguments.search.parsed ?: false
+        val shard = this.event.jda
 
         /**
          * For some generic search query, perform the command flow with a few implementation-specific data points:
@@ -166,7 +166,7 @@ class AnilistExtension : Extension() {
             query: Query<D>,
             resultExtract: (D) -> List<E>,
             listinator: suspend E.(index: Int) -> String,
-            presenter: suspend MessageCreateBuilder.(E) -> Unit,
+            presenter: suspend InlineMessage<MessageCreateData>.(E) -> Unit,
         ) where D : Query.Data {
             val response = webManager.aniListApolloClient.query(query).execute()
             assertNonErroneous(response)
@@ -180,18 +180,11 @@ class AnilistExtension : Extension() {
                         description = results.mapIndexed { index, media -> media.listinator(index) }
                             .joinToString("\n")
                     }
-                    components(timeout = 5.minutes) {
-                        results.forEachIndexed { index, media ->
-                            publicButton {
-                                style = Secondary
-                                label = "$index"
-
-                                action {
-                                    if (user != this@onLookup.user) return@action
-                                    respond {
-                                        presenter(media)
-                                    }
-                                }
+                    results.forEachIndexed { index, media ->
+                        shard.button(ButtonStyle.SECONDARY, "$index") {
+                            if (user != this@onLookup.user) return@button
+                            respond {
+                                presenter(media)
                             }
                         }
                     }
@@ -202,7 +195,7 @@ class AnilistExtension : Extension() {
             }
         }
 
-        val preference = linkManager.get(user.id)?.preference ?: AniListLanguagePreference.ROMAJI
+        val preference = linkManager.get(user)?.preference ?: AniListLanguagePreference.ROMAJI
 
         // if media (anime or manga)
         val mediaType = type.mediaType
@@ -225,7 +218,11 @@ class AnilistExtension : Extension() {
                         ) ?: "No Name"
                     )
                 },
-                presenter = { medium -> embeds.add(presentMedium(medium.id, mediaType)) }
+                presenter = { medium ->
+                    embed {
+                        presentMedium(medium.id, mediaType)
+                    }
+                }
             )
         } else if (type == CHARACTER) {
             performLookup(
@@ -246,7 +243,11 @@ class AnilistExtension : Extension() {
                         cName
                     )
                 },
-                presenter = { char -> embeds.add(presentCharacter(char.id)) }
+                presenter = { char ->
+                    embed {
+                        presentCharacter(char.id)
+                    }
+                }
             )
         } else if (type == USER) {
             performLookup(
@@ -262,14 +263,15 @@ class AnilistExtension : Extension() {
                         this.name
                     )
                 },
-                presenter = { user -> embeds.add(presentUser(user.id)) }
+                presenter = { user -> embed { presentUser(user.id) } }
             )
         } else {
             throw IllegalStateException()
         }
     }
 
-    private suspend fun CommandContext.presentCharacter(id: Int) = EmbedBuilder().apply {
+    context(InlineEmbed)
+    private suspend fun CommandContext.presentCharacter(id: Int) {
         val character = getCharacter(id).Character?.characterFragment!!
         title = character.name?.let {
             "${it.first ?: ""} ${it.last ?: ""}".ifEmpty { it.native }
@@ -278,32 +280,32 @@ class AnilistExtension : Extension() {
         description = character.description?.let { htmlToMarkdown(it) }
 
         with(character) {
-            image?.let { image ->
-                thumbnail {
-                    url = image.large!!
-                    // TODO: embed colour?
-                }
-            }
+            // Thumbnail
+            thumbnail = image?.large
 
-            field(tr("anilist.lookup.embed.firstName"), inline = true) { name?.first ?: "/" }
-            field(tr("anilist.lookup.embed.lastName"), inline = true) { name?.last ?: "/" }
-            field(tr("anilist.lookup.embed.nativeName"), inline = true) { name?.native ?: "/" }
+            // Fields
+            field(tr("anilist.lookup.embed.firstName"), name?.first ?: "/", inline = true)
+            field(tr("anilist.lookup.embed.lastName"), name?.last ?: "/", inline = true)
+            field(tr("anilist.lookup.embed.nativeName"), name?.native ?: "/", inline = true)
+
+            // Computed fields
             media?.edges?.let { edge ->
                 edge.filterNotNull().batchingJoinToString(1024, "\n") {
                     val tit = (it.node?.title?.romaji ?: "No title").escapeMarkdown()
                     "[$tit](${it.node?.siteUrl!!}) [(${it.node.type?.name!!.ucc()}) ${it.characterRole?.name?.ucc()}]"
-                }.forEach { v -> field(tr("anilist.lookup.embed.appearances"), inline = true) { v } }
-            }
-            favourites?.let { favourites ->
-                footer {
-                    text = tr("anilist.lookup.embed.favourites", favourites)
+                }.forEach { entry ->
+                    field(tr("anilist.lookup.embed.appearances"), entry, inline = true)
                 }
             }
+
+            // Footer
+            favourites?.let { favourites -> footer(tr("anilist.lookup.embed.favourites", favourites)) }
         }
     }
 
-    private suspend fun CommandContext.presentMedium(id: Int, mediaType: MediaType) = EmbedBuilder().apply {
-        val preference = linkManager.get(getUser()!!.id)?.preference ?: AniListLanguagePreference.ROMAJI
+    context(InlineEmbed)
+    private suspend fun CommandContext.presentMedium(id: Int, mediaType: MediaType) {
+        val preference = linkManager.get(user)?.preference ?: AniListLanguagePreference.ROMAJI
 
         val media = when (mediaType) {
             MediaType.ANIME -> {
@@ -316,7 +318,7 @@ class AnilistExtension : Extension() {
                         anime.mediaFragment.duration ?: 0
                     )
 
-                    "$episodes ($len)"
+                    this.value = "$episodes ($len)"
                 }
                 anime.mediaFragment
             }
@@ -324,10 +326,10 @@ class AnilistExtension : Extension() {
             MediaType.MANGA -> {
                 val manga = getManga(id).Media!!
                 field(tr("anilist.lookup.embed.volumes"), inline = true) {
-                    (manga.mangaFragment.volumes ?: 0).toString()
+                    this.value = (manga.mangaFragment.volumes ?: 0).toString()
                 }
                 field(tr("anilist.lookup.embed.chapters"), inline = true) {
-                    (manga.mangaFragment.chapters ?: 0).toString()
+                    this.value = (manga.mangaFragment.chapters ?: 0).toString()
                 }
                 manga.mediaFragment
             }
@@ -335,68 +337,63 @@ class AnilistExtension : Extension() {
             MediaType.UNKNOWN__ -> throw IllegalStateException()
         }
 
-        title = preference.prefer(
+        // General embed props
+        this@InlineEmbed.title = preference.prefer(
             english = media.title?.english,
             romaji = media.title?.romaji,
             native = media.title?.native,
         )
-        url = media.siteUrl
-        description = media.description?.let { htmlToMarkdown(it) }
-
-        media.favourites?.let { favourites ->
-            footer {
-                text = tr("anilist.lookup.embed.favourites", favourites)
-            }
+        this@InlineEmbed.url = media.siteUrl
+        this@InlineEmbed.description = media.description?.let { htmlToMarkdown(it) }
+        media.coverImage?.let { coverImage ->
+            this@InlineEmbed.thumbnail = coverImage.extraLarge!!
+            this@InlineEmbed.color = coverImage.color?.let { Color.decode(it) }?.rgb
         }
+
+        // Fields
         media.synonyms?.filterNotNull()?.let { synonyms ->
             if (synonyms.isNotEmpty())
-                field(tr("anilist.lookup.embed.names"), inline = true) {
-                    synonyms.joinToString("\n")
-                }
+                field(tr("anilist.lookup.embed.names"), synonyms.joinToString("\n"), true)
         }
         media.averageScore?.let { score ->
-            field(tr("anilist.lookup.embed.score"), inline = true) { "$score%" }
+            field(tr("anilist.lookup.embed.score"), "$score%", true)
         }
         media.genres?.joinToString("\n")?.nullIfEmpty?.let { genres ->
-            field(tr("anilist.lookup.embed.genres"), inline = true) { genres }
+            field(tr("anilist.lookup.embed.genres"), genres, true)
         }
         media.format?.name?.let { v ->
-            field(tr("anilist.lookup.embed.format"), inline = true) { v.ucc() }
+            field(tr("anilist.lookup.embed.format"), v.ucc(), inline = true)
         }
         media.status?.name?.let { v ->
-            field(tr("anilist.lookup.embed.status"), inline = true) { v.ucc() }
+            field(tr("anilist.lookup.embed.status"), v.ucc(), inline = true)
         }
         if (media.startDate?.year != null) {
             val (y, m, d) = media.startDate
-            field(tr("anilist.lookup.embed.startDate"), inline = true) { "${y!!}-${m!!}-${d!!}" }
+            field(tr("anilist.lookup.embed.startDate"), "${y!!}-${m!!}-${d!!}", true)
         }
         if (media.endDate?.year != null) {
             val (y, m, d) = media.endDate
-            field(tr("anilist.lookup.embed.endDate"), inline = true) { "${y!!}-${m!!}-${d!!}" }
+            field(tr("anilist.lookup.embed.endDate"), "${y!!}-${m!!}-${d!!}", inline = true)
         }
-
-        media.coverImage?.let { coverImage ->
-            thumbnail {
-                url = coverImage.extraLarge!!
-                this@apply.color = coverImage.color?.let { Color.decode(it) }?.kColor
-            }
+        // Footer
+        media.favourites?.let { favourites ->
+            footer(tr("anilist.lookup.embed.favourites", favourites))
         }
     }
 
-    private suspend fun CommandContext.presentUser(id: Int) = EmbedBuilder().apply {
-        val preference = linkManager.get(getUser()!!.id)?.preference ?: AniListLanguagePreference.ROMAJI
+    context(InlineEmbed)
+    private suspend fun CommandContext.presentUser(id: Int) {
+        val preference = linkManager.get(user)?.preference ?: AniListLanguagePreference.ROMAJI
 
         val user = getUser(id).User?.userFragment!!
         with(user) {
             title = name
             url = siteUrl
             description = about?.let { htmlToMarkdown(it) }
+            thumbnail = avatar?.large
 
-            avatar?.large?.let { av ->
-                thumbnail { url = av }
-            }
             options?.profileColor?.let { pc ->
-                this@apply.color = when (pc) {
+                color = when (pc) {
                     "blue" -> Color.BLUE
                     "purple" -> Color.MAGENTA
                     "pink" -> Color.PINK
@@ -405,7 +402,7 @@ class AnilistExtension : Extension() {
                     "green" -> Color.GREEN
                     "gray" -> Color.GRAY
                     else -> Color.YELLOW
-                }.kColor
+                }.rgb
             }
 
             fun <E> Collection<E>.nullIfEmpty(): Collection<E>? = takeIf { isNotEmpty() }
@@ -414,13 +411,21 @@ class AnilistExtension : Extension() {
                 field(
                     tr("anilist.lookup.embed.topAnimeGenres"),
                     inline = true
-                ) { genres.mapIndexed { index, s -> "`$index.` $s" }.joinToString("\n") }
+                ) {
+                    value = genres.asSequence()
+                        .mapIndexed { index, s -> "`$index.` $s" }
+                        .joinToString("\n")
+                }
             }
             statistics?.manga?.genres?.mapNotNull { it?.genre }?.nullIfEmpty()?.let { genres ->
                 field(
                     tr("anilist.lookup.embed.topMangaGenres"),
                     inline = true
-                ) { genres.mapIndexed { index, s -> "`$index.` $s" }.joinToString("\n") }
+                ) {
+                    value = genres.asSequence()
+                        .mapIndexed { index, s -> "`$index.` $s" }
+                        .joinToString("\n")
+                }
             }
             field(tr("anilist.lookup.embed.statistics")) {
                 var v = ""
@@ -433,11 +438,11 @@ class AnilistExtension : Extension() {
                     v += "\n" + tr("anilist.lookup.embed.mangaStats", s.count, s.chaptersRead) +
                             "\n" + tr("anilist.lookup.embed.meanScore", s.meanScore, s.standardDeviation)
                 }
-                v.ifEmpty { tr("anilist.lookup.embed.statistics.none") }
+                value = v.ifEmpty { tr("anilist.lookup.embed.statistics.none") }
             }
             favourites?.anime?.nodes?.filterNotNull()?.nullIfEmpty()?.let {
                 field(tr("anilist.lookup.embed.favAnime"), inline = true) {
-                    it.joinToString("\n", limit = 10) {
+                    value = it.joinToString("\n", limit = 10) {
                         val tit = preference.prefer(
                             romaji = it.title?.romaji,
                             english = it.title?.english,
@@ -448,7 +453,7 @@ class AnilistExtension : Extension() {
             }
             favourites?.manga?.nodes?.filterNotNull()?.nullIfEmpty()?.let {
                 field(tr("anilist.lookup.embed.favManga"), inline = true) {
-                    it.joinToString("\n", limit = 10) {
+                    value = it.joinToString("\n", limit = 10) {
                         val tit = preference.prefer(
                             romaji = it.title?.romaji,
                             english = it.title?.english,
@@ -459,7 +464,7 @@ class AnilistExtension : Extension() {
             }
             favourites?.characters?.nodes?.filterNotNull()?.nullIfEmpty()?.let {
                 field(tr("anilist.lookup.embed.favCharacter"), inline = true) {
-                    it.joinToString("\n", limit = 10) {
+                    value = it.joinToString("\n", limit = 10) {
                         val name = it.name?.full ?: "No name"
                         "• [$name](${it.siteUrl})"
                     }
@@ -493,7 +498,7 @@ class AnilistExtension : Extension() {
     }
 
     /**
-     * Bail if the GraphQL query [Response] has errors
+     * Bail if the GraphQL query [ApolloResponse] has errors
      */
     private suspend fun <T : Operation.Data> CommandContext.assertNonErroneous(response: ApolloResponse<T>) {
         if (response.hasErrors())

@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.Table
 @Cacheable
 object UserBalance : Table("user_balance") {
 
-    val userId = ulong("user_id")
+    val userId = long("user_id")
     val balance = long("balance")
 
     override val primaryKey: PrimaryKey = PrimaryKey(userId)

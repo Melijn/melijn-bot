@@ -31,7 +31,7 @@ class EffectsExtension : Extension() {
     class TimeScaleEffectArgs(private val uCamelName: String, private val lowerName: String) : Arguments() {
 
         val percent = optionalInt {
-            name = "player${uCamelName}"
+            name = "player${uCamelName.lowercase()}"
             description = "in percentage, 100% is default 1:1"
 
             validate {
@@ -58,7 +58,7 @@ class EffectsExtension : Extension() {
                     description = "change the music player $lowerName"
 
                     action {
-                        val guild = guild!!.asGuild()
+                        val guild = guild!!
                         val final = if (arguments.reset.parsed == true) 1.0f else arguments.percent.parsed?.div(100.0f)
                         val trackManager = guild.getTrackManager()
 
@@ -85,87 +85,87 @@ class EffectsExtension : Extension() {
                 }
             }
 
-            publicGuildSubCommand(::BandsArgs) {
-                name = "bands"
-                description = "configures audio bands"
-
-                action {
-                    val guild = guild!!.asGuild()
-                    val trackManager = guild.getTrackManager()
-                    if (arguments.args.isEmpty()) {
-                        respond {
-                            val filters = trackManager.player.filters
-                            content = "band0: ${filters.bands[0].gain}\n" +
-                                "band1: ${filters.bands[1].gain}\n" +
-                                "band2: ${filters.bands[2].gain}\n" +
-                                "band3: ${filters.bands[3].gain}\n" +
-                                "band4: ${filters.bands[4].gain}\n" +
-                                "band5: ${filters.bands[5].gain}\n" +
-                                "band6: ${filters.bands[6].gain}\n" +
-                                "band7: ${filters.bands[7].gain}\n" +
-                                "band8: ${filters.bands[8].gain}\n" +
-                                "band9: ${filters.bands[9].gain}\n" +
-                                "band10: ${filters.bands[10].gain}\n" +
-                                "band11: ${filters.bands[11].gain}\n" +
-                                "band12: ${filters.bands[12].gain}\n" +
-                                "band13: ${filters.bands[13].gain}\n" +
-                                "band14: ${filters.bands[14].gain}\n"
-                        }
-                        return@action
-                    }
-
-                    if (arguments.reset.parsed == true) {
-                        trackManager.player.applyFilters {
-                            bands.indices.forEach { band(it).reset() }
-                        }
-                        respond { content = "reset all bands" }
-                        return@action
-                    }
-
-                    trackManager.player.applyFilters {
-                        arguments.band0.parsed?.let { band(0).gain((it - 100) / 400.0f) }
-                        arguments.band1.parsed?.let { band(1).gain((it - 100) / 400.0f) }
-                        arguments.band2.parsed?.let { band(2).gain((it - 100) / 400.0f) }
-                        arguments.band3.parsed?.let { band(3).gain((it - 100) / 400.0f) }
-                        arguments.band4.parsed?.let { band(4).gain((it - 100) / 400.0f) }
-                        arguments.band5.parsed?.let { band(5).gain((it - 100) / 400.0f) }
-                        arguments.band6.parsed?.let { band(6).gain((it - 100) / 400.0f) }
-                        arguments.band7.parsed?.let { band(7).gain((it - 100) / 400.0f) }
-                        arguments.band8.parsed?.let { band(8).gain((it - 100) / 400.0f) }
-                        arguments.band9.parsed?.let { band(9).gain((it - 100) / 400.0f) }
-                        arguments.band10.parsed?.let { band(10).gain((it - 100) / 400.0f) }
-                        arguments.band11.parsed?.let { band(11).gain((it - 100) / 400.0f) }
-                        arguments.band12.parsed?.let { band(12).gain((it - 100) / 400.0f) }
-                        arguments.band13.parsed?.let { band(13).gain((it - 100) / 400.0f) }
-                        arguments.band14.parsed?.let { band(14).gain((it - 100) / 400.0f) }
-                    }
-                    respond {
-                        val filters = trackManager.player.filters
-                        content = "band0: ${filters.bands[0].gain}\n" +
-                            "band1: ${filters.bands[1].gain}\n" +
-                            "band2: ${filters.bands[2].gain}\n" +
-                            "band3: ${filters.bands[3].gain}\n" +
-                            "band4: ${filters.bands[4].gain}\n" +
-                            "band5: ${filters.bands[5].gain}\n" +
-                            "band6: ${filters.bands[6].gain}\n" +
-                            "band7: ${filters.bands[7].gain}\n" +
-                            "band8: ${filters.bands[8].gain}\n" +
-                            "band9: ${filters.bands[9].gain}\n" +
-                            "band10: ${filters.bands[10].gain}\n" +
-                            "band11: ${filters.bands[11].gain}\n" +
-                            "band12: ${filters.bands[12].gain}\n" +
-                            "band13: ${filters.bands[13].gain}\n" +
-                            "band14: ${filters.bands[14].gain}\n"
-                    }
-                }
-            }
+//            publicGuildSubCommand(::BandsArgs) {
+//                name = "bands"
+//                description = "configures audio bands"
+//
+//                action {
+//                    val guild = guild!!
+//                    val trackManager = guild.getTrackManager()
+//                    if (arguments.args.isEmpty()) {
+//                        respond {
+//                            val filters = trackManager.player.filters
+//                            content = "band0: ${filters.bands[0].gain}\n" +
+//                                "band1: ${filters.bands[1].gain}\n" +
+//                                "band2: ${filters.bands[2].gain}\n" +
+//                                "band3: ${filters.bands[3].gain}\n" +
+//                                "band4: ${filters.bands[4].gain}\n" +
+//                                "band5: ${filters.bands[5].gain}\n" +
+//                                "band6: ${filters.bands[6].gain}\n" +
+//                                "band7: ${filters.bands[7].gain}\n" +
+//                                "band8: ${filters.bands[8].gain}\n" +
+//                                "band9: ${filters.bands[9].gain}\n" +
+//                                "band10: ${filters.bands[10].gain}\n" +
+//                                "band11: ${filters.bands[11].gain}\n" +
+//                                "band12: ${filters.bands[12].gain}\n" +
+//                                "band13: ${filters.bands[13].gain}\n" +
+//                                "band14: ${filters.bands[14].gain}\n"
+//                        }
+//                        return@action
+//                    }
+//
+//                    if (arguments.reset.parsed == true) {
+//                        trackManager.player.applyFilters {
+//                            bands.indices.forEach { band(it).reset() }
+//                        }
+//                        respond { content = "reset all bands" }
+//                        return@action
+//                    }
+//
+//                    trackManager.player.applyFilters {
+//                        arguments.band0.parsed?.let { band(0).gain((it - 100) / 400.0f) }
+//                        arguments.band1.parsed?.let { band(1).gain((it - 100) / 400.0f) }
+//                        arguments.band2.parsed?.let { band(2).gain((it - 100) / 400.0f) }
+//                        arguments.band3.parsed?.let { band(3).gain((it - 100) / 400.0f) }
+//                        arguments.band4.parsed?.let { band(4).gain((it - 100) / 400.0f) }
+//                        arguments.band5.parsed?.let { band(5).gain((it - 100) / 400.0f) }
+//                        arguments.band6.parsed?.let { band(6).gain((it - 100) / 400.0f) }
+//                        arguments.band7.parsed?.let { band(7).gain((it - 100) / 400.0f) }
+//                        arguments.band8.parsed?.let { band(8).gain((it - 100) / 400.0f) }
+//                        arguments.band9.parsed?.let { band(9).gain((it - 100) / 400.0f) }
+//                        arguments.band10.parsed?.let { band(10).gain((it - 100) / 400.0f) }
+//                        arguments.band11.parsed?.let { band(11).gain((it - 100) / 400.0f) }
+//                        arguments.band12.parsed?.let { band(12).gain((it - 100) / 400.0f) }
+//                        arguments.band13.parsed?.let { band(13).gain((it - 100) / 400.0f) }
+//                        arguments.band14.parsed?.let { band(14).gain((it - 100) / 400.0f) }
+//                    }
+//                    respond {
+//                        val filters = trackManager.player.filters
+//                        content = "band0: ${filters.bands[0].gain}\n" +
+//                            "band1: ${filters.bands[1].gain}\n" +
+//                            "band2: ${filters.bands[2].gain}\n" +
+//                            "band3: ${filters.bands[3].gain}\n" +
+//                            "band4: ${filters.bands[4].gain}\n" +
+//                            "band5: ${filters.bands[5].gain}\n" +
+//                            "band6: ${filters.bands[6].gain}\n" +
+//                            "band7: ${filters.bands[7].gain}\n" +
+//                            "band8: ${filters.bands[8].gain}\n" +
+//                            "band9: ${filters.bands[9].gain}\n" +
+//                            "band10: ${filters.bands[10].gain}\n" +
+//                            "band11: ${filters.bands[11].gain}\n" +
+//                            "band12: ${filters.bands[12].gain}\n" +
+//                            "band13: ${filters.bands[13].gain}\n" +
+//                            "band14: ${filters.bands[14].gain}\n"
+//                    }
+//                }
+//            }
 
             publicGuildSubCommand(::ChannelMixArgs) {
                 name = "channelmix"
                 description = "change the music player channel mix"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val trackManager = guild.getTrackManager()
 
                     when (arguments.preset.parsed) {
@@ -243,7 +243,7 @@ class EffectsExtension : Extension() {
                 description = "change the music player distortion"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val trackManager = guild.getTrackManager()
 
                     if (arguments.reset.parsed == true) {
@@ -327,7 +327,7 @@ class EffectsExtension : Extension() {
                 description = "stereo rotation effect"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val trackManager = guild.getTrackManager()
 
                     if (arguments.reset.parsed == true) {
@@ -366,7 +366,7 @@ class EffectsExtension : Extension() {
                 description = "muffles vocal frequencies to make it easier to sing along"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val trackManager = guild.getTrackManager()
 
                     if (arguments.reset.parsed == true) {
@@ -416,7 +416,7 @@ class EffectsExtension : Extension() {
                 description = "suppresses higher frequencies"
 
                 action {
-                    val guild = guild!!.asGuild()
+                    val guild = guild!!
                     val trackManager = guild.getTrackManager()
 
                     if (arguments.reset.parsed == true) {
@@ -458,7 +458,7 @@ class EffectsExtension : Extension() {
                     description = "musicPlayer $name effects"
 
                     action {
-                        val guild = guild!!.asGuild()
+                        val guild = guild!!
                         val trackManager = guild.getTrackManager()
 
                         if (arguments.reset.parsed == true) {
@@ -601,7 +601,7 @@ class EffectsExtension : Extension() {
 
         val directionalArg: (String, String) -> OptionalConverter<Int> = { opt, funct ->
             optionalInt {
-                name = "${opt}${funct.replaceFirstChar { c -> c.uppercaseChar() }}"
+                name = "${opt}${funct}"
                 description = "$name percentage"
                 validate { inRange(name, -500, 500) }
             }
@@ -703,7 +703,7 @@ class EffectsExtension : Extension() {
         )
         val directionalArg: (Pair<String, String>) -> OptionalConverter<Int> = { (channel1, channel2) ->
             optionalInt {
-                name = "${channel1}To${channel2.replaceFirstChar { c -> c.uppercaseChar() }}"
+                name = "${channel1}to${channel2}"
                 description = "percentage of mixing the $channel1 channel into the $channel2 channel"
                 validate { inRange(name, -500, 500) }
             }

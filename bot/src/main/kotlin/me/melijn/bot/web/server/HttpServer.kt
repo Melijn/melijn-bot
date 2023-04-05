@@ -1,7 +1,6 @@
 package me.melijn.bot.web.server
 
 import com.kotlindiscord.kord.extensions.utils.getKoin
-import dev.kord.core.Kord
 import dev.schlaubi.lavakord.audio.Link
 import io.ktor.http.*
 import io.ktor.server.engine.*
@@ -16,8 +15,10 @@ import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.bot.utils.Log
 import me.melijn.gen.BotRestartTrackQueueData
 import me.melijn.gen.Settings
+import net.dv8tion.jda.api.sharding.ShardManager
 import java.util.concurrent.TimeUnit
 
+@Suppress("ExtractKtorModule")
 object HttpServer {
 
     val settings by inject<Settings>()
@@ -45,7 +46,7 @@ object HttpServer {
         routing {
             get("/shutdown") {
                 logger.info { "ProbeServer: shutdown received!" }
-                val kord = getKoin().getOrNull<Kord>()
+                val kord = getKoin().getOrNull<ShardManager>()
 
                 val botRestartTrackQueueManager = getKoin().getOrNull<BotRestartTrackQueueManager>()
                 val botRestartTrackEntryManager = getKoin().getOrNull<BotRestartTrackEntryManager>()
@@ -61,7 +62,7 @@ object HttpServer {
                             val vc = trackManager.link.lastChannelId ?: throw IllegalStateException(":thonk:")
                             botRestartTrackQueueManager.store(
                                 BotRestartTrackQueueData(
-                                    guildId, vc, trackManager.player.position, trackManager.player.paused,
+                                    guildId, vc.toLong(), trackManager.player.position, trackManager.player.paused,
                                     trackManager.looped, trackManager.loopedQueue
                                 )
                             )
@@ -84,7 +85,7 @@ object HttpServer {
             }
 
             get("/ready") {
-                val kord = getKoin().getOrNull<Kord>()
+                val kord = getKoin().getOrNull<ShardManager>()
                 if (kord == null) {
                     logger.info { "ProbeServer: ready check - not ready!" }
                     context.respond(HttpStatusCode(500, "not ready"), "not ready")

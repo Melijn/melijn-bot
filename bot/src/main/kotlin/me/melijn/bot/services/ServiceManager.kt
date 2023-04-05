@@ -1,9 +1,10 @@
 package me.melijn.bot.services
 
+import com.kotlindiscord.kord.extensions.utils.getKoin
 import me.melijn.ap.injector.Inject
-import me.melijn.kordkommons.utils.ReflectUtil
-
-
+import org.koin.core.annotation.KoinInternalApi
+import org.koin.core.definition.Kind
+import kotlin.reflect.full.isSubclassOf
 
 @Inject
 class ServiceManager {
@@ -11,13 +12,7 @@ class ServiceManager {
     private val services: MutableList<Service> = mutableListOf()
 
     fun startAll() {
-        // TODO: get all services from a ksp generated file, Service annotation has to be moved to kord-kommons ig
-        ReflectUtil.findAllClassesUsingClassLoader("me.melijn.bot.services")
-            .filterNotNull()
-            .filter { it.superclass.simpleName == "Service" }
-            .forEach {
-                services.add(it.getConstructor().newInstance() as Service)
-            }
+        val services = getAllCustom<Service>()
 
         services.forEach {
             if (it.autoStart) it.start()
@@ -27,4 +22,13 @@ class ServiceManager {
     fun stopAll() {
         services.forEach { it.stop() }
     }
+
+    @OptIn(KoinInternalApi::class)
+    inline fun <reified T : Any> getAllCustom(): List<T> =
+        getKoin().let { koin ->
+            koin.instanceRegistry.instances.map { it.value.beanDefinition }
+                .filter { it.kind == Kind.Singleton }
+                .filter { it.primaryType.isSubclassOf(T::class) }
+                .map { koin.get(clazz = it.primaryType, qualifier = null, parameters = null) }
+        }
 }

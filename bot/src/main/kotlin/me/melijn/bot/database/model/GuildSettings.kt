@@ -6,10 +6,10 @@ import org.jetbrains.exposed.dao.id.IdTable
 
 @CreateTable
 @Cacheable
-object GuildSettings : IdTable<ULong>("guild_settings") {
+object GuildSettings : IdTable<Long>("guild_settings") {
 
     @OptIn(ExperimentalUnsignedTypes::class)
-    override var id = ulong("guild_id").entityId()
+    override var id = long("guild_id").entityId()
 
     var allowSpacedPrefix = bool("allow_spaced_prefix").default(false)
     var allowNsfw = bool("allow_nsfw").default(false)

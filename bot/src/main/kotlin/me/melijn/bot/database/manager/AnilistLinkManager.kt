@@ -1,16 +1,16 @@
 package me.melijn.bot.database.manager
 
-import dev.kord.common.entity.Snowflake
 import me.melijn.ap.injector.Inject
 import me.melijn.gen.AnilistLinkData
 import me.melijn.gen.database.manager.AbstractAnilistLinkManager
 import me.melijn.kordkommons.database.DriverManager
+import net.dv8tion.jda.api.entities.UserSnowflake
 
 @Inject
 class AnilistLinkManager(driverManager: DriverManager) : AbstractAnilistLinkManager(driverManager) {
 
-    suspend fun get(id: Snowflake): AnilistLinkData? {
-        return getCachedById(id.value)
+    suspend fun get(snowflake: UserSnowflake): AnilistLinkData? {
+        return getCachedById(snowflake.idLong)
     }
 
 }

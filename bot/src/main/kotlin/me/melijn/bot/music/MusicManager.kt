@@ -1,25 +1,24 @@
 package me.melijn.bot.music
 
-import dev.kord.core.behavior.GuildBehavior
 import dev.schlaubi.lavakord.audio.Node
-import dev.schlaubi.lavakord.kord.getLink
 import kotlinx.coroutines.delay
 import me.melijn.bot.Melijn
 import me.melijn.bot.utils.Log
 import me.melijn.kordkommons.async.TaskManager
+import net.dv8tion.jda.api.entities.Guild
 import java.util.concurrent.ConcurrentHashMap
 
 object MusicManager {
 
-    val guildMusicPlayers: ConcurrentHashMap<ULong, TrackManager> = ConcurrentHashMap()
+    val guildMusicPlayers: ConcurrentHashMap<Long, TrackManager> = ConcurrentHashMap()
     private val logger by Log
 
-    fun GuildBehavior.getTrackManager(): TrackManager {
-        guildMusicPlayers[id.value]?.run { return this }
-        val link = this.getLink(Melijn.lavalink)
+    fun Guild.getTrackManager(): TrackManager {
+        guildMusicPlayers[idLong]?.run { return this }
+        val link = Melijn.lavalink.getLink(idLong.toULong())
         val trackManager = TrackManager(link)
         logger.info { "New trackManager for $id" }
-        guildMusicPlayers[id.value] = trackManager
+        guildMusicPlayers[idLong] = trackManager
         return trackManager
     }
 

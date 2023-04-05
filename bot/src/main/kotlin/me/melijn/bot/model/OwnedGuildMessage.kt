@@ -1,9 +1,9 @@
 package me.melijn.bot.model
 
-import dev.kord.core.behavior.GuildBehavior
-import dev.kord.core.behavior.MessageBehavior
-import dev.kord.core.behavior.UserBehavior
-import dev.kord.core.entity.interaction.GuildButtonInteraction
+import net.dv8tion.jda.api.entities.ISnowflake
+import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.UserSnowflake
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonInteraction
 
 data class OwnedGuildMessage(
     val guildId: Long,
@@ -13,17 +13,17 @@ data class OwnedGuildMessage(
 ) : AbstractOwnedMessage(ownerId, channelId, messageId) {
 
     companion object {
-        fun from(interaction: GuildButtonInteraction): OwnedGuildMessage {
+        fun from(interaction: ButtonInteraction): OwnedGuildMessage {
             val message = interaction.message
-            return from(interaction.guild, interaction.user, message)
+            return from(interaction.guild!!, interaction.user, message)
         }
 
-        fun from(guild: GuildBehavior, user: UserBehavior, message: MessageBehavior): OwnedGuildMessage {
+        fun from(guild: ISnowflake, user: UserSnowflake, message: Message): OwnedGuildMessage {
             return OwnedGuildMessage(
-                guild.id.value.toLong(),
-                message.channel.id.value.toLong(),
-                user.id.value.toLong(),
-                message.id.value.toLong()
+                guild.idLong,
+                message.channel.idLong,
+                user.idLong,
+                message.idLong
             )
         }
     }

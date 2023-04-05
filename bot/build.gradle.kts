@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("application")
-    id("com.apollographql.apollo3") version "3.7.0"
+    id("com.apollographql.apollo3") version "3.7.1"
     id("com.github.johnrengelman.shadow") version "7.1.2"
     kotlin("jvm") version "1.7.10"
     id("com.google.devtools.ksp") version "1.7.10-1.0.6"
@@ -26,39 +26,43 @@ apollo {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven("https://oss.sonatype.org/content/repositories/snapshots")
 
     maven("https://reposilite.melijn.com/snapshots")
     maven("https://reposilite.melijn.com/shitpack")
 
-    mavenLocal()
     maven("https://duncte123.jfrog.io/artifactory/maven")
 
     // pooppack mirror
     maven("https://nexus.melijn.com/repository/jitpack/")
 }
 
-val jackson = "2.13.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+val jackson = "2.14.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+
 val ktor = "2.0.3"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
-val apollo = "3.7.0" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
+val apollo = "3.7.1" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
 val kotlinX = "1.6.4" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
 val kotlin = "1.7.10"
-val scrimage = "4.0.22"
+val scrimage = "4.0.31"
 
- val kord = "0.8.0-M17"
-val kordEx = "1.5.5-SNAPSHOT"
-val kordKommons = "0.0.1-SNAPSHOT"
+
+val jda = "5.0.0-beta.6"
+val kordEx = "1.5.6-SNAPSHOT"
+val kordKommons = "0.0.3-SNAPSHOT"
 
 dependencies {
-    implementation("dev.kord:kord-core:$kord")   // let kord-ex handle kord version
+    implementation("net.dv8tion:JDA:$jda")   // let kord-ex handle kord version
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
     ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
 
     // https://mvnrepository.com/artifact/org.scilab.forge/jlatexmath
     implementation("org.scilab.forge:jlatexmath:1.0.7")
 
-    implementation("dev.schlaubi.lavakord", "kord", "3.7.0")
+//    implementation("dev.schlaubi.lavakord", "kord", "3.8.0")
+    implementation("dev.schlaubi.lavakord", "jda", "4.0.0")
+//    implementation("dev.schlaubi.lavakord", "jda-java", "3.8.0")
 
     implementation("me.melijn.kommons:kommons:$kordKommons")
     implementation("me.melijn.kommons:kord-kommons:$kordKommons")
@@ -104,7 +108,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.0.1")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.5.0")
+    implementation("org.postgresql:postgresql:42.6.0")
 
     // expiring map, https://search.maven.org/artifact/net.jodah/expiringmap
     implementation("net.jodah:expiringmap:0.5.10")
@@ -123,17 +127,17 @@ dependencies {
     implementation("me.duncte123:weebJava:3.0.1_4")
 
     // https://mvnrepository.com/artifact/se.michaelthelin.spotify/spotify-web-api-java
-    implementation("se.michaelthelin.spotify:spotify-web-api-java:7.2.0")
+    implementation("se.michaelthelin.spotify:spotify-web-api-java:8.0.0")
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-    implementation("ch.qos.logback:logback-classic:1.2.11")
+    implementation("ch.qos.logback:logback-classic:1.4.6")
 
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
     implementation("com.fasterxml.jackson.core:jackson-core:$jackson")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jackson")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$jackson")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
 
     // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
     implementation("io.ktor:ktor:$ktor")
@@ -158,22 +162,24 @@ dependencies {
     implementation("com.sksamuel.scrimage:scrimage-formats-extra:$scrimage")
 
     // https://nexus.melijn.com/#browse/browse:maven-public:me%2Fmelijn%2Fjikankt
-//    implementation("me.melijn.jikankt:JikanKt:1.3.2")
+    // implementation("me.melijn.jikankt:JikanKt:1.3.2")
 
     // https://mvnrepository.com/artifact/org.mariuszgromada.math/MathParser.org-mXparser
-    implementation("org.mariuszgromada.math:MathParser.org-mXparser:5.0.7")
+    implementation("org.mariuszgromada.math:MathParser.org-mXparser:5.2.1")
 
     // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
     implementation("com.apollographql.apollo3:apollo-runtime:$apollo")
 
     // https://mvnrepository.com/artifact/io.lettuce/lettuce-core
-    implementation("io.lettuce:lettuce-core:6.2.0.RELEASE")
+    implementation("io.lettuce:lettuce-core:6.2.3.RELEASE")
 
     // https://github.com/cdimascio/dotenv-kotlin
-    implementation("io.github.cdimascio:dotenv-kotlin:6.2.2")
+    implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
 
     // https://github.com/furstenheim/copy-down
     implementation("io.github.furstenheim:copy_down:1.0")
+
+    testImplementation(kotlin("test"))
 }
 
 ksp {
@@ -214,5 +220,9 @@ tasks {
         isZip64 = true
         mergeServiceFiles()
         archiveFileName.set("melijn.jar")
+    }
+
+    test {
+        useJUnitPlatform()
     }
 }

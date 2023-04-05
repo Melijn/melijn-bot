@@ -9,15 +9,11 @@ import com.kotlindiscord.kord.extensions.commands.converters.SingleToOptionalCon
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalString
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatGroupCommand
-import dev.kord.common.entity.ButtonStyle
-import dev.kord.common.entity.Permission
-import dev.kord.common.entity.Snowflake
-import dev.kord.core.behavior.channel.createEmbed
-import dev.kord.core.behavior.channel.createMessage
-import dev.kord.rest.builder.message.create.actionRow
-import dev.kord.rest.builder.message.create.embed
+import dev.minn.jda.ktx.interactions.components.link
+import dev.minn.jda.ktx.interactions.components.primary
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.PrefixManager
+import net.dv8tion.jda.api.Permission
 import org.koin.core.component.inject
 
 @KordExtension
@@ -34,7 +30,7 @@ class HelpCommand : Extension() {
             name = "help"
             description = "back at it again"
             check {
-                requireBotPermissions(Permission.SendMessages, Permission.EmbedLinks)
+                requireBotPermissions(Permission.MESSAGE_SEND, Permission.MESSAGE_EMBED_LINKS)
             }
 
             action {
@@ -42,15 +38,17 @@ class HelpCommand : Extension() {
                     val cmd = arguments.command.parsed!!
                     val command = getCommandHelp(argString)
 
-                    channel.createEmbed {
-                        title = cmd
-                        description = command
+                    channel.createMessage {
+                        embed {
+                            title = cmd
+                            description = command
+                        }
                     }
                     return@action
                 }
-                val bot = this@chatGroupCommand.kord.getSelf()
+                val bot = this.event.jda.selfUser
 
-                val prefix = prefixManager.getPrefixes(guild!!.id).minByOrNull { it.prefix.length }?.prefix ?: ">"
+                val prefix = prefixManager.getPrefixes(guild!!).minByOrNull { it.prefix.length }?.prefix ?: ">"
 
                 channel.createMessage {
                     embed {
@@ -63,17 +61,12 @@ class HelpCommand : Extension() {
                         **Command Help:** `${prefix}help <command>` (ex. `${prefix}help play`)
                         """.trimIndent()
                         footer {
-                            text = "@${bot.tag} can always be used as prefix"
+                            name = "${bot.asMention} can always be used as prefix"
                         }
+
                     }
-                    actionRow {
-                        interactionButton(ButtonStyle.Primary, "commands") {
-                            label = "Command List"
-                        }
-                        linkButton("https://melijn.com/legal") {
-                            label = "Privacy Policy"
-                        }
-                    }
+                    primary("commands", "Command List")
+                    link("https://melijn.com/legal", "Privacy Policy")
                 }
             }
 
@@ -82,7 +75,7 @@ class HelpCommand : Extension() {
                 description = "list all cmds"
 
                 val names: (List<Command>) -> String = { cmd -> cmd.joinToString(", ") { "`${it.name}`" }}
-                val mapNames: (Map<Snowflake, Command>) -> String = { cmd ->
+                val mapNames: (Map<Long, Command>) -> String = { cmd ->
                     names(cmd.entries.map { it.value })
                 }
                 action {
@@ -110,7 +103,7 @@ class HelpCommand : Extension() {
         }
     }
 
-    private fun <T : Command> Map<Snowflake, T>.firstMatch(argString: String): T? {
+    private fun <T : Command> Map<Long, T>.firstMatch(argString: String): T? {
         return entries.map { it.value }.firstOrNull { argString.startsWith(it.name) }
     }
 

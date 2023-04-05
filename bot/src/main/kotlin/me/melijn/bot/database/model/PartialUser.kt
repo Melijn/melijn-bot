@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.Table
 @Cacheable
 object PartialUser : Table("partial_user") {
 
-    val userId = ulong("user_id")
+    val userId = long("user_id")
     val tag = text("tag")
     val avatarUrl = text("avatar_url").nullable()
 
