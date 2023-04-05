@@ -7,8 +7,8 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.converters.i
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
-import com.kotlindiscord.kord.extensions.types.editingPaginator
 import com.kotlindiscord.kord.extensions.types.respond
+import com.kotlindiscord.kord.extensions.types.respondingPaginator
 import dev.minn.jda.ktx.interactions.components.danger
 import dev.minn.jda.ktx.interactions.components.secondary
 import dev.schlaubi.lavakord.audio.Link
@@ -356,8 +356,7 @@ class MusicExtension : Extension() {
                     queue.size + (playing?.let { 1 } ?: 0)
                 )
 
-
-                editingPaginator {
+                respondingPaginator {
                     val parts = StringUtils.splitMessage(description)
                     for (part in parts) {
                         page {
