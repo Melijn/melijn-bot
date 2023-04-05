@@ -13,6 +13,7 @@ object GuildSettings : IdTable<Long>("guild_settings") {
 
     var allowSpacedPrefix = bool("allow_spaced_prefix").default(false)
     var allowNsfw = bool("allow_nsfw").default(false)
+    var enableLeveling = bool("enable_leveling").default(false)
 
     override val primaryKey: PrimaryKey = PrimaryKey(id)
 }
