@@ -82,6 +82,24 @@ class LevelingExtension : Extension() {
             name = "levelroles"
             description = "You can set a role to a certain role"
 
+            publicGuildSubCommand(::LevelRolesRemoveArgs) {
+                name = "remove"
+                description = "Removes a level role"
+
+                action {
+                    xpManager.levelRolesManager.delete(
+                        LevelRolesData(
+                            guild!!.id.value,
+                            arguments.level.toULong(),
+                            arguments.role.id.value,
+                            arguments.stay
+                        )
+                    )
+                    respond {
+                        content = "Removed levelRole: ${arguments.role.mention} with the level ${arguments.level}"
+                    }
+                }
+            }
             publicGuildSubCommand(::LevelRolesAddArgs) {
                 name = "set"
                 description = "Sets a level role"
@@ -102,6 +120,25 @@ class LevelingExtension : Extension() {
 
                     respond {
                         content = "Set ${levelRole.mention} as the level $level levelRole"
+                    }
+                }
+            }
+            publicGuildSubCommand() {
+                name = "list"
+                description = "Call upon all the levelRoles you have set"
+
+                action {
+                    val guild = guild!!
+                    val levelRoles = xpManager.levelRolesManager.getByIndex0(guild.id.value)
+                    respond {
+                        if (levelRoles.isEmpty()) {
+                            content = "You don't have any levelRoles set"
+                        } else {
+                            content = levelRoles.joinToString("\n", prefix = "**Role - Level - Stay** \n") {
+
+                                "<@&${it.roleId}> - ${it.level} - ${it.stay}"
+                            }
+                        }
                     }
                 }
             }
@@ -190,6 +227,21 @@ class LevelingExtension : Extension() {
         val role by role {
             name = "role"
             description = "The role you want to give when you achieve a certain level"
+        }
+        val stay by boolean {
+            name = "stay"
+            description = "Role stays when you get the next level role"
+        }
+    }
+
+    inner class LevelRolesRemoveArgs : Arguments() {
+        val level by long {
+            name = "level"
+            description = "The level of the levelRole you want to remove"
+        }
+        val role by role {
+            name = "role"
+            description = "The role that you have set in the levelRole you want to remove"
         }
         val stay by boolean {
             name = "stay"
