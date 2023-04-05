@@ -6,6 +6,7 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.string
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.types.editingPaginator
 import com.kotlindiscord.kord.extensions.types.respond
+import dev.minn.jda.ktx.coroutines.await
 import kotlinx.datetime.UtcOffset
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toJavaInstant
@@ -232,7 +233,7 @@ class PlaylistCommand : Extension() {
             description = "New or existing playlist name or existing playlist index"
             autoComplete {
                 val playlists = playlistManager.getByIndex1(user.idLong)
-                replyChoiceStrings(playlists.map { it.name })
+                replyChoiceStrings(playlists.map { it.name }).await()
             }
         }
         val trackIndexes = optionalIntRanges {
@@ -255,7 +256,7 @@ class PlaylistCommand : Extension() {
 
             autoComplete {
                 val playlists = playlistManager.getByIndex1(user.idLong)
-                replyChoiceStrings(playlists.map { it.name })
+                replyChoiceStrings(playlists.map { it.name }).await()
             }
         }
         val trackIndexes = intRanges {
@@ -286,7 +287,7 @@ class PlaylistCommand : Extension() {
 
             autoComplete {
                 val playlists = playlistManager.getByIndex1(user.idLong)
-                replyChoiceStrings(playlists.map { it.name })
+                replyChoiceStrings(playlists.map { it.name }).await()
             }
         }
     }
