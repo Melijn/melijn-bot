@@ -56,6 +56,15 @@ object KordExUtils {
         }
     }
 
+    suspend fun ValidationContext<*>.userIsOwner() {
+        val botSettings by inject<Settings>()
+        failIfNot("Only devs may supply this argument") {
+            botSettings.bot.ownerIds.split(",").any {
+                it.trim() == this.context.user.id
+            }
+        }
+    }
+
     @JvmName("userIsOwnerChatInputCommandInteractionCreateEvent")
     suspend fun CheckContext<SlashCommandInteractionEvent>.userIsOwner() {
         val botSettings by inject<Settings>()

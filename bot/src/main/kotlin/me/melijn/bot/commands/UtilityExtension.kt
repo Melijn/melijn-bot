@@ -7,10 +7,7 @@ import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.ApplicationCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.application.DefaultApplicationCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandRegistry
-import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalSnowflake
-import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalUser
-import com.kotlindiscord.kord.extensions.commands.converters.impl.role
-import com.kotlindiscord.kord.extensions.commands.converters.impl.snowflake
+import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.extensions.publicUserCommand
@@ -24,11 +21,13 @@ import me.melijn.bot.utils.JDAUtil.asTag
 import me.melijn.bot.utils.JDAUtil.toHex
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
+import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.StringsUtil.batchingJoinToString
 import me.melijn.bot.utils.TimeUtil.format
 import net.dv8tion.jda.api.entities.GuildVoiceState
 import net.dv8tion.jda.api.entities.Role
 import net.dv8tion.jda.api.entities.User
+import net.dv8tion.jda.api.utils.SplitUtil
 import net.dv8tion.jda.api.utils.TimeFormat
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
 import org.koin.core.component.inject
@@ -42,6 +41,40 @@ class UtilityExtension : Extension() {
     override val name: String = "utility"
 
     override suspend fun setup() {
+        publicGuildSlashCommand(::DevGuildArgs) {
+            name = "roles"
+            description = "Show server roles"
+
+            action {
+                val targetGuild = arguments.guild ?: this.guild!!
+
+                val body = targetGuild.roles
+                    .withIndex()
+                    .joinToString("\n") { (i, role) ->
+                        "$i - [${role.name}] - ${role.id}"
+                    }
+                val header = tr("rolesList.serverTitle", targetGuild.name)
+                val parts = SplitUtil.split(body, 2000-10-header.length, SplitUtil.Strategy.NEWLINE)
+                    .map { "```INI\n$it```" }
+                    .toMutableList()
+                parts[0] = header + parts[0]
+
+                for (part in parts) {
+                    respond {
+                        content = part
+                    }
+                }
+            }
+        }
+
+        publicGuildSlashCommand(::RawArgs) {
+            name = "raw"
+            description = "replies with raw input"
+            action {
+                respond { content = "```" + arguments.raw.replace("`", "‘") + "```" }
+            }
+        }
+
         publicSlashCommand(::AvatarArgs) {
             name = "avatar"
             description = "Shows avatar"
@@ -75,8 +108,8 @@ class UtilityExtension : Extension() {
                             content = it
                         }
                     } ?: respond {
-                        content = "No emojis"
-                    }
+                    content = "No emojis"
+                }
             }
         }
 
@@ -359,6 +392,25 @@ class UtilityExtension : Extension() {
         val id by snowflake {
             name = "id"
             description = "id"
+        }
+    }
+
+    inner class DevGuildArgs : Arguments() {
+
+        val guild by optionalGuild {
+            name = "guild"
+            description = "Only devs may provide this argument"
+            validate {
+                if (this.value != null) userIsOwner()
+            }
+        }
+    }
+
+    inner class RawArgs : Arguments() {
+
+        val raw by string {
+            name = "raw"
+            description = "raw input"
         }
     }
 
