@@ -1,5 +1,9 @@
 package me.melijn.bot.utils
 
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import me.melijn.bot.web.api.WebManager
 import java.awt.Color
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
@@ -21,5 +25,20 @@ object ImageUtil {
         val baos = ByteArrayOutputStream()
         ImageIO.write(this, format, baos)
         return ByteArrayInputStream(baos.toByteArray())
+    }
+
+    public suspend fun download(url: String): ByteArray {
+        val webManager by KoinUtil.inject<WebManager>()
+        return download(webManager.httpClient, url)
+    }
+
+    public suspend fun download(client: HttpClient, url: String): ByteArray {
+        val call = client.get(url)
+        val contentType = call.headers["Content-Type"]
+            ?: error("expected 'Content-Type' header in image request")
+
+        val bytes = call.body<ByteArray>()
+
+        return bytes
     }
 }

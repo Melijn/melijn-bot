@@ -1,6 +1,5 @@
 package me.melijn.bot.database.manager
 
-import dev.kord.common.entity.Snowflake
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.database.model.GlobalXP
 import me.melijn.bot.database.model.GuildXP
@@ -8,6 +7,7 @@ import me.melijn.gen.GlobalXPData
 import me.melijn.gen.database.manager.*
 import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.database.insertOrUpdate
+import net.dv8tion.jda.api.entities.ISnowflake
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.concurrent.TimeUnit
@@ -16,10 +16,10 @@ import kotlin.time.Duration
 @Inject
 class GlobalXPManager(driverManager: DriverManager) : AbstractGlobalXPManager(driverManager) {
 
-    fun increaseGlobalXP(userSnowflake: Snowflake, amount: ULong) {
+    fun increaseGlobalXP(userSnowflake: ISnowflake, amount: Long) {
         scopedTransaction {
             GlobalXP.insertOrUpdate({
-                it[userId] = userSnowflake.value
+                it[userId] = userSnowflake.idLong
                 it[xp] = amount
             }, {
                 it[xp] = xp.plus(amount)
@@ -31,11 +31,11 @@ class GlobalXPManager(driverManager: DriverManager) : AbstractGlobalXPManager(dr
 @Inject
 class GuildXPManager(driverManager: DriverManager) : AbstractGuildXPManager(driverManager) {
 
-    fun increaseGuildXP(guildSnowflake: Snowflake, userSnowflake: Snowflake, amount: ULong) {
+    fun increaseGuildXP(guildSnowflake: ISnowflake, userSnowflake: ISnowflake, amount: Long) {
         scopedTransaction {
             GuildXP.insertOrUpdate({
-                it[guildId] = guildSnowflake.value
-                it[userId] = userSnowflake.value
+                it[guildId] = guildSnowflake.idLong
+                it[userId] = userSnowflake.idLong
                 it[xp] = amount
             }, {
                 it[xp] = xp.plus(amount)
@@ -63,41 +63,41 @@ class XPManager(
     val topRolesMemberManager: TopRoleMemberManager
 ) {
 
-    fun getGlobalXP(userSnowflake: Snowflake): ULong {
-        return globalXPManager.getById(userSnowflake.value)?.xp ?: 0UL
+    fun getGlobalXP(userSnowflake: ISnowflake): Long {
+        return globalXPManager.getById(userSnowflake.idLong)?.xp ?: 0L
     }
 
-    fun setGlobalXP(userSnowflake: Snowflake, xp: ULong) {
-        globalXPManager.store(GlobalXPData(userSnowflake.value, xp))
+    fun setGlobalXP(userSnowflake: ISnowflake, xp: Long) {
+        globalXPManager.store(GlobalXPData(userSnowflake.idLong, xp))
     }
 
-    fun increaseAllXP(guildSnowflake: Snowflake, userSnowflake: Snowflake, amount: ULong) {
+    fun increaseAllXP(guildSnowflake: ISnowflake, userSnowflake: ISnowflake, amount: Long) {
         transaction(driverManager.database) {
             GlobalXP.insertOrUpdate({
-                it[userId] = userSnowflake.value
+                it[userId] = userSnowflake.idLong
                 it[xp] = amount
             }, {
                 it[xp] = xp.plus(amount)
             }, {
-                this[GuildXP.xp]
+                // this[GlobalXP.xp]
             })
             GuildXP.insertOrUpdate({
-                it[guildId] = guildSnowflake.value
-                it[userId] = userSnowflake.value
+                it[guildId] = guildSnowflake.idLong
+                it[userId] = userSnowflake.idLong
                 it[xp] = amount
             }, {
                 it[xp] = xp.plus(amount)
             }, {
-                this[GuildXP.xp]
+                // this[GuildXP.xp]
             })
         }
     }
 
-    suspend fun getMsgXPCooldown(userSnowflake: Snowflake): Long {
+    suspend fun getMsgXPCooldown(userSnowflake: ISnowflake): Long {
         return driverManager.getCacheEntry("messageXPCooldown:${userSnowflake}")?.toLong() ?: 0
     }
 
-    fun setMsgXPCooldown(userSnowflake: Snowflake, cooldown: Duration) {
+    fun setMsgXPCooldown(userSnowflake: ISnowflake, cooldown: Duration) {
         driverManager.setCacheEntry(
             "messageXPCooldown:${userSnowflake}",
             (System.currentTimeMillis() + cooldown.inWholeMilliseconds).toString(),

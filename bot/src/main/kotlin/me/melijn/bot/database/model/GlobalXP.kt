@@ -8,8 +8,8 @@ import org.jetbrains.exposed.sql.Table
 @Cacheable
 object GlobalXP : Table("global_xp") {
 
-    var userId = ulong("user_id")
-    var xp = ulong("xp")
+    var userId = long("user_id")
+    var xp = long("xp")
 
     override val primaryKey: PrimaryKey = PrimaryKey(userId)
 

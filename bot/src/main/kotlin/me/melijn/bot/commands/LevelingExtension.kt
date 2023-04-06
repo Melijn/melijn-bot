@@ -10,12 +10,13 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import com.sksamuel.scrimage.ImmutableImage
-import dev.kord.rest.Image
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.XPManager
+import me.melijn.bot.utils.ImageUtil.download
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
 import me.melijn.gen.LevelRolesData
+import net.dv8tion.jda.api.utils.AttachedFile
 import org.koin.core.component.inject
 import java.awt.Color
 import java.awt.Font
@@ -36,9 +37,9 @@ class LevelingExtension : Extension() {
     val xpManager by inject<XPManager>()
 
     companion object {
-        fun getLevel(xp: ULong, base: Double): ULong {
-            val level = log((xp + 50UL).toDouble(), base)
-            return floor(level).toULong() - 21UL
+        fun getLevel(xp: Long, base: Double): Long {
+            val level = log((xp + 50).toDouble(), base)
+            return floor(level).toLong() - 21
         }
     }
 
@@ -48,7 +49,7 @@ class LevelingExtension : Extension() {
             description = "xp"
 
             action {
-                val xp = xpManager.getGlobalXP(user.id)
+                val xp = xpManager.getGlobalXP(user)
                 respond {
                     val bufferedImage = LevelingExtension::class.java.getResourceAsStream("/slice2.png").use {
                         ImmutableImage.wrapAwt(ImageIO.read(it))
@@ -59,7 +60,7 @@ class LevelingExtension : Extension() {
                     ImageIO.write(bars, "png", baos)
                     val bais = ByteArrayInputStream(baos.toByteArray())
 
-                    addFile("file.png", bais)
+                    files += AttachedFile.fromData(bais, "file.png")
                 }
             }
         }
@@ -71,10 +72,10 @@ class LevelingExtension : Extension() {
                 val xp = arguments.xp.parsed
                 val user = arguments.user.parsed
 
-                xpManager.setGlobalXP(user.id, xp.toULong())
+                xpManager.setGlobalXP(user, xp)
 
                 respond {
-                    content = "${user.tag} xp: $xp"
+                    content = "${user.asTag} xp: $xp"
                 }
             }
         }
@@ -89,14 +90,14 @@ class LevelingExtension : Extension() {
                 action {
                     xpManager.levelRolesManager.delete(
                         LevelRolesData(
-                            guild!!.id.value,
-                            arguments.level.toULong(),
-                            arguments.role.id.value,
+                            guild!!.idLong,
+                            arguments.level,
+                            arguments.role.idLong,
                             arguments.stay
                         )
                     )
                     respond {
-                        content = "Removed levelRole: ${arguments.role.mention} with the level ${arguments.level}"
+                        content = "Removed levelRole: ${arguments.role.asMention} with the level ${arguments.level}"
                     }
                 }
             }
@@ -111,15 +112,15 @@ class LevelingExtension : Extension() {
 
                     xpManager.levelRolesManager.store(
                         LevelRolesData(
-                            guild!!.id.value,
-                            level.toULong(),
-                            levelRole.id.value,
+                            guild!!.idLong,
+                            level,
+                            levelRole.idLong,
                             stay
                         )
                     )
 
                     respond {
-                        content = "Set ${levelRole.mention} as the level $level levelRole"
+                        content = "Set ${levelRole.asMention} as the level $level levelRole"
                     }
                 }
             }
@@ -129,7 +130,7 @@ class LevelingExtension : Extension() {
 
                 action {
                     val guild = guild!!
-                    val levelRoles = xpManager.levelRolesManager.getByIndex0(guild.id.value)
+                    val levelRoles = xpManager.levelRolesManager.getByIndex0(guild.idLong)
                     respond {
                         if (levelRoles.isEmpty()) {
                             content = "You don't have any levelRoles set"
@@ -147,14 +148,14 @@ class LevelingExtension : Extension() {
 
     private suspend fun PublicSlashCommandContext<Arguments>.drawXpCard(
         bufferedImage: BufferedImage,
-        xp: ULong
+        xp: Long
     ): BufferedImage {
         val graphics = bufferedImage.createGraphics()
-        val user = user.asUser()
+        val user = user
 
         /** Draw avatar **/
         val avatarData =
-            (user.asUser().avatar ?: user.defaultAvatar).getImage(Image.Format.PNG, Image.Size.Size512).data
+            download(user.effectiveAvatarUrl)
         val avatarImg = ImmutableImage.loader().fromBytes(avatarData).awt()
         graphics.drawImage(avatarImg, 56, 176, 408, 408, null)
 
@@ -168,22 +169,22 @@ class LevelingExtension : Extension() {
             RenderingHints.VALUE_TEXT_ANTIALIAS_ON
         )
         graphics.setRenderingHints(rh)
-        graphics.drawString(user.tag, 174, 140)
+        graphics.drawString(user.asTag, 174, 140)
 
         /** Draw XP text **/
         graphics.font = arial.deriveFont(50f)
         val base = 1.2
         var level = getLevel(xp, base)
-        var xpLower = floor(base.pow((level + 21UL).toDouble()) - 50).toULong()
-        var xpUpper = floor(base.pow((level + 22UL).toDouble()) - 50).toULong()
+        var xpLower = floor(base.pow((level + 21).toDouble()) - 50).toLong()
+        var xpUpper = floor(base.pow((level + 22).toDouble()) - 50).toLong()
 
         /** Relative xp to level variables **/
         var progressToNextLevel = xp - xpLower
         var nextLevelThreshold = xpUpper - xpLower
         if (nextLevelThreshold == progressToNextLevel) {
             level++
-            xpLower = floor(base.pow((level + 21UL).toDouble()) - 50).toULong()
-            xpUpper = floor(base.pow((level + 22UL).toDouble()) - 50).toULong()
+            xpLower = floor(base.pow((level + 21).toDouble()) - 50).toLong()
+            xpUpper = floor(base.pow((level + 22).toDouble()) - 50).toLong()
             progressToNextLevel = xp - xpLower
             nextLevelThreshold = xpUpper - xpLower
         }

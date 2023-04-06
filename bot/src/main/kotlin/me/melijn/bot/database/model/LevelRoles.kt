@@ -8,9 +8,9 @@ import org.jetbrains.exposed.sql.Table
 @Cacheable
 object LevelRoles : Table("level_roles") {
 
-    var guildId = ulong("guild_id")
-    var level = ulong("level")
-    var roleId = ulong("role_id")
+    var guildId = long("guild_id")
+    var level = long("level")
+    var roleId = long("role_id")
     var stay = bool("stay")
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, level)

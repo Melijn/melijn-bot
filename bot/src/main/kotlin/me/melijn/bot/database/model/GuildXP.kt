@@ -8,9 +8,9 @@ import org.jetbrains.exposed.sql.Table
 @Cacheable
 object GuildXP : Table("guild_xp") {
 
-    var guildId = ulong("guild_id")
-    var userId = ulong("user_id")
-    var xp = ulong("xp")
+    var guildId = long("guild_id")
+    var userId = long("user_id")
+    var xp = long("xp")
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId)
 
