@@ -62,7 +62,7 @@ class Login : AbstractPage("/callback", ContentType.Text.Html) {
             val cookie = call.request.getMelijnSession()
 
             val loginStatus = if (cookie != null && userCookieManager.isValidCookie(cookie)) {
-                val userData = userCookieManager.getByIndex0(cookie)
+                val userData = userCookieManager.getByCookieIndex(cookie)
 
                 "Logged in :) you are: $userData"
             } else {

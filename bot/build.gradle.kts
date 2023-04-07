@@ -2,11 +2,11 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("application")
-    id("com.apollographql.apollo3") version "3.7.1"
-    id("com.github.johnrengelman.shadow") version "7.1.2"
-    kotlin("jvm") version "1.7.10"
-    id("com.google.devtools.ksp") version "1.7.10-1.0.6"
-    kotlin("plugin.serialization") version "1.7.10"
+    id("com.apollographql.apollo3") version "3.8.0"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+    kotlin("jvm") version "1.8.20"
+    id("com.google.devtools.ksp") version "1.8.20-1.0.10"
+    kotlin("plugin.serialization") version "1.8.20"
 }
 
 application.mainClass.set("me.melijn.bot.MelijnKt")
@@ -14,8 +14,8 @@ group = "me.melijn.bot"
 version = "0.0.1-SNAPSHOT"
 
 configure<JavaPluginExtension> {
-    sourceCompatibility = JavaVersion.VERSION_16
-    targetCompatibility = JavaVersion.VERSION_16
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 apollo {
@@ -42,7 +42,7 @@ repositories {
 val jackson = "2.14.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
 
 val ktor = "2.0.3"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
-val apollo = "3.7.1" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
+val apollo = "3.8.0" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
 val kotlinX = "1.6.4" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
 val kotlin = "1.7.10"
 val scrimage = "4.0.31"
@@ -207,10 +207,11 @@ tasks {
     }
     withType(KotlinCompile::class) {
         kotlinOptions {
-            jvmTarget = "16"
+            jvmTarget = "17"
             freeCompilerArgs = listOf(
                 "-opt-in=kotlin.RequiresOptIn",
-                "-Xcontext-receivers"
+                "-Xcontext-receivers",
+                "-Xskip-prerelease-check"
             )
         }
     }

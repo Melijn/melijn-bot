@@ -9,7 +9,7 @@ import util.CookieUtil.isValid
 class UserCookieManager(driverManager: DriverManager) : AbstractUserCookieManager(driverManager) {
 
     fun isValidCookie(cookie: String): Boolean {
-        val info = getByIndex0(cookie) ?: return false
+        val info = getByCookieIndex(cookie) ?: return false
         return isValid(info)
     }
 

@@ -44,7 +44,7 @@ class NavbarSnippet : AbstractSnippet<Any>() {
 
     private fun getLoginDependent(call: ApplicationCall): String {
         val cookieData = call.request.getMelijnSession()?.let { cookie ->
-            userCookieManager.getByIndex0(cookie)?.let { userCookieData ->
+            userCookieManager.getByCookieIndex(cookie)?.let { userCookieData ->
                 val cookieData = userCookieData.takeIf { CookieUtil.isValid(userCookieData) }
                 cookieData?.run {
                     val userData = userDataManager.getById(userId)

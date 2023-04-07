@@ -1,15 +1,15 @@
 plugins {
-    kotlin("jvm") version "1.7.10"
-    id("com.google.devtools.ksp") version "1.7.10-1.0.6"
-    id("com.github.johnrengelman.shadow") version "7.1.2"
-    kotlin("plugin.serialization") version "1.7.10"
+    kotlin("jvm") version "1.8.20"
+    id("com.google.devtools.ksp") version "1.8.20-1.0.10"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+    kotlin("plugin.serialization") version "1.8.20"
 }
 
 version = "1.0"
 
 configure<JavaPluginExtension> {
-    sourceCompatibility = JavaVersion.VERSION_16
-    targetCompatibility = JavaVersion.VERSION_16
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 repositories {
@@ -17,8 +17,8 @@ repositories {
     maven("https://reposilite.melijn.com/snapshots")
 }
 
-val ktorVersion = "2.0.3"
-val logbackVersion = "1.2.11"
+val ktorVersion = "2.2.4"
+val logbackVersion = "1.4.6"
 
 val kordKommons = "0.0.1-SNAPSHOT"
 
@@ -64,13 +64,13 @@ dependencies {
     implementation("io.ktor:ktor-server-auto-head-response:$ktorVersion")
     implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
 
-    implementation("io.insert-koin:koin-core:3.2.0")
+    implementation("io.insert-koin:koin-core:3.4.0")
 
     // JWT Token stuff
     // https://mvnrepository.com/artifact/org.springframework.security/spring-security-web
-    implementation("org.springframework.security:spring-security-web:5.7.5")
+    implementation("org.springframework.security:spring-security-web:6.0.2")
     // https://github.com/jwtk/jjwt
     // https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-impl
     implementation("io.jsonwebtoken:jjwt-impl:0.11.5")
@@ -87,7 +87,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.0.1")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.5.0")
+    implementation("org.postgresql:postgresql:42.6.0")
 }
 
 ksp {
@@ -114,7 +114,7 @@ tasks {
     }
     withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class) {
         kotlinOptions {
-            jvmTarget = "16"
+            jvmTarget = "17"
         }
     }
 
