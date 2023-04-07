@@ -4,11 +4,11 @@ query FindUser($name: String!) {
     }
 }
 
-#query GetUser($id: Int!) {
-#    User(id: $id) {
-#        ...userFragment
-#    }
-#}
+query GetUser($id: Int!) {
+    User(id: $id) {
+        ...userFragment
+    }
+}
 
 query SearchUser($name: String!) {
     Page(page: 1, perPage: 10) {
