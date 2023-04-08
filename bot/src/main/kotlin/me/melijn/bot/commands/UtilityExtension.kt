@@ -17,14 +17,18 @@ import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.InlineMessage
 import dev.minn.jda.ktx.messages.MessageEdit
 import me.melijn.apkordex.command.KordExtension
+import me.melijn.bot.database.manager.InvitesManager
+import me.melijn.bot.database.manager.MemberJoinTrackingManager
 import me.melijn.bot.utils.JDAUtil.asTag
 import me.melijn.bot.utils.JDAUtil.toHex
+import me.melijn.bot.utils.KoinUtil
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.StringsUtil.batchingJoinToString
 import me.melijn.bot.utils.TimeUtil.format
 import net.dv8tion.jda.api.entities.GuildVoiceState
+import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Role
 import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.utils.SplitUtil
@@ -54,7 +58,7 @@ class UtilityExtension : Extension() {
                         "$i - [${role.name}] - ${role.id}"
                     }
                 val header = tr("rolesList.serverTitle", targetGuild.name)
-                val parts = SplitUtil.split(body, 2000-10-header.length, SplitUtil.Strategy.NEWLINE)
+                val parts = SplitUtil.split(body, 2000 - 10 - header.length, SplitUtil.Strategy.NEWLINE)
                     .map { "```INI\n$it```" }
                     .toMutableList()
                 parts[0] = header + parts[0]
@@ -156,14 +160,19 @@ class UtilityExtension : Extension() {
                 anyGuild()
             }
 
+            val memberJoinTrackingManager by KoinUtil.inject<MemberJoinTrackingManager>()
+            val inviteManager by KoinUtil.inject<InvitesManager>()
+
             action {
                 val user = arguments.user.parsed ?: this.user
                 val guild = guild!!
-                val member = guild.retrieveMember(user).await()
+                val member: Member? = runCatching { guild.retrieveMember(user).await() }.getOrNull()
                 val isSupporter = false
                 val profile = user.retrieveProfile().await()
-                val voiceState = member.voiceState
+                val voiceState = member?.voiceState
                 val statusIconString = getStatusIcons(voiceState)
+                val inviteInfo = memberJoinTrackingManager.getCachedById(guild.idLong, user.idLong)
+
                 respond {
                     embed {
                         description = tr("userInfo.userInfoSection", user.name, user.discriminator,
@@ -171,20 +180,39 @@ class UtilityExtension : Extension() {
                             profile.banner != null, profile.bannerUrl,
                             TimeFormat.DATE_TIME_SHORT.format(user),
                             user.flags.joinToString(separator = " ") { getBadge(it) })
-                        val roleString = member.roles.toList()
-                            .sortedBy { it.positionRaw }
-                            .reversed()
-                            .joinToString {
-                                it.asMention
-                            }
-                        description += tr(
-                            "userInfo.memberInfoSection", roleString,
-                            member.nickname ?: "",
-                            member.isOwner,
-                            TimeFormat.DATE_TIME_SHORT.format(member.timeJoined),
-                            member.timeBoosted?.let { TimeFormat.DATE_TIME_SHORT.format(it) } ?: "",
-                            voiceState?.inAudioChannel(), statusIconString, guild.selfMember.canInteract(member)
-                        )
+
+                        if (member != null) {
+                            val roleString = member.roles.toList()
+                                .sortedBy { it.positionRaw }
+                                .reversed()
+                                .joinToString {
+                                    it.asMention
+                                }
+                            description += tr(
+                                "userInfo.memberInfoSection", roleString,
+                                member.nickname ?: "",
+                                member.isOwner,
+                                TimeFormat.DATE_TIME_SHORT.format(member.timeJoined),
+                                member.timeBoosted?.let { TimeFormat.DATE_TIME_SHORT.format(it) } ?: "",
+                                voiceState?.inAudioChannel(), statusIconString, guild.selfMember.canInteract(member)
+                            )
+                        }
+
+                        if (inviteInfo != null) {
+                            val inviteData = inviteManager.getCachedById(inviteInfo.inviteCode, guild.idLong)
+                            val inviteInfoString = inviteData?.let { invite ->
+                                val expiresString = invite.expiry?.let { TimeFormat.RELATIVE.format(invite.createdAt + it) }
+                                    ?: "never"
+                                "(`${invite.inviteCode}`, uses: ${invite.uses}, expiry: ${expiresString})"
+                            } ?: "`${inviteInfo.inviteCode}`"
+                            description += tr(
+                                "userInfo.inviteInfoSection",
+                                inviteInfoString,
+                                inviteData?.userId?.let { shardManager.getUserById(it)?.asTag?.let { "$it " } } + "(`${inviteData?.userId}`)",
+                                TimeFormat.DATE_TIME_LONG.format(inviteInfo.firstJoinTime),
+                                inviteInfo.joins
+                            )
+                        }
                         thumbnail = user.effectiveAvatarUrl
                     }
                 }
