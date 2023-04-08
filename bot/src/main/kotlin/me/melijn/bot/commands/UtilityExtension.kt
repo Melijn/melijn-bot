@@ -203,7 +203,7 @@ class UtilityExtension : Extension() {
                             val inviteInfoString = inviteData?.let { invite ->
                                 val expiresString = invite.expiry?.let { TimeFormat.RELATIVE.format(invite.createdAt + it) }
                                     ?: "never"
-                                "(`${invite.inviteCode}`, uses: ${invite.uses}, expiry: ${expiresString})"
+                                "(`${invite.inviteCode}`, uses: **${invite.uses}**, expiry: ${expiresString})"
                             } ?: "`${inviteInfo.inviteCode}`"
                             description += tr(
                                 "userInfo.inviteInfoSection",
