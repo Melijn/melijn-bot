@@ -2,7 +2,7 @@ package me.melijn.bot.model.enums
 
 enum class LogChannelType(val text: String = this.toString(), val parentNodes: Array<String> = emptyArray()) {
 
-    //Punishments
+    // Punishments
     PERMANENT_BAN("PermanentBan", arrayOf("punishment", "punishments", "ban", "permban", "pblc")),
     MASS_BAN("MassBan", arrayOf("punishment", "punishments", "ban", "massban", "mblc")),
     TEMP_BAN("TemporaryBan", arrayOf("punishment", "punishments", "ban", "tempban", "tblc")),
@@ -18,7 +18,7 @@ enum class LogChannelType(val text: String = this.toString(), val parentNodes: A
     MASS_KICK("MassKick", arrayOf("punishment", "punishments", "mklc")),
     WARN("Warn", arrayOf("punishment", "punishments", "wlc")),
 
-    //Deleted Messages
+    // Deleted Messages
     OTHER_DELETED_MESSAGE(
         "Other-Deleted-Message",
         arrayOf("deleted-messages", "deleted-message", "odm", "other-deleted-messages", "odmlc")
@@ -34,7 +34,7 @@ enum class LogChannelType(val text: String = this.toString(), val parentNodes: A
         arrayOf("deleted-messages", "deleted-message", "fm", "filtered-messages", "fmlc")
     ),
 
-    //Others
+    // Others
     VERIFICATION("Verification", arrayOf("v", "uv", "vlc", "uvlc")),
     EDITED_MESSAGE("Edited-Message", arrayOf("em", "edited-messages", "emlc")),
     REACTION("Reaction", arrayOf("r", "reactions", "r", "rlc")),

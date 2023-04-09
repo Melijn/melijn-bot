@@ -43,7 +43,6 @@ import me.melijn.kordkommons.utils.escapeCodeBlock
 import net.dv8tion.jda.api.utils.AttachedFile
 import net.dv8tion.jda.api.utils.TimeFormat
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
-import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 import org.koin.core.component.inject
 import java.awt.Color
 import java.awt.image.BufferedImage
@@ -141,7 +140,7 @@ class OsuExtension : Extension() {
                     val type = arguments.type
                     val limit = arguments.limit
                     val offset = arguments.offset
-                    val includeFails = arguments.includeFails.ifTrue { "1" } ?: "0"
+                    val includeFails = if (arguments.includeFails) "1" else "0"
                     val (osuSettings, osuId) = assertAccount(arguments.account, arguments.user)
                     val mode = arguments.gameMode ?: osuSettings?.modePreference ?: GameMode.OSU
 

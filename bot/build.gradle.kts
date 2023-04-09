@@ -41,11 +41,11 @@ repositories {
 
 val jackson = "2.14.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
 
-val ktor = "2.0.3"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
+val ktor = "2.2.4"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 val apollo = "3.8.0" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
 val kotlinX = "1.6.4" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
-val kotlin = "1.7.10"
-val scrimage = "4.0.31"
+val kotlin = "1.8.20"
+val scrimage = "4.0.34"
 
 
 val jda = "5.0.0-beta.6"
@@ -86,10 +86,12 @@ dependencies {
     // https://github.com/freya022/JEmojis
     implementation("com.github.ToxicMushroom:JEmojis:a8c82848f166893f67251c741579c74c80fbb2dd")
 
+    implementation("org.jetbrains.kotlin:kotlin-scripting-common")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-dependencies")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-dependencies-maven")
 
-    api("org.jetbrains.kotlin:kotlin-script-util:$kotlin")
-    api("org.jetbrains.kotlin:kotlin-compiler:$kotlin")
-    api("org.jetbrains.kotlin:kotlin-scripting-compiler:$kotlin")
+    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host")
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib-jdk8
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin")

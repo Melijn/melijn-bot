@@ -28,8 +28,7 @@ class EvalCommand : Extension() {
                     content = "Executing code.."
                 }
 
-                val paramStr = "context: ChatCommandContext<out EvalCommand.EvalArgs>"
-                val result = CodeEvalUtil.runCode(argString, paramStr, this)
+                val result = CodeEvalUtil.evalScript(argString, this, this::class, "bestNumber" to this)
 
                 msg.editMessage(MessageEdit {
                     content = "Done!\nResult: $result"

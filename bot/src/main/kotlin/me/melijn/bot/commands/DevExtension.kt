@@ -3,14 +3,11 @@ package me.melijn.bot.commands
 import com.kotlindiscord.kord.extensions.checks.anyGuild
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.SlashCommandContext
-import com.kotlindiscord.kord.extensions.commands.application.slash.group
-import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.commands.converters.impl.boolean
 import com.kotlindiscord.kord.extensions.commands.converters.impl.member
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalString
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
-import com.kotlindiscord.kord.extensions.extensions.chatGroupCommand
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.minn.jda.ktx.coroutines.await
@@ -18,7 +15,6 @@ import dev.minn.jda.ktx.messages.InlineEmbed
 import dev.minn.jda.ktx.messages.InlineMessage
 import dev.minn.jda.ktx.messages.MessageCreate
 import me.melijn.apkordex.command.KordExtension
-import me.melijn.bot.model.kordex.PersistentUsageLimitType
 import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.StringsUtil
@@ -30,7 +26,6 @@ import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
 import org.springframework.boot.ansi.AnsiColor
-import kotlin.time.Duration.Companion.seconds
 
 @KordExtension
 class DevExtension : Extension() {
@@ -53,61 +48,50 @@ class DevExtension : Extension() {
         publicSlashCommand {
             name = "test"
             description = "test"
-            cooldown(PersistentUsageLimitType.USER_COMMAND) {
-                50.seconds
-            }
+
             action {
                 respond {
                     val names = getNames()
+
 
                     content = "called `${names.joinToString(" ")}`"
                 }
             }
         }
-        publicSlashCommand {
-            name = "testsub"
-            description = "test"
-            publicSubCommand {
-                name= "test"
-                description = "testing"
-                action {
-                    respond {
-                        val names = getNames()
-
-                        content = "called `${names.joinToString(" ")}`"
-                    }
-                }
-            }
-        }
-        publicSlashCommand {
-            name = "testsubsub"
-            description = "test"
-            group("sub1") {
-                description = "sin1"
-
-                publicSubCommand {
-                    name= "test"
-                    description = "testing"
-                    action {
-                        respond {
-                            val names = getNames()
-
-                            content = "called `${names.joinToString(" ")}`"
-                        }
-                    }
-                }
-            }
-        }
-
-        chatGroupCommand {
-            name = "6"
-            chatCommand {
-                name = "5"
-                action {
-                    this.channel.createMessage("5")
-                }
-            }
-        }
+//        publicSlashCommand {
+//            name = "testsub"
+//            description = "test"
+//            publicSubCommand {
+//                name= "test"
+//                description = "testing"
+//                action {
+//                    respond {
+//                        val names = getNames()
+//
+//                        content = "called `${names.joinToString(" ")}`"
+//                    }
+//                }
+//            }
+//        }
+//        publicSlashCommand {
+//            name = "testsubsub"
+//            description = "test"
+//            group("sub1") {
+//                description = "sin1"
+//
+//                publicSubCommand {
+//                    name= "test"
+//                    description = "testing"
+//                    action {
+//                        respond {
+//                            val names = getNames()
+//
+//                            content = "called `${names.joinToString(" ")}`"
+//                        }
+//                    }
+//                }
+//            }
+//        }
 
         chatCommand(::PresenceArgs) {
             name = "presence"

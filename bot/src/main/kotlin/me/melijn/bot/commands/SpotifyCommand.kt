@@ -10,12 +10,12 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.minn.jda.ktx.coroutines.await
 import me.melijn.apkordex.command.KordExtension
+import me.melijn.bot.utils.keysToMap
 import me.melijn.bot.web.api.MySpotifyApi
 import me.melijn.bot.web.api.WebManager
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.RichPresence
-import org.jetbrains.kotlin.utils.keysToMap
 import org.koin.core.component.inject
 import java.awt.Color
 import java.lang.Double.max

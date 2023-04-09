@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUnsignedTypes::class)
-
 package me.melijn.bot.database.model
 
 import me.melijn.bot.model.enums.LogChannelType
