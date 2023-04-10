@@ -30,6 +30,7 @@ import kotlin.math.log
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
+const val LEVEL_LOG_BASE = 1.2
 @KordExtension
 class LevelingExtension : Extension() {
 
@@ -50,11 +51,12 @@ class LevelingExtension : Extension() {
 
             action {
                 val xp = xpManager.getGlobalXP(user)
+                val guildXp = guild?.let { xpManager.getGuildXP(it, user) }
                 respond {
                     val bufferedImage = LevelingExtension::class.java.getResourceAsStream("/slice2.png").use {
                         ImmutableImage.wrapAwt(ImageIO.read(it))
                     }.awt()
-                    val bars = drawXpCard(bufferedImage, xp)
+                    val bars = drawXpCard(bufferedImage, xp, guildXp)
 
                     val baos = ByteArrayOutputStream()
                     ImageIO.write(bars, "png", baos)
@@ -73,6 +75,7 @@ class LevelingExtension : Extension() {
                 val user = arguments.user.parsed
 
                 xpManager.setGlobalXP(user, xp)
+                guild?.let { xpManager.setGuildXP(it, user, xp) }
 
                 respond {
                     content = "${user.asTag} xp: $xp"
@@ -148,7 +151,8 @@ class LevelingExtension : Extension() {
 
     private suspend fun PublicSlashCommandContext<Arguments>.drawXpCard(
         bufferedImage: BufferedImage,
-        xp: Long
+        xp: Long,
+        guildXp: Long?
     ): BufferedImage {
         val graphics = bufferedImage.createGraphics()
         val user = user
@@ -170,29 +174,50 @@ class LevelingExtension : Extension() {
         )
         graphics.setRenderingHints(rh)
         graphics.drawString(user.asTag, 174, 140)
+        graphics.dispose()
 
+        val bar1 = drawXPBar(250, xp,  bufferedImage)
+        val bar2 = guildXp?.let { drawXPBar(470, it, bar1) } ?: bar1
+
+        return bar2
+    }
+
+    private fun drawXPBar(
+        y: Int,
+        xp: Long,
+        bufferedImage: BufferedImage
+    ): BufferedImage {
         /** Draw XP text **/
+        val graphics = bufferedImage.createGraphics()
+        val arial = LevelingExtension::class.java.getResourceAsStream("/arial.ttf")
+            .use { Font.createFont(Font.TRUETYPE_FONT, it) }
         graphics.font = arial.deriveFont(50f)
-        val base = 1.2
-        var level = getLevel(xp, base)
-        var xpLower = floor(base.pow((level + 21).toDouble()) - 50).toLong()
-        var xpUpper = floor(base.pow((level + 22).toDouble()) - 50).toLong()
+        graphics.paint = Color.decode("#BABABA")
+        val rh = RenderingHints(
+            RenderingHints.KEY_TEXT_ANTIALIASING,
+            RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+        )
+        graphics.setRenderingHints(rh)
+
+        var level = getLevel(xp, LEVEL_LOG_BASE)
+        var xpLower = floor(LEVEL_LOG_BASE.pow((level + 21).toDouble()) - 50).toLong()
+        var xpUpper = floor(LEVEL_LOG_BASE.pow((level + 22).toDouble()) - 50).toLong()
 
         /** Relative xp to level variables **/
         var progressToNextLevel = xp - xpLower
         var nextLevelThreshold = xpUpper - xpLower
         if (nextLevelThreshold == progressToNextLevel) {
             level++
-            xpLower = floor(base.pow((level + 21).toDouble()) - 50).toLong()
-            xpUpper = floor(base.pow((level + 22).toDouble()) - 50).toLong()
+            xpLower = floor(LEVEL_LOG_BASE.pow((level + 21).toDouble()) - 50).toLong()
+            xpUpper = floor(LEVEL_LOG_BASE.pow((level + 22).toDouble()) - 50).toLong()
             progressToNextLevel = xp - xpLower
             nextLevelThreshold = xpUpper - xpLower
         }
 
         val text = "$progressToNextLevel/$nextLevelThreshold XP | Level: $level"
         val textWidth = graphics.fontMetrics.stringWidth(text)
-        graphics.drawString(text, 1586 - textWidth, 230)
-        graphics.drawString(text, 1586 - textWidth, 449)
+        graphics.drawString(text, 1586 - textWidth, y - 20)
+        graphics.dispose()
 
         /** Draw XP bars **/
         val bars = BufferedImage(bufferedImage.width, bufferedImage.height, bufferedImage.type)
@@ -200,12 +225,11 @@ class LevelingExtension : Extension() {
         barGraphics.paint = Color.decode("#142235")
         val percente = progressToNextLevel.toDouble() / nextLevelThreshold.toDouble()
         val end = (percente * 956).roundToInt()
-        barGraphics.fillRect(645, 250, end, 120)
-        barGraphics.fillRect(645, 470, end, 120)
+        barGraphics.fillRect(645, y, end, 120)
         barGraphics.paint = Color.decode("#635C5C")
-        barGraphics.fillRect(645 + end, 250, (956 - end), 120)
-        barGraphics.fillRect(645 + end, 470, (956 - end), 120)
+        barGraphics.fillRect(645 + end, y, (956 - end), 120)
         barGraphics.drawImage(bufferedImage, 0, 0, null)
+        barGraphics.dispose()
         return bars
     }
 

@@ -43,7 +43,7 @@ class LevelingListener : Service("leveling", 10.seconds, 10.seconds, true) {
 
     private suspend fun handle(event: MessageReceivedEvent) {
         val member = event.member?.takeIf { !it.user.isBot }
-        val userId = member ?: return
+        val userId = member?.user ?: return
         val guildId = if (event.isFromGuild) event.guild else return
 
         val cooldown = xpManager.getMsgXPCooldown(userId)
@@ -71,7 +71,7 @@ class LevelingListener : Service("leveling", 10.seconds, 10.seconds, true) {
             }
 
             // give xp
-            xpManager.increaseAllXP(member.guild, member, 5L)
+            xpManager.increaseAllXP(member.guild, member.user, 5L)
             logger.info { "${member.effectiveName} gained 5 xp" }
         }
     }

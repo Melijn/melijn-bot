@@ -109,6 +109,9 @@ object Melijn {
                     this.start()
 
                     val koin = getKoin()
+                    koin.loadModules(listOf(module {
+                        single { this@setup } bind ExtensibleBot::class
+                    }))
                     HttpServer.startHttpServer()
                     val injectorInterface = ReflectUtil.getInstanceOfKspClass<InjectorInterface>(
                         "me.melijn.gen", "InjectionKoinModule"

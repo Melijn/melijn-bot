@@ -1,15 +1,20 @@
 package me.melijn.bot.database.manager
 
+import com.kotlindiscord.kord.extensions.ExtensibleBot
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.database.model.GlobalXP
 import me.melijn.bot.database.model.GuildXP
+import me.melijn.bot.events.leveling.GuildXPChangeEvent
+import me.melijn.bot.utils.KoinUtil
 import me.melijn.gen.GlobalXPData
+import me.melijn.gen.GuildXPData
 import me.melijn.gen.database.manager.*
 import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.database.insertOrUpdate
+import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.ISnowflake
+import net.dv8tion.jda.api.entities.User
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 
@@ -67,30 +72,28 @@ class XPManager(
         return globalXPManager.getById(userSnowflake.idLong)?.xp ?: 0L
     }
 
-    fun setGlobalXP(userSnowflake: ISnowflake, xp: Long) {
-        globalXPManager.store(GlobalXPData(userSnowflake.idLong, xp))
+    fun getGuildXP(guildId: ISnowflake, userSnowflake: ISnowflake): Long {
+        return guildXPManager.getById(guildId.idLong, userSnowflake.idLong)?.xp ?: 0L
     }
 
-    fun increaseAllXP(guildSnowflake: ISnowflake, userSnowflake: ISnowflake, amount: Long) {
-        transaction(driverManager.database) {
-            GlobalXP.insertOrUpdate({
-                it[userId] = userSnowflake.idLong
-                it[xp] = amount
-            }, {
-                it[xp] = xp.plus(amount)
-            }, {
-                // this[GlobalXP.xp]
-            })
-            GuildXP.insertOrUpdate({
-                it[guildId] = guildSnowflake.idLong
-                it[userId] = userSnowflake.idLong
-                it[xp] = amount
-            }, {
-                it[xp] = xp.plus(amount)
-            }, {
-                // this[GuildXP.xp]
-            })
-        }
+    fun setGlobalXP(userSnowflake: ISnowflake, xp: Long) {
+        globalXPManager.store(GlobalXPData(userSnowflake.idLong, xp))
+
+    }
+
+    fun setGuildXP(guildId: ISnowflake, userSnowflake: ISnowflake, xp: Long) {
+        guildXPManager.store(GuildXPData(guildId.idLong, userSnowflake.idLong, xp))
+    }
+
+    suspend fun increaseAllXP(guild: Guild, user: User, amount: Long) {
+        val oldGuildXP = guildXPManager.getCachedById(guild.idLong, user.idLong)?.xp ?: 0
+        val oldGlobalXP = globalXPManager.getCachedById(user.idLong)?.xp ?: 0
+        setGlobalXP(user, oldGlobalXP + amount)
+        setGuildXP(guild, user, oldGuildXP + amount)
+        val newGuildXP = oldGuildXP + amount
+        val botManager by KoinUtil.inject<ExtensibleBot>()
+        val event = GuildXPChangeEvent(guild.jda, oldGuildXP, newGuildXP, user, guild)
+        botManager.send(event)
     }
 
     suspend fun getMsgXPCooldown(userSnowflake: ISnowflake): Long {
