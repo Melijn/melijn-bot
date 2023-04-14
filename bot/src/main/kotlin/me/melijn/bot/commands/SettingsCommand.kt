@@ -16,14 +16,14 @@ import dev.minn.jda.ktx.messages.InlineMessage
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.CommandEmbedColorManager
 import me.melijn.bot.database.manager.PrefixManager
-import me.melijn.bot.utils.ImageUtil
-import me.melijn.bot.utils.ImageUtil.toInputStream
 import me.melijn.bot.utils.InferredChoiceEnum
 import me.melijn.bot.utils.JDAUtil.toHex
 import me.melijn.bot.utils.KordExUtils.inRange
 import me.melijn.bot.utils.KordExUtils.lengthBetween
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.embedWithColor
+import me.melijn.bot.utils.image.ImageUtil
+import me.melijn.bot.utils.image.ImageUtil.toInputStream
 import me.melijn.gen.CommandEmbedColorData
 import me.melijn.gen.PrefixesData
 import net.dv8tion.jda.api.Permission

@@ -12,8 +12,8 @@ import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.cache.ButtonCache
 import me.melijn.bot.events.LATEX_DESTROY_BUTTON_ID
 import me.melijn.bot.model.AbstractOwnedMessage
-import me.melijn.bot.utils.ImageUtil
-import me.melijn.bot.utils.ImageUtil.toInputStream
+import me.melijn.bot.utils.image.ImageUtil
+import me.melijn.bot.utils.image.ImageUtil.toInputStream
 import net.dv8tion.jda.api.utils.AttachedFile
 import org.koin.core.component.inject
 import org.scilab.forge.jlatexmath.TeXConstants

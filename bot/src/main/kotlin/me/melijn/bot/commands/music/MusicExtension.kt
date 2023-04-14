@@ -430,7 +430,7 @@ class MusicExtension : Extension() {
 
                 val count = 30
                 val progress = (max(0.0, (player.position * count.toDouble())) /
-                    playing.length.inWholeMilliseconds.toDouble()).roundToInt()
+                        playing.length.inWholeMilliseconds.toDouble()).roundToInt()
 
                 val blue = ansiFormat(AnsiColor.BLUE)
                 val green = ansiFormat(AnsiColor.GREEN)
@@ -457,10 +457,10 @@ class MusicExtension : Extension() {
                             inline = false
                         }
 
-                             thumbnail = when (playing.sourceType) {
-                                TrackSource.YOUTUBE -> "https://img.youtube.com/vi/${playing.identifier}/hqdefault.jpg"
-                                else -> ""
-                            }
+                        thumbnail = when (playing.sourceType) {
+                            TrackSource.YOUTUBE -> "https://img.youtube.com/vi/${playing.identifier}/hqdefault.jpg"
+                            else -> null
+                        }
 
                     }
                 }
@@ -535,26 +535,29 @@ class MusicExtension : Extension() {
                                 )
                             }
                         }
+
                         tracks.size > 1 -> {
                             embed {
                                 title = tr("splay.menuTitle", user.asTag)
                                 description = entries
                             }
                             actionRow(
-                                tracks.indices.map {  i ->
+                                tracks.indices.map { i ->
                                     secondary("${SPLAY_BTN_ID_PREFIX}$i", "$i")
                                 }
                             )
                             actionRow(danger(SPLAY_BTN_ID_PREFIX + SPLAY_BTN_CANCEL, tr("cancelButton")))
                         }
+
                         else -> content = tr("play.noMatches")
                     }
                 }
 
-                searchPlayMenuCache.cache[OwnedGuildMessage.from(guild, user, msg.referencedMessage!!)] = SearchPlayMenu(
-                    tracks.toTypedArray(),
-                    queuePosition
-                )
+                searchPlayMenuCache.cache[OwnedGuildMessage.from(guild, user, msg.referencedMessage!!)] =
+                    SearchPlayMenu(
+                        tracks.toTypedArray(),
+                        queuePosition
+                    )
             }
         }
 
@@ -599,6 +602,7 @@ class MusicExtension : Extension() {
                                 )
                             }
                         }
+
                         tracks.size > 1 -> {
                             embed {
                                 title = tr("play.manyAddedTitle", user.asTag)
@@ -610,6 +614,7 @@ class MusicExtension : Extension() {
                                 )
                             }
                         }
+
                         else -> content = tr("play.noMatches")
                     }
                 }
@@ -789,8 +794,8 @@ class MusicExtension : Extension() {
                 val channel = this.value
                 failIf("This is not a voiceChannel!") {
                     channel != null
-                        && channel.type != ChannelType.VOICE
-                        && channel.type != ChannelType.STAGE
+                            && channel.type != ChannelType.VOICE
+                            && channel.type != ChannelType.STAGE
                 }
             }
         }

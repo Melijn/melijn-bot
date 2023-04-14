@@ -1,8 +1,9 @@
-package me.melijn.bot.utils
+package me.melijn.bot.utils.image
 
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import me.melijn.bot.utils.KoinUtil
 import me.melijn.bot.web.api.WebManager
 import java.awt.Color
 import java.awt.image.BufferedImage

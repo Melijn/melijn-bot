@@ -15,6 +15,12 @@ object StringsUtil {
 
     fun htmlToMarkdown(html: String): String = htmlConverter.convert(html)
 
+    fun String.prependZeros(targetLength: Int): String {
+        val zeros = kotlin.math.max(targetLength - this.length, 0)
+        val extraZeros = "0".repeat(zeros)
+        return extraZeros + this
+    }
+
     fun <T> Iterable<T>.batchingJoinToString(batchLimit: Int, separator: CharSequence = ", ", transform: ((T) -> String)): List<String> {
         val bins = mutableListOf<String>()
         val builder = StringBuilder()
