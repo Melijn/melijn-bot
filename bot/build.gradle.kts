@@ -47,7 +47,6 @@ val kotlinX = "1.6.4" // https://mvnrepository.com/artifact/org.jetbrains.kotlin
 val kotlin = "1.8.20"
 val scrimage = "4.0.34"
 
-
 val jda = "5.0.0-beta.6"
 val kordEx = "1.5.6-SNAPSHOT"
 val kordKommons = "0.0.3-SNAPSHOT"
@@ -60,9 +59,7 @@ dependencies {
     // https://mvnrepository.com/artifact/org.scilab.forge/jlatexmath
     implementation("org.scilab.forge:jlatexmath:1.0.7")
 
-//    implementation("dev.schlaubi.lavakord", "kord", "3.8.0")
     implementation("dev.schlaubi.lavakord", "jda", "4.0.0")
-//    implementation("dev.schlaubi.lavakord", "jda-java", "3.8.0")
 
     implementation("me.melijn.kommons:kommons:$kordKommons")
     implementation("me.melijn.kommons:kord-kommons:$kordKommons")
@@ -79,6 +76,7 @@ dependencies {
     ksp(apKordex)
     ksp(apRedgres)
 
+    // error reporting
     implementation("io.sentry:sentry:6.2.1")
 
     // https://mvnrepository.com/artifact/club.minnced/discord-webhooks
@@ -86,18 +84,20 @@ dependencies {
     // https://github.com/freya022/JEmojis
     implementation("com.github.ToxicMushroom:JEmojis:a8c82848f166893f67251c741579c74c80fbb2dd")
 
-    implementation("org.jetbrains.kotlin:kotlin-scripting-common")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-dependencies")
-    implementation("org.jetbrains.kotlin:kotlin-scripting-dependencies-maven")
+    // required for scriptDef.kt
+    implementation(kotlin("scripting-common"))
+    implementation(kotlin("scripting-jvm"))
+    implementation(kotlin("scripting-dependencies"))
+    implementation(kotlin("scripting-dependencies-maven"))
 
-    implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host")
+    // required for host.kt
+    implementation(kotlin("scripting-jvm-host"))
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib-jdk8
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin")
+    implementation(kotlin("stdlib-jdk8"))
 
     // https://nexus.melijn.com/#browse/browse:maven-public:me%2Fmelijn%2Fjagtag
-//    implementation("me.melijn.jagtag:JagTag-Kotlin:2.2.1")
+    // implementation("me.melijn.jagtag:JagTag-Kotlin:2.2.1")
 
     // Database
     // https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-core
@@ -189,7 +189,10 @@ ksp {
     arg("ap_kordex_package", "me.melijn.gen")
     arg("ap_redgres_package", "me.melijn.gen")
     arg("ap_redgres_redis_key_prefix", "melijn:")
-    arg("ap_imports", "import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent;import org.koin.core.component.get;import org.koin.core.parameter.ParametersHolder;")
+    arg(
+        "ap_imports",
+        "import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent;import org.koin.core.component.get;import org.koin.core.parameter.ParametersHolder;"
+    )
     arg("ap_interfaces", "KordExKoinComponent")
     arg("ap_init_placeholder", "get<%className%> { ParametersHolder() }")
 }
