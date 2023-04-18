@@ -1,8 +1,8 @@
 # melijn-bot
 A multipurpose [discord](https://discord.com) bot written in [kotlin](https://kotlinlang.org/)
 Some libraries we use:
- - [kord](https://github.com/kordlib/kord) - kotlin discord api wrapper
- - [kord-extensions](https://github.com/Kord-Extensions/kord-extensions) - kord command framework and utils
+ - [jda](https://github.com/DV8FromTheWorld/JDA) - java discord api
+ - [kord-extensions](https://github.com/Melijn/kord-extensions) - kord command framework and utils
  - [kord-kommons](https://github.com/ToxicMushroom/kord-kommons) - kord discord bot utilities and exposed SQL code generation utils
  - [ktor](https://ktor.io/) - kotlin http client/server
  - [exposed](https://github.com/JetBrains/Exposed) - kotlin SQL framework from jetbrains (we don't use the DAO's)
