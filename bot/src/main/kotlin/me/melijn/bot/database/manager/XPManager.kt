@@ -4,17 +4,22 @@ import com.kotlindiscord.kord.extensions.ExtensibleBot
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.database.model.GlobalXP
 import me.melijn.bot.database.model.GuildXP
+import me.melijn.bot.database.model.LevelRoles
 import me.melijn.bot.events.leveling.GuildXPChangeEvent
 import me.melijn.bot.utils.KoinUtil
 import me.melijn.gen.GlobalXPData
 import me.melijn.gen.GuildXPData
+import me.melijn.gen.LevelRolesData
 import me.melijn.gen.database.manager.*
 import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.database.insertOrUpdate
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.ISnowflake
 import net.dv8tion.jda.api.entities.User
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.select
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 
@@ -50,7 +55,20 @@ class GuildXPManager(driverManager: DriverManager) : AbstractGuildXPManager(driv
 }
 
 @Inject
-class LevelRolesManager(driverManager: DriverManager) : AbstractLevelRolesManager(driverManager)
+class LevelRolesManager(driverManager: DriverManager) : AbstractLevelRolesManager(driverManager) {
+
+    fun getPrevLevelRole(guildId: Long, level: Long): LevelRolesData? {
+        return scopedTransaction {
+            LevelRoles.select {
+                (LevelRoles.guildId eq guildId)
+                    .and(LevelRoles.level less level)
+            }.orderBy(LevelRoles.level, SortOrder.DESC).firstOrNull()?.let {
+                LevelRolesData.fromResRow(it)
+            }
+        }
+    }
+
+}
 
 @Inject
 class TopRolesManager(driverManager: DriverManager) : AbstractTopRolesManager(driverManager)

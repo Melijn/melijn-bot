@@ -1,11 +1,9 @@
 package me.melijn.bot.commands
 
+import com.kotlindiscord.kord.extensions.checks.hasPermission
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
-import com.kotlindiscord.kord.extensions.commands.converters.impl.boolean
-import com.kotlindiscord.kord.extensions.commands.converters.impl.long
-import com.kotlindiscord.kord.extensions.commands.converters.impl.role
-import com.kotlindiscord.kord.extensions.commands.converters.impl.user
+import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
@@ -15,7 +13,10 @@ import me.melijn.bot.database.manager.XPManager
 import me.melijn.bot.utils.ImageUtil.download
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
+import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.gen.LevelRolesData
+import net.dv8tion.jda.api.Permission
+import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.utils.AttachedFile
 import org.koin.core.component.inject
 import java.awt.Color
@@ -31,6 +32,7 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 
 const val LEVEL_LOG_BASE = 1.2
+
 @KordExtension
 class LevelingExtension : Extension() {
 
@@ -45,18 +47,19 @@ class LevelingExtension : Extension() {
     }
 
     override suspend fun setup() {
-        publicSlashCommand {
+        publicSlashCommand(::XPArgs) {
             name = "xp"
             description = "xp"
 
             action {
-                val xp = xpManager.getGlobalXP(user)
-                val guildXp = guild?.let { xpManager.getGuildXP(it, user) }
+                val target = arguments.user.parsed ?: user
+                val xp = xpManager.getGlobalXP(target)
+                val guildXp = guild?.let { xpManager.getGuildXP(it, target) }
                 respond {
                     val bufferedImage = LevelingExtension::class.java.getResourceAsStream("/slice2.png").use {
                         ImmutableImage.wrapAwt(ImageIO.read(it))
                     }.awt()
-                    val bars = drawXpCard(bufferedImage, xp, guildXp)
+                    val bars = drawXpCard(bufferedImage, xp, guildXp, target)
 
                     val baos = ByteArrayOutputStream()
                     ImageIO.write(bars, "png", baos)
@@ -69,7 +72,9 @@ class LevelingExtension : Extension() {
         publicSlashCommand(::SetXPArgs) {
             name = "setxp"
             description = "gives xp"
-
+            check {
+                userIsOwner()
+            }
             action {
                 val xp = arguments.xp.parsed
                 val user = arguments.user.parsed
@@ -107,7 +112,11 @@ class LevelingExtension : Extension() {
             publicGuildSubCommand(::LevelRolesAddArgs) {
                 name = "set"
                 description = "Sets a level role"
-
+                check {
+                   requirePermission(Permission.MANAGE_ROLES)
+                   requireBotPermissions(Permission.MANAGE_ROLES)
+                   hasPermission(Permission.MANAGE_ROLES)
+                }
                 action {
                     val levelRole = arguments.role
                     val stay = arguments.stay
@@ -130,7 +139,11 @@ class LevelingExtension : Extension() {
             publicGuildSubCommand() {
                 name = "list"
                 description = "Call upon all the levelRoles you have set"
-
+                check {
+                    requirePermission(Permission.MANAGE_ROLES)
+                    requireBotPermissions(Permission.MANAGE_ROLES)
+                    hasPermission(Permission.MANAGE_ROLES)
+                }
                 action {
                     val guild = guild!!
                     val levelRoles = xpManager.levelRolesManager.getByIndex0(guild.idLong)
@@ -149,13 +162,14 @@ class LevelingExtension : Extension() {
         }
     }
 
-    private suspend fun PublicSlashCommandContext<Arguments>.drawXpCard(
+    private suspend fun PublicSlashCommandContext<XPArgs>.drawXpCard(
         bufferedImage: BufferedImage,
         xp: Long,
-        guildXp: Long?
+        guildXp: Long?,
+        target: User
     ): BufferedImage {
         val graphics = bufferedImage.createGraphics()
-        val user = user
+        val user = target
 
         /** Draw avatar **/
         val avatarData =
@@ -176,7 +190,7 @@ class LevelingExtension : Extension() {
         graphics.drawString(user.asTag, 174, 140)
         graphics.dispose()
 
-        val bar1 = drawXPBar(250, xp,  bufferedImage)
+        val bar1 = drawXPBar(250, xp, bufferedImage)
         val bar2 = guildXp?.let { drawXPBar(470, it, bar1) } ?: bar1
 
         return bar2
@@ -200,9 +214,15 @@ class LevelingExtension : Extension() {
         graphics.setRenderingHints(rh)
 
         var level = getLevel(xp, LEVEL_LOG_BASE)
-        var xpLower = floor(LEVEL_LOG_BASE.pow((level + 21).toDouble()) - 50).toLong()
-        var xpUpper = floor(LEVEL_LOG_BASE.pow((level + 22).toDouble()) - 50).toLong()
-
+        var xpLower: Long
+        var xpUpper: Long
+        if (level == 0L) {
+            xpLower = 0
+            xpUpper = 5
+        } else {
+            xpLower = floor(LEVEL_LOG_BASE.pow((level + 21).toDouble()) - 50).toLong()
+            xpUpper = floor(LEVEL_LOG_BASE.pow((level + 22).toDouble()) - 50).toLong()
+        }
         /** Relative xp to level variables **/
         var progressToNextLevel = xp - xpLower
         var nextLevelThreshold = xpUpper - xpLower
@@ -241,6 +261,13 @@ class LevelingExtension : Extension() {
         val xp = long {
             name = "xp"
             description = "Sets xp lol"
+        }
+    }
+
+    inner class XPArgs : Arguments() {
+        val user = optionalUser {
+            name = "user"
+            description = "user"
         }
     }
 
