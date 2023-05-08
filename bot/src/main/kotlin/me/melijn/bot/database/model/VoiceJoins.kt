@@ -12,6 +12,4 @@ object VoiceJoins : Table("voice_joins") {
     val userId = long("user_id")
     val timestamp = timestamp("timestamp")
 
-//    override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId, timestamp)
-
 }

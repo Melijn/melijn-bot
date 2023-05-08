@@ -14,6 +14,4 @@ object VoiceLeaves : Table("voice_leaves") {
     val timestamp = timestamp("timestamp")
     val timeSpent = duration("time_spent").nullable()
 
-//    override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId, timestamp)
-
 }
