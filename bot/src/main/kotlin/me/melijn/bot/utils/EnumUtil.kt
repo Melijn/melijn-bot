@@ -15,6 +15,7 @@ object EnumUtil {
             .toString()
             .ucc()
     }
+
     fun String.ucc(): String {
         return this
             .lowercase()
