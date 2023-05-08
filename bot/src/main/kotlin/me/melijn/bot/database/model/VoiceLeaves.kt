@@ -10,7 +10,7 @@ object VoiceLeaves : Table("voice_leaves") {
 
     val guildId = long("guild_id")
     val channelId = long("channel_id")
-    val userId = long("user_id")
+    val userId = long("user_id").index()
     val timestamp = timestamp("timestamp")
     val timeSpent = duration("time_spent").nullable()
 
