@@ -77,19 +77,21 @@ class VoiceManager(val driverManager: DriverManager) {
             .orderBy(VoiceLeaves.timeSpent.sum() to SortOrder.DESC)
             .groupBy(VoiceLeaves.userId)
             .limit(10)
-            .associate { row ->
+            .map { row ->
                 val userId = row[VoiceLeaves.userId]
                 val timeNow = getTimeInVCRightNow(userId) ?: Duration.ZERO
-                userId to GuildStatisticsEntry(
+                GuildStatisticsEntry(
+                    userId,
                     row[VoiceLeaves.timeSpent.sum()]?.plus(timeNow) ?: Duration.ZERO,
                     row[VoiceLeaves.timeSpent.max()] ?: Duration.ZERO
                 )
             }
+            .sortedByDescending { it.timeSpentTotal }
     }
 
     private fun getTimeInVCRightNow(member: Long) =
         this.joinTimes[member]?.let { Clock.System.now() - it }
 
-    data class GuildStatisticsEntry(val timeSpentTotal: Duration, val timeSpentLongest: Duration)
+    data class GuildStatisticsEntry(val userId: Long, val timeSpentTotal: Duration, val timeSpentLongest: Duration)
 
 }

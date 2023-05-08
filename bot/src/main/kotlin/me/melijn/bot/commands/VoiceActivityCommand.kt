@@ -75,8 +75,7 @@ class VoiceActivityCommand : Extension() {
                                     .setColumns("User", "All time", "Longest time")
                                 table.codeBlockLanguage = "ansi"
 
-                                duration.entries.toList().mapIndexed { index, (user, entry) ->
-                                    val (allTime, longest) = entry
+                                duration.mapIndexed { index, (user, allTime, longest) ->
                                     val name = guild.retrieveMemberById(user).awaitOrNull()?.effectiveName ?: "???"
 
                                     table.addRow(
