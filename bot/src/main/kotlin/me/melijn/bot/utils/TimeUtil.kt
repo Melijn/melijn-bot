@@ -16,13 +16,39 @@ object TimeUtil {
         val seconds = inWholeSeconds % 60
         val minutes = inWholeMinutes % 60
         val hours = inWholeHours % 24
-        val days = inWholeDays % 356
+        val days = inWholeDays % 365
 
         return when {
             days == 0L && hours == 0L && minutes == 0L && seconds < 3 -> String.format("0:%02d.%03d", seconds, millis)
             days == 0L && hours == 0L -> String.format("%d:%02d", minutes, seconds)
             days == 0L -> String.format("%d:%02d:%02d", hours, minutes, seconds)
             else -> String.format("%d days %d:%02d:%02d", days, hours, minutes, seconds)
+        }
+    }
+
+    /**
+     * `1 second 30 milliseconds` (<3 seconds)
+     *
+     * `1 minute 30 seconds`, `1 hour 1 minute 30 seconds`, `1 day, 2 hours 3 minutes 30 seconds`
+     */
+    fun Duration.formatElapsedVerbose(): String {
+        val millis = inWholeMilliseconds % 1000
+        val seconds = inWholeSeconds % 60
+        val minutes = inWholeMinutes % 60
+        val hours = inWholeHours % 24
+        val days = inWholeDays % 365
+
+        fun Long.s() = if (this != 1L) "s" else ""
+
+        return when {
+            days == 0L && hours == 0L && minutes == 0L && seconds < 3 ->
+                String.format("%d second%s %d millisecond%s", seconds, seconds.s(), millis, millis.s())
+            days == 0L && hours == 0L ->
+                String.format("%d minute%s %d second%s", minutes, minutes.s(), seconds, seconds.s())
+            days == 0L ->
+                String.format("%d hour%s %d minute%s %d second%s", hours, hours.s(), minutes, minutes.s(), seconds, seconds.s())
+            else ->
+                String.format("%d day%s %d hour%s %d minute%s %d second%s", days, days.s(), hours, hours.s(), minutes, minutes.s(), seconds, seconds.s())
         }
     }
 
