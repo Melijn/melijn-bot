@@ -154,6 +154,17 @@ object KordExUtils {
             replacements.asList().toTypedArray()
         )
 
+    fun CheckContext<*>.tr(
+        @PropertyKey(resourceBundle = MELIJN_RESOURCE_BUNDLE) key: String,
+        vararg replacements: Any?
+    ) =
+        translations.translate(
+            key,
+            locale,
+            MELIJN_RESOURCE_BUNDLE_KORDEX,
+            replacements.asList().toTypedArray()
+        )
+
     /**
      * DSL function for easily registering a command.
      *
