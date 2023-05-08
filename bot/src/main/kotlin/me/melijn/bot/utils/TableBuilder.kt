@@ -4,8 +4,11 @@ import me.melijn.bot.model.Cell
 import me.melijn.bot.model.enums.Alignment
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.min
 
 class TableBuilder {
+
+    private val ANSI_REGEX = Regex("\\x1B\\[\\d\\d?;\\d\\d?m")
 
     private val headerRow = mutableListOf<Cell>()
     private val valueRows = mutableMapOf<Int, List<Cell>>()
@@ -70,14 +73,21 @@ class TableBuilder {
     }
 
     private fun findWidest(vararg rowElements: Cell) {
-        for ((temp, s) in rowElements.withIndex()) {
-            if (columnWidth.getOrDefault(temp, 0) < s.value.codePoints().count()) {
-                columnWidth[temp] = s.value.codePoints().count().toInt()
+        for ((temp, c) in rowElements.withIndex()) {
+            val s = toDisplayString(c.value)
+
+            if (columnWidth.getOrDefault(temp, 0) < s.codePoints().count()) {
+                columnWidth[temp] = s.codePoints().count().toInt()
             }
         }
     }
 
-    fun build(split: Boolean): List<String> {
+    private fun toDisplayString(s: String) = when (codeBlockLanguage) {
+        "ansi" -> s.replace(ANSI_REGEX, "")
+        else -> s
+    }
+
+    fun build(split: Boolean, language: String = ""): List<String> {
         require(!valueRows.values.stream().anyMatch { array -> array.size > headerRow.size }) {
             "A value row cannot have more values then the header (you can make empty header slots)"
         }
@@ -204,20 +214,20 @@ class TableBuilder {
     }
 
     private fun getSpaces(widthIndex: Int, value: String): String {
-        return columnWidth[widthIndex]?.minus(value.length)?.let {
-            " ".repeat(50).substring(0, it)
+        return columnWidth[widthIndex]?.minus(toDisplayString(value).length)?.let {
+            " ".repeat(min(50, it))
         } ?: ""
     }
 
     private fun getLeftSpaces(widthIndex: Int, value: String): String {
-        return columnWidth[widthIndex]?.minus(value.length)?.let {
-            " ".repeat(50).substring(0, floor(it / 2.0).toInt())
+        return columnWidth[widthIndex]?.minus(toDisplayString(value).length)?.let {
+            " ".repeat(min(50, floor(it / 2.0).toInt()))
         } ?: ""
     }
 
     private fun getRightSpaces(widthIndex: Int, value: String): String {
-        return columnWidth[widthIndex]?.minus(value.length)?.let {
-            " ".repeat(50).substring(0, ceil(it / 2.0).toInt())
+        return columnWidth[widthIndex]?.minus(toDisplayString(value).length)?.let {
+            " ".repeat(min(50, ceil(it / 2.0).toInt()))
         } ?: ""
     }
 }
