@@ -1,7 +1,6 @@
 package me.melijn.bot.commands
 
-import com.kotlindiscord.kord.extensions.commands.Arguments
-import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
+import com.kotlindiscord.kord.extensions.checks.types.CheckContextWithCache
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.types.respond
@@ -15,6 +14,7 @@ import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.TimeUtil.formatElapsedVerbose
 import me.melijn.bot.utils.embedWithColor
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import org.koin.core.component.inject
 import kotlin.time.Duration
 
@@ -34,9 +34,11 @@ class VoiceActivityCommand : Extension() {
                 name = "self"
                 description = "View own voice statistics"
 
-                action {
-                    checkVoiceActivityFeature()
+                check {
+                    failIfNoVoiceTracking()
+                }
 
+                action {
                     val duration =
                         voiceManager.getPersonalVoiceStatistics(this.guild!!.idLong, this.user.idLong)
 
@@ -55,9 +57,11 @@ class VoiceActivityCommand : Extension() {
                 name = "leaderboard"
                 description = "View this guild's voice leaderboard"
 
-                action {
-                    checkVoiceActivityFeature()
+                check {
+                    failIfNoVoiceTracking()
+                }
 
+                action {
                     val guild = this.guild!!
                     val duration =
                         voiceManager.getGuildStatistics(guild.idLong)
@@ -86,9 +90,10 @@ class VoiceActivityCommand : Extension() {
         }
     }
 
-    private suspend fun PublicSlashCommandContext<Arguments>.checkVoiceActivityFeature() {
-        if (!guildSettingsManager.get(this.guild!!).allowVoiceTracking)
-            bail(tr("voiceactivity.disabled"))
-    }
+    private suspend fun CheckContextWithCache<SlashCommandInteractionEvent>.failIfNoVoiceTracking() =
+        failIf(
+            !guildSettingsManager.get(this.event.guild!!).allowVoiceTracking,
+            tr("voiceactivity.disabled")
+        )
 
 }
