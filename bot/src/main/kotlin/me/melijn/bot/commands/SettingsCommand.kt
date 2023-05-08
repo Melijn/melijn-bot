@@ -15,11 +15,14 @@ import dev.minn.jda.ktx.messages.InlineEmbed
 import dev.minn.jda.ktx.messages.InlineMessage
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.CommandEmbedColorManager
+import me.melijn.bot.database.manager.GuildSettingsManager
 import me.melijn.bot.database.manager.PrefixManager
+import me.melijn.bot.database.model.GuildFeature
 import me.melijn.bot.utils.InferredChoiceEnum
 import me.melijn.bot.utils.JDAUtil.toHex
 import me.melijn.bot.utils.KordExUtils.inRange
 import me.melijn.bot.utils.KordExUtils.lengthBetween
+import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.embedWithColor
 import me.melijn.bot.utils.image.ImageUtil
@@ -36,7 +39,9 @@ import java.awt.Color
 class SettingsCommand : Extension() {
 
     override val name: String = "settings"
+
     val prefixManager: PrefixManager by inject()
+    private val guildSettingsManager: GuildSettingsManager by inject()
 
     override suspend fun setup() {
         publicSlashCommand {
@@ -143,6 +148,50 @@ class SettingsCommand : Extension() {
                     }
                 }
             }
+
+            group("guild") {
+                description = "guild commands"
+
+                publicGuildSubCommand(::GuildFeatureArgs) {
+                    name = "toggle"
+                    description = "Toggle a melijn feature for this guild"
+
+                    action {
+                        val settings = guildSettingsManager.get(this.guild!!)
+                        val currentState = arguments.option.correspondent.get(settings)
+
+                        // Toggle the feature
+                        val newState = !currentState
+                        arguments.option.correspondent.set(settings, newState)
+
+                        val state = if (newState) tr("settings.guild.feature.toggle.on") else tr("settings.guild.feature.toggle.off")
+                        val response = tr("settings.guild.feature.toggle", arguments.option.readableName, state)
+
+                        guildSettingsManager.store(settings)
+
+                        respond {
+                            content = response
+                        }
+                    }
+                }
+
+                publicGuildSubCommand(::GuildFeatureArgs) {
+                    name = "get"
+                    description = "Get the state of a melijn feature for this guild"
+
+                    action {
+                        val settings = guildSettingsManager.get(this.guild!!)
+                        val currentState = arguments.option.correspondent.get(settings)
+
+                        val state = if (currentState) tr("settings.guild.feature.toggle.on") else tr("settings.guild.feature.toggle.off")
+                        val response = tr("settings.guild.feature.state", arguments.option.readableName, state)
+
+                        respond {
+                            content = response
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -214,6 +263,14 @@ class SettingsCommand : Extension() {
             typeName = "scope"
         }
 
+    }
+
+    inner class GuildFeatureArgs : Arguments() {
+        val option by enumChoice<GuildFeature> {
+            name = "guild-feature"
+            description = "the feature to toggle"
+            typeName = "guildfeature"
+        }
     }
 
     enum class Scope : InferredChoiceEnum {
