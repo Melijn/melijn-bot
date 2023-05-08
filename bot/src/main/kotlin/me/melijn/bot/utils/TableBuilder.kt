@@ -87,7 +87,7 @@ class TableBuilder {
         else -> s
     }
 
-    fun build(split: Boolean, language: String = ""): List<String> {
+    fun build(split: Boolean): List<String> {
         require(!valueRows.values.stream().anyMatch { array -> array.size > headerRow.size }) {
             "A value row cannot have more values then the header (you can make empty header slots)"
         }
