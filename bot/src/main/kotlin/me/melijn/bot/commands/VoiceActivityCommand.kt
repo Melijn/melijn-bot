@@ -1,11 +1,16 @@
 package me.melijn.bot.commands
 
+import com.kotlindiscord.kord.extensions.commands.Arguments
+import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.types.respond
 import me.melijn.apkordex.command.KordExtension
+import me.melijn.bot.database.manager.GuildSettingsManager
 import me.melijn.bot.database.manager.VoiceManager
 import me.melijn.bot.utils.JDAUtil.awaitOrNull
+import me.melijn.bot.utils.KoinUtil
+import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.TimeUtil.formatElapsedVerbose
@@ -18,6 +23,7 @@ class VoiceActivityCommand : Extension() {
 
     override val name: String = "voice"
     private val voiceManager by inject<VoiceManager>()
+    private val guildSettingsManager by KoinUtil.inject<GuildSettingsManager>()
 
     override suspend fun setup() {
         publicGuildSlashCommand {
@@ -29,6 +35,8 @@ class VoiceActivityCommand : Extension() {
                 description = "View own voice statistics"
 
                 action {
+                    checkVoiceActivityFeature()
+
                     val duration =
                         voiceManager.getPersonalVoiceStatistics(this.guild!!.idLong, this.user.idLong)
 
@@ -48,6 +56,8 @@ class VoiceActivityCommand : Extension() {
                 description = "View this guild's voice leaderboard"
 
                 action {
+                    checkVoiceActivityFeature()
+
                     val guild = this.guild!!
                     val duration =
                         voiceManager.getGuildStatistics(guild.idLong)
@@ -74,6 +84,11 @@ class VoiceActivityCommand : Extension() {
                 }
             }
         }
+    }
+
+    private suspend fun PublicSlashCommandContext<Arguments>.checkVoiceActivityFeature() {
+        if (!guildSettingsManager.get(this.guild!!).allowVoiceTracking)
+            bail(tr("voiceactivity.disabled"))
     }
 
 }
