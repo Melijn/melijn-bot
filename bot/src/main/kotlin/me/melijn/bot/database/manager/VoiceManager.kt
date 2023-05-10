@@ -100,7 +100,8 @@ class VoiceManager(val driverManager: DriverManager) {
         VoiceJoins.select {
             VoiceJoins.timestamp greater CustomExpression("now() - INTERVAL '1 DAY'") and
             notExists(VoiceLeaves.select {
-                VoiceLeaves.timestamp greater VoiceJoins.timestamp
+                (VoiceLeaves.timestamp greater VoiceJoins.timestamp) and
+                        (VoiceLeaves.userId eq VoiceJoins.userId)
             })
         }
             .map { row ->
