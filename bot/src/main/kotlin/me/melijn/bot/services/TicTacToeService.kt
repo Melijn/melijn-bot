@@ -42,7 +42,7 @@ class TicTacToeService : Service("tic-tac-toe", maxMoveDuration.times(0), maxMov
                 if (message == null) continue // keep this after the delay so we don't spam fetch missing messages
                 // update the message
                 message.editMessage(MessageEdit {
-                    content = if(gameData.is_user1_turn) "user1"
+                    content = if (gameData.is_user1_turn) "user1"
                     else "user2"
                 }).await()
 

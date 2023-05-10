@@ -49,7 +49,7 @@ val scrimage = "4.0.34"
 
 val jda = "5.0.0-beta.6"
 val kordEx = "1.5.6-SNAPSHOT"
-val kordKommons = "0.0.3-SNAPSHOT"
+val kordKommons = "0.0.4-SNAPSHOT"
 
 dependencies {
     implementation("net.dv8tion:JDA:$jda")   // let kord-ex handle kord version

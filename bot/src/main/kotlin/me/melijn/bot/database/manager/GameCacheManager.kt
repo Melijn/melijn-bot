@@ -60,7 +60,7 @@ class TicTacToeManager(val driverManager: DriverManager) {
 
     fun delete(game: TicTacToeData) {
         val users = ticTacToePlayerManager.getByIndex1(game.gameId)
-        users.forEach { ticTacToePlayerManager.delete(it) }
+        users.forEach { ticTacToePlayerManager.deleteById(it.userId) }
         ticTacToeGameManager.deleteById(game.gameId)
     }
 
