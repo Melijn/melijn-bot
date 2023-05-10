@@ -76,7 +76,7 @@ class VoiceManager(val driverManager: DriverManager) {
             }
             .orderBy(VoiceLeaves.timeSpent.sum() to SortOrder.DESC)
             .groupBy(VoiceLeaves.userId)
-            .limit(10)
+            .limit(9)
             .map { row ->
                 val userId = row[VoiceLeaves.userId]
                 val timeNow = getTimeInVCRightNow(userId) ?: Duration.ZERO
