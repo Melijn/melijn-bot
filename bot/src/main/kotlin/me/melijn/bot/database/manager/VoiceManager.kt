@@ -22,9 +22,13 @@ class VoiceManager(val driverManager: DriverManager) {
     private val joinTimes = ConcurrentHashMap<Long, Instant>()
     private val logger = logger()
 
+    fun putJoinTime(userId: Long, joinTime: Instant) {
+        if (joinTimes.put(userId, joinTime) != null)
+            logger.warn("$userId joined a voice channel twice without leaving")
+    }
+
     fun insertJoinNow(guild: Long, channel: Long, member: Long) {
-        if (joinTimes.put(member, Clock.System.now()) != null)
-            logger.warn("$member joined a voice channel twice without leaving")
+        putJoinTime(member, Clock.System.now())
 
         transaction(driverManager.database) {
             VoiceJoins.insert {
@@ -76,22 +80,50 @@ class VoiceManager(val driverManager: DriverManager) {
             }
             .orderBy(VoiceLeaves.timeSpent.sum() to SortOrder.DESC)
             .groupBy(VoiceLeaves.userId)
-            .limit(10)
+            .limit(9)
             .map { row ->
                 val userId = row[VoiceLeaves.userId]
                 val timeNow = getTimeInVCRightNow(userId) ?: Duration.ZERO
                 GuildStatisticsEntry(
                     userId,
                     row[VoiceLeaves.timeSpent.sum()]?.plus(timeNow) ?: Duration.ZERO,
-                    row[VoiceLeaves.timeSpent.max()] ?: Duration.ZERO
+                    maxOf(row[VoiceLeaves.timeSpent.max()] ?: Duration.ZERO, timeNow)
                 )
             }
             .sortedByDescending { it.timeSpentTotal }
+    }
+
+    /**
+     * Get voice entries that don't have a leave entry and aren't older than a day
+     */
+    fun getDanglingJoins() = transaction(driverManager.database) {
+        VoiceJoins.select {
+            VoiceJoins.timestamp greater CustomExpression("now() - INTERVAL '1 DAY'") and
+            notExists(VoiceLeaves.select {
+                VoiceLeaves.timestamp greater VoiceJoins.timestamp
+            })
+        }
+            .map { row ->
+                VoiceJoinEntry(
+                    row[VoiceJoins.guildId],
+                    row[VoiceJoins.channelId],
+                    row[VoiceJoins.userId],
+                    row[VoiceJoins.timestamp]
+                )
+            }
     }
 
     private fun getTimeInVCRightNow(member: Long) =
         this.joinTimes[member]?.let { Clock.System.now() - it }
 
     data class GuildStatisticsEntry(val userId: Long, val timeSpentTotal: Duration, val timeSpentLongest: Duration)
+
+    data class VoiceJoinEntry(val guild: Long, val channel: Long, val userId: Long, val timestamp: Instant)
+
+    private class CustomExpression<T>(private val content: String) : Expression<T>() {
+        override fun toQueryBuilder(queryBuilder: QueryBuilder) = queryBuilder {
+            append(content)
+        }
+    }
 
 }

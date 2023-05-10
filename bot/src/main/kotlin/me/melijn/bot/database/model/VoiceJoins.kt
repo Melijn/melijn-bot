@@ -10,6 +10,6 @@ object VoiceJoins : Table("voice_joins") {
     val guildId = long("guild_id")
     val channelId = long("channel_id")
     val userId = long("user_id")
-    val timestamp = timestamp("timestamp")
+    val timestamp = timestamp("timestamp").index()
 
 }

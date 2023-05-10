@@ -72,14 +72,14 @@ class VoiceActivityCommand : Extension() {
                                 tr("voiceactivity.leaderboard.timespent.none")
                             else {
                                 val table = TableBuilder()
-                                    .setColumns("User", "All time", "Longest time")
+                                    .setColumns("User", "Total time", "Longest time")
                                 table.codeBlockLanguage = "ansi"
 
                                 duration.mapIndexed { index, (user, allTime, longest) ->
                                     val name = guild.retrieveMemberById(user).awaitOrNull()?.effectiveName ?: "???"
 
                                     table.addRow(
-                                        Cell.ofLeft("${index.toString().ansiBlack} ${name.ansiRed}$ansiResetColour"),
+                                        Cell.ofLeft("${(index + 1).toString().ansiBlack} ${name.ansiRed}$ansiResetColour"),
                                         Cell.ofRight(allTime.formatElapsedVerbose()),
                                         Cell.ofRight(longest.formatElapsedVerbose())
                                     )
