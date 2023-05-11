@@ -29,8 +29,8 @@ class VoiceEventListener {
 
             val member = event.member.idLong
 
-            event.channelLeft?.let { channel ->
-                voiceManager.insertLeaveNow(guild, channel.idLong, member)
+            event.channelLeft?.let { _ ->
+                voiceManager.insertLeaveNow(member)
             }
             event.channelJoined?.let { channel ->
                 voiceManager.insertJoinNow(guild, channel.idLong, member)
