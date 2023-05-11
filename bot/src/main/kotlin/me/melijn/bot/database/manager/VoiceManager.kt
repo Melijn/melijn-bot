@@ -54,10 +54,12 @@ class VoiceManager(val driverManager: DriverManager) {
         val now = Clock.System.now()
 
         return joinTimes.remove(member)?.let { joinTime ->
-            VS.update({
-                (VS.userId eq member) and (VS.joined eq joinTime)
-            }) {
-                it[this.left] = now
+            transaction {
+                VS.update({
+                    (VS.userId eq member) and (VS.joined eq joinTime)
+                }) {
+                    it[this.left] = now
+                }
             }
 
             now - joinTime
