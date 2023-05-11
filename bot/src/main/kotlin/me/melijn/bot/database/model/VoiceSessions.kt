@@ -5,11 +5,16 @@ import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
 @CreateTable
-object VoiceJoins : Table("voice_joins") {
+object VoiceSessions : Table("voice_sessions") {
 
     val guildId = long("guild_id")
     val channelId = long("channel_id")
     val userId = long("user_id")
-    val timestamp = timestamp("timestamp").index()
+    val joined = timestamp("joined")
+    val left = timestamp("left").nullable()
+
+    init {
+        index(true, userId, joined)
+    }
 
 }

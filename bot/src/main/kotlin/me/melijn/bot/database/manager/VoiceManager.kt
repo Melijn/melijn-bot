@@ -3,14 +3,18 @@ package me.melijn.bot.database.manager
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import me.melijn.ap.injector.Inject
-import me.melijn.bot.database.model.VoiceJoins
-import me.melijn.bot.database.model.VoiceLeaves
 import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.logger.logger
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.Function
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.minus
+import org.jetbrains.exposed.sql.kotlin.datetime.KotlinDurationColumnType
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
+import me.melijn.bot.database.model.VoiceSessions as VS
 
 @Inject
 class VoiceManager(val driverManager: DriverManager) {
@@ -28,66 +32,69 @@ class VoiceManager(val driverManager: DriverManager) {
     }
 
     fun insertJoinNow(guild: Long, channel: Long, member: Long) {
-        putJoinTime(member, Clock.System.now())
+        val now = Clock.System.now()
+        putJoinTime(member, now)
 
         transaction(driverManager.database) {
-            VoiceJoins.insert {
+            VS.insert {
                 it[this.guildId] = guild
                 it[this.channelId] = channel
                 it[this.userId] = member
-                it[this.timestamp] = Clock.System.now()
+                it[this.joined] = now
             }
         }
     }
 
     /**
      * Insert a leave event, returning how long the user spent in VC
+     *
+     * @return `null` if no corresponding join event was found, and thus the duration spent is unknown
      */
-    fun insertLeaveNow(guild: Long, channel: Long, member: Long): Duration? {
-        val joinTime = joinTimes.remove(member)
-        val timeSpent = joinTime?.let { Clock.System.now() - it }
+    fun insertLeaveNow(member: Long): Duration? {
+        val now = Clock.System.now()
 
-        transaction(driverManager.database) {
-            VoiceLeaves.insert {
-                it[this.guildId] = guild
-                it[this.channelId] = channel
-                it[this.userId] = member
-                it[this.timestamp] = Clock.System.now()
-                it[this.timeSpent] = timeSpent
+        return joinTimes.remove(member)?.let { joinTime ->
+            VS.update({
+                (VS.userId eq member) and (VS.joined eq joinTime)
+            }) {
+                it[this.left] = now
             }
-        }
 
-        return timeSpent
+            now - joinTime
+        }
     }
 
     fun getPersonalVoiceStatistics(guild: Long, member: Long): Duration {
-        val duration = transaction(driverManager.database) {
-            VoiceLeaves.slice(VoiceLeaves.timeSpent.sum())
-                .select {
-                    (VoiceLeaves.userId eq member) and (VoiceLeaves.guildId eq guild)
-                }
-                .firstOrNull()
-                ?.get(VoiceLeaves.timeSpent.sum())
-        }
+        val timeSpent = transaction(driverManager.database) {
+            val sum = intervalEpoch(Sum(retype<Duration?>(VS.left minus VS.joined), KotlinDurationColumnType()))
+                .alias("sum")
 
-        return (duration ?: Duration.ZERO) + (getTimeInVCRightNow(member) ?: Duration.ZERO)
+            VS.slice(sum)
+                .select((VS.userId eq member) and (VS.guildId eq guild))
+                .firstOrNull()
+                ?.get(sum)
+        } ?: Duration.ZERO
+
+        return timeSpent + (getTimeInVCRightNow(member) ?: Duration.ZERO)
     }
 
     fun getGuildStatistics(guild: Long) = transaction(driverManager.database) {
-        VoiceLeaves.slice(VoiceLeaves.userId, VoiceLeaves.timeSpent.sum(), VoiceLeaves.timeSpent.max())
-            .select {
-                (VoiceLeaves.guildId eq guild) and (VoiceLeaves.timeSpent.isNotNull())
-            }
-            .orderBy(VoiceLeaves.timeSpent.sum() to SortOrder.DESC)
-            .groupBy(VoiceLeaves.userId)
+        val timeSpent = retype<Duration?>(VS.left minus VS.joined)
+        val sum = intervalEpoch(Sum(timeSpent, KotlinDurationColumnType())).alias("sum")
+        val max = intervalEpoch(Max(timeSpent, KotlinDurationColumnType())).alias("max")
+
+        VS.slice(VS.userId, sum, max)
+            .select(VS.guildId eq guild)
+            .orderBy(sum to SortOrder.DESC)
+            .groupBy(VS.userId)
             .limit(9)
             .map { row ->
-                val userId = row[VoiceLeaves.userId]
+                val userId = row[VS.userId]
                 val timeNow = getTimeInVCRightNow(userId) ?: Duration.ZERO
                 GuildStatisticsEntry(
                     userId,
-                    row[VoiceLeaves.timeSpent.sum()]?.plus(timeNow) ?: Duration.ZERO,
-                    maxOf(row[VoiceLeaves.timeSpent.max()] ?: Duration.ZERO, timeNow)
+                    row[sum]?.plus(timeNow) ?: Duration.ZERO,
+                    maxOf(row[max] ?: Duration.ZERO, timeNow)
                 )
             }
             .sortedByDescending { it.timeSpentTotal }
@@ -97,19 +104,27 @@ class VoiceManager(val driverManager: DriverManager) {
      * Get voice entries that don't have a leave entry and aren't older than a day
      */
     fun getDanglingJoins() = transaction(driverManager.database) {
-        VoiceJoins.select {
-            VoiceJoins.timestamp greater CustomExpression("now() - INTERVAL '1 DAY'") and
-            notExists(VoiceLeaves.select {
-                (VoiceLeaves.timestamp greater VoiceJoins.timestamp) and
-                        (VoiceLeaves.userId eq VoiceJoins.userId)
-            })
-        }
+        val max = VS.joined.max()
+        val maxAlias = max.alias("max")
+        val maxes = VS
+            .slice(VS.userId, maxAlias)
+            .selectAll()
+            .groupBy(VS.userId)
+            .alias("maxes")
+
+        maxes
+            .join(VS, JoinType.INNER, VS.userId, maxes[VS.userId]) {
+                (VS.joined eq maxes[maxAlias]) and
+                        (VS.joined greater CustomExpression("now() - INTERVAL '1 DAY'"))
+            }
+            .slice(VS.guildId, VS.channelId, VS.userId, VS.joined)
+            .select(VS.left.isNull())
             .map { row ->
                 VoiceJoinEntry(
-                    row[VoiceJoins.guildId],
-                    row[VoiceJoins.channelId],
-                    row[VoiceJoins.userId],
-                    row[VoiceJoins.timestamp]
+                    row[VS.guildId],
+                    row[VS.channelId],
+                    row[VS.userId],
+                    row[VS.joined]
                 )
             }
     }
@@ -124,6 +139,16 @@ class VoiceManager(val driverManager: DriverManager) {
     private class CustomExpression<T>(private val content: String) : Expression<T>() {
         override fun toQueryBuilder(queryBuilder: QueryBuilder) = queryBuilder {
             append(content)
+        }
+    }
+
+    private inline fun <reified T> retype(expression: Expression<*>) = object : Expression<T>() {
+        override fun toQueryBuilder(queryBuilder: QueryBuilder) = expression.toQueryBuilder(queryBuilder)
+    }
+
+    private fun intervalEpoch(interval: Expression<*>) = object : Function<Duration?>(KotlinDurationColumnType()) {
+        override fun toQueryBuilder(queryBuilder: QueryBuilder) = queryBuilder {
+            append("extract(epoch from ", interval, ") * 1e+9")
         }
     }
 
