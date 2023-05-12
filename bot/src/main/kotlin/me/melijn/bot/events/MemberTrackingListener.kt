@@ -85,7 +85,7 @@ class MemberTrackingListener {
                 }
             }
 
-            val updatedJoinData = memberTrackingManager.getCachedById(guild.idLong, member.idLong)?.apply {
+            val updatedJoinData = memberTrackingManager.getById(guild.idLong, member.idLong)?.apply {
                 joins++
                 inviteCode = code
             } ?: MemberJoinTrackingData(

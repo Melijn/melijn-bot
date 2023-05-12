@@ -17,7 +17,7 @@ class BalanceManager(driverManager: DriverManager) : AbstractUserBalanceManager(
 
     suspend fun get(flake: ISnowflake): UserBalanceData {
         val userId = flake.idLong
-        return getCachedById(userId) ?: UserBalanceData(userId, 0)
+        return getById(userId) ?: UserBalanceData(userId, 0)
     }
 
     fun add(id: ISnowflake, amount: Long) {

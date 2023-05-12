@@ -1,14 +1,14 @@
 package me.melijn.bot.database.model
 
-import me.melijn.apredgres.cacheable.Cacheable
 import me.melijn.apredgres.createtable.CreateTable
+import me.melijn.apredgres.tablemodel.TableModel
 import me.melijn.bot.utils.InferredChoiceEnum
 import org.jetbrains.exposed.dao.id.IdTable
 import kotlin.reflect.KMutableProperty1
 import me.melijn.gen.GuildSettingsData as GSD
 
 @CreateTable
-@Cacheable
+@TableModel(true)
 object GuildSettings : IdTable<Long>("guild_settings") {
 
     override var id = long("guild_id").entityId()

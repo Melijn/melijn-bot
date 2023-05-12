@@ -1,11 +1,11 @@
 package me.melijn.bot.database.model
 
-import me.melijn.apredgres.cacheable.Cacheable
 import me.melijn.apredgres.createtable.CreateTable
+import me.melijn.apredgres.tablemodel.TableModel
 import org.jetbrains.exposed.sql.Table
 
 @CreateTable
-@Cacheable
+@TableModel(true)
 object GuildUserSettings : Table("guild_user") {
 
     var guildId = long("guild_id")

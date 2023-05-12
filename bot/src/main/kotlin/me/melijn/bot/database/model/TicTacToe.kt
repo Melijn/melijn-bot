@@ -1,13 +1,13 @@
 package me.melijn.bot.database.model
 
-import me.melijn.apredgres.cacheable.Cacheable
 import me.melijn.apredgres.createtable.CreateTable
+import me.melijn.apredgres.tablemodel.TableModel
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
 @CreateTable
-@Cacheable(90, false)
+@TableModel(true, 90, false)
 object TicTacToe : Table("tictactoe") {
     val gameId = uuid("game_id")
 
@@ -32,7 +32,7 @@ object TicTacToe : Table("tictactoe") {
 
 // Separate table for caching purposes
 @CreateTable
-@Cacheable(90, false)
+@TableModel(true, 90, false)
 object TicTacToePlayer : Table("tictactoe_player") {
     val gameId = uuid("game_id").references(TicTacToe.gameId, ReferenceOption.CASCADE)
     val userId = long("user_id")

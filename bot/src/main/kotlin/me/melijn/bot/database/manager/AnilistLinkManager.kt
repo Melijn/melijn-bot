@@ -10,7 +10,7 @@ import net.dv8tion.jda.api.entities.UserSnowflake
 class AnilistLinkManager(driverManager: DriverManager) : AbstractAnilistLinkManager(driverManager) {
 
     suspend fun get(snowflake: UserSnowflake): AnilistLinkData? {
-        return getCachedById(snowflake.idLong)
+        return getById(snowflake.idLong)
     }
 
 }

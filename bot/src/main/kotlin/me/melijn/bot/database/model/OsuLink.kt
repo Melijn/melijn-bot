@@ -1,12 +1,12 @@
 package me.melijn.bot.database.model
 
-import me.melijn.apredgres.cacheable.Cacheable
 import me.melijn.apredgres.createtable.CreateTable
+import me.melijn.apredgres.tablemodel.TableModel
 import me.melijn.bot.commands.GameMode
 import org.jetbrains.exposed.sql.Table
 
 @CreateTable
-@Cacheable
+@TableModel(true)
 object OsuLink : Table("osu_link") {
 
     val userId = long("user_id")

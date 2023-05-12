@@ -10,7 +10,7 @@ import net.dv8tion.jda.api.entities.UserSnowflake
 class OsuLinkManager(driverManager: DriverManager) : AbstractOsuLinkManager(driverManager) {
 
     suspend fun get(id: UserSnowflake): OsuLinkData {
-        return getCachedById(id.idLong) ?: OsuLinkData(id.idLong, null, null)
+        return getById(id.idLong) ?: OsuLinkData(id.idLong, null, null)
     }
 
 }

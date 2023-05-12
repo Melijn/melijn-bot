@@ -1,19 +1,17 @@
 package me.melijn.bot.database.manager
 
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.database.model.*
 import me.melijn.bot.model.kordex.MelUsageHistory
 import me.melijn.gen.UsageHistoryData
 import me.melijn.gen.database.manager.*
+import me.melijn.kordkommons.database.DBTableManager
 import me.melijn.kordkommons.database.DriverManager
-import net.dv8tion.jda.api.entities.ISnowflake
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
 import org.jetbrains.exposed.sql.statements.BatchInsertStatement
-import me.melijn.bot.database.model.UsageHistory as DBUsageHistory
 
 inline val Int.b get() = this.toByte()
 
@@ -76,69 +74,6 @@ class UsageHistoryManager(
     private val guildCommandUseLimitHistory: GuildCommandUseLimitHistoryManager,
 ) {
 
-    /** utils **/
-    private fun intoUsageHistory(
-        entries: List<UsageHistoryData>,
-        limitHitEntries: Map<UseLimitHitType, List<Long>>
-    ): MelUsageHistory {
-        val usageHistory = entries.map { it.moment.toEpochMilliseconds() }
-
-        return MelUsageHistory(
-            limitHitEntries[UseLimitHitType.COOLDOWN] ?: emptyList(),
-            limitHitEntries[UseLimitHitType.RATELIMIT] ?: emptyList(),
-            false,
-            usageHistory,
-        )
-    }
-
-    private fun <T : Table> runQueriesForHitTypes(
-        usageHistory: MelUsageHistory,
-        table: T,
-        deleteFunc: T.(moment: Instant, type: UseLimitHitType) -> Op<Boolean>,
-        insertFunc: BatchInsertStatement.(moment: Instant, type: UseLimitHitType) -> Unit,
-    ) {
-        usageHistoryManager.scopedTransaction {
-            val changes = usageHistory.changes
-            for (type in UseLimitHitType.values()) {
-                val (added, limit) = when (type) {
-                    UseLimitHitType.COOLDOWN -> changes.crossedCooldownsChanges
-                    UseLimitHitType.RATELIMIT -> changes.crossedLimitChanges
-                }
-                if (limit != null) {
-                    val moment = Instant.fromEpochMilliseconds(limit)
-
-                    // Deletes expired entries for this scope
-                    table.deleteWhere {
-                        deleteFunc(moment, type)
-                    }
-                }
-                table.batchInsert(added, shouldReturnGeneratedValues = false, ignore = true) {
-                    insertFunc(Instant.fromEpochMilliseconds(it), type)
-                }
-            }
-        }
-    }
-
-    /** Usage history tracker **/
-    fun updateUsage(guildId: Long?, channelId: ISnowflake, userId: ISnowflake, commandId: Int) {
-        val moment = Clock.System.now()
-        usageHistoryManager.scopedTransaction {
-            usageHistoryManager.store(
-                UsageHistoryData(
-                    guildId,
-                    channelId.idLong,
-                    userId.idLong,
-                    commandId,
-                    moment
-                )
-            )
-
-            DBUsageHistory.deleteWhere {
-                (DBUsageHistory.userId eq userId.idLong) and (DBUsageHistory.moment less moment)
-            }
-        }
-    }
-
     /** (userId, commandId) use limit history scope **/
     fun getUserCmdHistory(userId: Long, commandId: Int): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByUserCommandKey(userId, commandId)
@@ -148,7 +83,7 @@ class UsageHistoryManager(
     }
 
     fun setUserCmdHistSerialized(userId: Long, commandId: Int, usageHistory: MelUsageHistory) =
-        runQueriesForHitTypes(usageHistory, UserCommandUseLimitHistory, { moment, type ->
+        usageHistoryManager.runQueriesForHitTypes(usageHistory, UserCommandUseLimitHistory, { moment, type ->
             (UserCommandUseLimitHistory.moment less moment) and
                     (UserCommandUseLimitHistory.type eq type) and
                     (UserCommandUseLimitHistory.userId eq userId) and
@@ -169,7 +104,7 @@ class UsageHistoryManager(
     }
 
     fun setUserHistory(userId: Long, usageHistory: MelUsageHistory) =
-        runQueriesForHitTypes(usageHistory, UserUseLimitHistory, { moment, type ->
+        usageHistoryManager.runQueriesForHitTypes(usageHistory, UserUseLimitHistory, { moment, type ->
             (UserUseLimitHistory.moment less moment) and
                     (UserUseLimitHistory.type eq type) and
                     (UserUseLimitHistory.userId eq userId)
@@ -188,7 +123,7 @@ class UsageHistoryManager(
     }
 
     fun setGuildUserHistory(guildId: Long, userId: Long, usageHistory: MelUsageHistory) =
-        runQueriesForHitTypes(usageHistory, GuildUserUseLimitHistory, { moment, type ->
+        usageHistoryManager.runQueriesForHitTypes(usageHistory, GuildUserUseLimitHistory, { moment, type ->
             (GuildUserUseLimitHistory.moment less moment) and
                     (GuildUserUseLimitHistory.type eq type) and
                     (GuildUserUseLimitHistory.userId eq userId) and
@@ -209,7 +144,7 @@ class UsageHistoryManager(
     }
 
     fun setChannelHistory(channelId: Long, usageHistory: MelUsageHistory) =
-        runQueriesForHitTypes(usageHistory, ChannelUseLimitHistory, { moment, type ->
+        usageHistoryManager.runQueriesForHitTypes(usageHistory, ChannelUseLimitHistory, { moment, type ->
             (ChannelUseLimitHistory.moment less moment) and
                     (ChannelUseLimitHistory.type eq type) and
                     (ChannelUseLimitHistory.channelId eq channelId)
@@ -228,7 +163,7 @@ class UsageHistoryManager(
     }
 
     fun setGuildHistory(guildId: Long, usageHistory: MelUsageHistory) =
-        runQueriesForHitTypes(usageHistory, GuildUseLimitHistory, { moment, type ->
+        usageHistoryManager.runQueriesForHitTypes(usageHistory, GuildUseLimitHistory, { moment, type ->
             (GuildUseLimitHistory.moment less moment) and
                     (GuildUseLimitHistory.type eq type) and
                     (GuildUseLimitHistory.guildId eq guildId)
@@ -247,7 +182,7 @@ class UsageHistoryManager(
     }
 
     fun setGuildUserCommandUsageHistory(guildId: Long, userId: Long, commandId: Int, usageHistory: MelUsageHistory) =
-        runQueriesForHitTypes(usageHistory, GuildUserCommandUseLimitHistory, { moment, type ->
+        usageHistoryManager.runQueriesForHitTypes(usageHistory, GuildUserCommandUseLimitHistory, { moment, type ->
             (GuildUserCommandUseLimitHistory.moment less moment) and
                     (GuildUserCommandUseLimitHistory.type eq type) and
                     (GuildUserCommandUseLimitHistory.guildId eq guildId) and
@@ -270,7 +205,7 @@ class UsageHistoryManager(
     }
 
     fun setChannelCommandHistory(channelId: Long, commandId: Int, usageHistory: MelUsageHistory) =
-        runQueriesForHitTypes(usageHistory, ChannelCommandUseLimitHistory, { moment, type ->
+        usageHistoryManager.runQueriesForHitTypes(usageHistory, ChannelCommandUseLimitHistory, { moment, type ->
             (ChannelCommandUseLimitHistory.moment less moment) and
                     (ChannelCommandUseLimitHistory.type eq type) and
                     (ChannelCommandUseLimitHistory.channelId eq channelId) and
@@ -285,44 +220,51 @@ class UsageHistoryManager(
     /** (channelId, userId, commandId) use limit history **/
     fun getChannelUserCommandUsageHistory(channelId: Long, userId: Long, commandId: Int): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByChannelUserCommandKey(channelId, userId, commandId)
-        val limitHitEntries = channelUserCommandUseLimitHistory.getByChannelUserCommandKey(channelId
-               , userId, commandId)
-           .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
+        val limitHitEntries = channelUserCommandUseLimitHistory.getByChannelUserCommandKey(
+            channelId, userId, commandId
+        )
+            .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
 
-    fun setChannelUserCommandUsageHistory(channelId: Long, userId: Long, commandId: Int, usageHistory: MelUsageHistory) {
-        runQueriesForHitTypes(usageHistory, ChannelUserCommandUseLimitHistory, { moment, type   ->
+    fun setChannelUserCommandUsageHistory(
+        channelId: Long,
+        userId: Long,
+        commandId: Int,
+        usageHistory: MelUsageHistory
+    ) {
+        usageHistoryManager.runQueriesForHitTypes(usageHistory, ChannelUserCommandUseLimitHistory, { moment, type ->
             (ChannelUserCommandUseLimitHistory.moment less moment) and
                     (ChannelUserCommandUseLimitHistory.type eq type) and
                     (ChannelUserCommandUseLimitHistory.channelId eq channelId) and
                     (ChannelUserCommandUseLimitHistory.userId eq userId) and
                     (ChannelUserCommandUseLimitHistory.commandId eq commandId)
-            }, { moment, type   ->
-                this[ChannelUserCommandUseLimitHistory.channelId] = channelId
-                this[ChannelUserCommandUseLimitHistory.userId] = userId
-                this[ChannelUserCommandUseLimitHistory.commandId] = commandId
-                this[ChannelUserCommandUseLimitHistory.type] = type
-                this[ChannelUserCommandUseLimitHistory.moment] = moment
+        }, { moment, type ->
+            this[ChannelUserCommandUseLimitHistory.channelId] = channelId
+            this[ChannelUserCommandUseLimitHistory.userId] = userId
+            this[ChannelUserCommandUseLimitHistory.commandId] = commandId
+            this[ChannelUserCommandUseLimitHistory.type] = type
+            this[ChannelUserCommandUseLimitHistory.moment] = moment
         })
     }
 
     /** (channelId, userId) use limit history **/
     fun getChannelUserUsageHistory(channelId: Long, userId: Long): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByChannelUserKey(channelId, userId)
-        val limitHitEntries = channelUserUseLimitHistory.getByChannelUserKey(channelId
-            , userId)
+        val limitHitEntries = channelUserUseLimitHistory.getByChannelUserKey(
+            channelId, userId
+        )
             .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
 
     fun setChannelUserUsageHistory(channelId: Long, userId: Long, usageHistory: MelUsageHistory) {
-        runQueriesForHitTypes(usageHistory, ChannelUserUseLimitHistory, { moment, type   ->
+        usageHistoryManager.runQueriesForHitTypes(usageHistory, ChannelUserUseLimitHistory, { moment, type ->
             (ChannelUserUseLimitHistory.moment less moment) and
                     (ChannelUserUseLimitHistory.type eq type) and
                     (ChannelUserUseLimitHistory.channelId eq channelId) and
                     (ChannelUserUseLimitHistory.userId eq userId)
-        }, { moment, type   ->
+        }, { moment, type ->
             this[ChannelUserUseLimitHistory.channelId] = channelId
             this[ChannelUserUseLimitHistory.userId] = userId
             this[ChannelUserUseLimitHistory.type] = type
@@ -334,21 +276,66 @@ class UsageHistoryManager(
     fun getGuildCommandUsageHistory(guildId: Long, commandId: Int): MelUsageHistory {
         val usageEntries = usageHistoryManager.getByGuildCommandKey(guildId, commandId)
         val limitHitEntries = guildCommandUseLimitHistory.getByGuildCommandKey(guildId, commandId)
-           .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
+            .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
 
     fun setGuildCommandUsageHistory(guildId: Long, commandId: Int, usageHistory: MelUsageHistory) {
-        runQueriesForHitTypes(usageHistory, GuildCommandUseLimitHistory, { moment, type ->
+        usageHistoryManager.runQueriesForHitTypes(usageHistory, GuildCommandUseLimitHistory, { moment, type ->
             (GuildCommandUseLimitHistory.moment less moment) and
                     (GuildCommandUseLimitHistory.type eq type) and
                     (GuildCommandUseLimitHistory.guildId eq guildId) and
                     (GuildCommandUseLimitHistory.commandId eq commandId)
-            }, { moment, type ->
-                this[GuildCommandUseLimitHistory.guildId] = guildId
-                this[GuildCommandUseLimitHistory.commandId] = commandId
-                this[GuildCommandUseLimitHistory.type] = type
-                this[GuildCommandUseLimitHistory.moment] = moment
+        }, { moment, type ->
+            this[GuildCommandUseLimitHistory.guildId] = guildId
+            this[GuildCommandUseLimitHistory.commandId] = commandId
+            this[GuildCommandUseLimitHistory.type] = type
+            this[GuildCommandUseLimitHistory.moment] = moment
         })
+    }
+}
+
+/** utils **/
+fun intoUsageHistory(
+    entries: List<UsageHistoryData>,
+    limitHitEntries: Map<UseLimitHitType, List<Long>>
+): MelUsageHistory {
+    val usageHistory = entries.map { it.moment }
+
+//    limitHitEntries[UseLimitHitType.COOLDOWN] ?: emptyList(),
+//    limitHitEntries[UseLimitHitType.RATELIMIT] ?: emptyList(),
+//    false,
+
+    return MelUsageHistory(
+
+        usageHistory,
+    )
+}
+
+fun <T : Table> DBTableManager<*>.runQueriesForHitTypes(
+    usageHistory: MelUsageHistory,
+    table: T,
+    deleteFunc: T.(moment: Instant, type: UseLimitHitType) -> Op<Boolean>,
+    insertFunc: BatchInsertStatement.(moment: Instant, type: UseLimitHitType) -> Unit,
+) {
+    scopedTransaction {
+        val changes = usageHistory.changes
+        for (type in UseLimitHitType.values()) {
+            val (added, limit) = when (type) {
+                UseLimitHitType.COOLDOWN -> changes.crossedCooldownsChanges
+                UseLimitHitType.RATELIMIT -> changes.crossedLimitChanges
+            }
+            if (limit != null) {
+                val moment = limit
+
+                // Deletes expired entries for this scope
+                table.deleteWhere {
+                    deleteFunc(moment, type)
+                }
+            }
+            table.batchInsert(added, shouldReturnGeneratedValues = false, ignore = true) {
+                insertFunc(it, type)
+            }
+        }
     }
 }

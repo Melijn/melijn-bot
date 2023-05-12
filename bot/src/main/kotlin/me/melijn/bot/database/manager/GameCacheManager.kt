@@ -54,8 +54,8 @@ class TicTacToeManager(val driverManager: DriverManager) {
     }
 
     suspend fun getGameByUser(id: UserSnowflake): TicTacToeData? {
-        val player = ticTacToePlayerManager.getCachedById(id.idLong) ?: return null
-        return ticTacToeGameManager.getCachedById(player.gameId)
+        val player = ticTacToePlayerManager.getById(id.idLong) ?: return null
+        return ticTacToeGameManager.getById(player.gameId)
     }
 
     fun delete(game: TicTacToeData) {

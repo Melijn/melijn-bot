@@ -48,8 +48,8 @@ val kotlin = "1.8.20"
 val scrimage = "4.0.34"
 
 val jda = "5.0.0-beta.6"
-val kordEx = "1.5.6-SNAPSHOT"
-val kordKommons = "0.0.4-SNAPSHOT"
+val kordEx = "1.5.7-SNAPSHOT"
+val kordKommons = "0.0.5-SNAPSHOT"
 
 dependencies {
     implementation("net.dv8tion:JDA:$jda")   // let kord-ex handle kord version
@@ -66,12 +66,15 @@ dependencies {
     implementation("me.melijn.kommons:redgres-kommons:$kordKommons")
 
     // Annotation processors
+    val apBot = project(":bot-annotation-processors")
     val apKord = "me.melijn.kommons:annotation-processor:$kordKommons"
     val apKordex = "me.melijn.kommons:annotation-processor-kordex:$kordKommons"
     val apRedgres = "me.melijn.kommons:annotation-processor-redgres:$kordKommons"
+    implementation(apBot)
     implementation(apKord)
     implementation(apKordex)
     implementation(apRedgres)
+    ksp(apBot)
     ksp(apKord)
     ksp(apKordex)
     ksp(apRedgres)
@@ -83,6 +86,8 @@ dependencies {
     implementation("club.minnced:discord-webhooks:0.8.2")
     // https://github.com/freya022/JEmojis
     implementation("com.github.ToxicMushroom:JEmojis:a8c82848f166893f67251c741579c74c80fbb2dd")
+    // cron-utils
+    implementation("com.cronutils:cron-utils:9.2.1")
 
     // required for scriptDef.kt
     implementation(kotlin("scripting-common"))
@@ -186,6 +191,7 @@ dependencies {
 
 ksp {
     arg("ap_package", "me.melijn.gen")
+    arg("ap_bot_package", "me.melijn.gen.uselimits")
     arg("ap_kordex_package", "me.melijn.gen")
     arg("ap_redgres_package", "me.melijn.gen")
     arg("ap_redgres_redis_key_prefix", "melijn:")

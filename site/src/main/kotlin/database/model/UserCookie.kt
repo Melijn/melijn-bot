@@ -1,11 +1,11 @@
 package database.model
 
-import me.melijn.apredgres.cacheable.Cacheable
 import me.melijn.apredgres.createtable.CreateTable
+import me.melijn.apredgres.tablemodel.TableModel
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 
-@Cacheable
+@TableModel(true)
 @CreateTable
 object UserCookie : Table("user_cookies") {
 

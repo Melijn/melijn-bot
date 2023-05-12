@@ -1,33 +1,54 @@
 package me.melijn.bot.model.kordex
 
+import com.kotlindiscord.kord.extensions.usagelimits.CommandLimitType
 import com.kotlindiscord.kord.extensions.usagelimits.DiscriminatingContext
+import com.kotlindiscord.kord.extensions.usagelimits.cooldowns.CooldownHistory
+import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.RateLimitHistory
+import kotlinx.datetime.Instant
 import me.melijn.bot.database.manager.CooldownManager
 import me.melijn.bot.database.manager.UsageHistoryManager
 import me.melijn.bot.utils.KoinUtil
 import me.melijn.gen.*
 
-enum class PersistentUsageLimitType : MelUsageLimitType {
+enum class PersistentUsageLimitType : CommandLimitType {
 
     USER_COMMAND {
-        override fun getCooldown(context: DiscriminatingContext): Long {
-            return cooldownManager.getUserCmdCd(context.userId, context.commandId)?.until ?: 0
+        override suspend fun getCooldown(context: DiscriminatingContext): Instant {
+            val res = cooldownManager.getUserCmdCd(context.userId, context.commandId)?.until ?: 0
+            return Instant.fromEpochMilliseconds(res)
         }
 
-        override fun setCooldown(context: DiscriminatingContext, until: Long) {
-            cooldownManager.storeUserCmdCd(UserCommandCooldownData(context.userId, context.commandId, until))
+        override fun getCooldownUsageHistory(context: DiscriminatingContext): CooldownHistory {
+            TODO("Not yet implemented")
         }
 
-        override fun getUsageHistory(context: DiscriminatingContext): MelUsageHistory {
+        override suspend fun setCooldown(context: DiscriminatingContext, until: Instant) {
+            cooldownManager.storeUserCmdCd(UserCommandCooldownData(context.userId, context.commandId, until.toEpochMilliseconds()))
+        }
+
+        override fun setCooldownUsageHistory(context: DiscriminatingContext, usageHistory: CooldownHistory) {
+            TODO("Not yet implemented")
+        }
+
+        fun getUsageHistory(context: DiscriminatingContext): MelUsageHistory {
             return usageHistoryManager.getUserCmdHistory(context.userId, context.commandId)
         }
 
-        override fun setUsageHistory(context: DiscriminatingContext, usageHistory: MelUsageHistory) {
+        fun setUsageHistory(context: DiscriminatingContext, usageHistory: MelUsageHistory) {
             usageHistoryManager.setUserCmdHistSerialized(context.userId, context.commandId, usageHistory)
+        }
+
+        override fun getRateLimitUsageHistory(context: DiscriminatingContext): RateLimitHistory {
+            TODO("Not yet implemented")
+        }
+
+        override fun setRateLimitUsageHistory(context: DiscriminatingContext, rateLimitHistory: RateLimitHistory) {
+            TODO("Not yet implemented")
         }
     },
 
     USER {
-        override fun getCooldown(context: DiscriminatingContext): Long {
+        override suspend fun getCooldown(context: DiscriminatingContext): Long {
             return cooldownManager.getUserCd(context.userId)?.until ?: 0
         }
 
@@ -45,7 +66,7 @@ enum class PersistentUsageLimitType : MelUsageLimitType {
     },
 
     GUILD_USER {
-        override fun getCooldown(context: DiscriminatingContext): Long {
+        override suspend fun getCooldown(context: DiscriminatingContext): Long {
             return context.guildId?.let { cooldownManager.getGuildUserCd(it, context.userId)?.until } ?: 0
         }
 
@@ -67,7 +88,7 @@ enum class PersistentUsageLimitType : MelUsageLimitType {
     },
 
     CHANNEL {
-        override fun getCooldown(context: DiscriminatingContext): Long {
+        override suspend fun getCooldown(context: DiscriminatingContext): Long {
             return cooldownManager.getChannelCd(context.channel.idLong)?.until ?: 0
         }
 
@@ -85,7 +106,7 @@ enum class PersistentUsageLimitType : MelUsageLimitType {
     },
 
     GUILD {
-        override fun getCooldown(context: DiscriminatingContext): Long {
+        override suspend fun getCooldown(context: DiscriminatingContext): Long {
             return context.guildId?.let { cooldownManager.getGuildCd(it)?.until } ?: 0
         }
 
@@ -106,7 +127,7 @@ enum class PersistentUsageLimitType : MelUsageLimitType {
 
     },
     GUILD_USER_COMMANDID {
-        override fun getCooldown(context: DiscriminatingContext): Long {
+        override suspend fun getCooldown(context: DiscriminatingContext): Long {
             return context.guildId?.let {
                 cooldownManager.getGuildUserCmdCd(it, context.userId, context.commandId)?.until
             } ?: 0
@@ -129,7 +150,7 @@ enum class PersistentUsageLimitType : MelUsageLimitType {
         }
     },
     CHANNEL_COMMANDID {
-        override fun getCooldown(context: DiscriminatingContext): Long {
+        override suspend fun getCooldown(context: DiscriminatingContext): Long {
             return cooldownManager.getChannelCmdCd(context.channel.idLong, context.commandId)?.until ?: 0
         }
 
@@ -150,7 +171,7 @@ enum class PersistentUsageLimitType : MelUsageLimitType {
         }
     },
     CHANNEL_USER_COMMANDID {
-        override fun getCooldown(context: DiscriminatingContext): Long {
+        override suspend fun getCooldown(context: DiscriminatingContext): Long {
            return cooldownManager.getChannelUserCmdCd(context.channel.idLong, context.userId, context.commandId)?.until ?: 0
         }
 
@@ -171,7 +192,7 @@ enum class PersistentUsageLimitType : MelUsageLimitType {
         }
     },
     CHANNEL_USER {
-        override fun getCooldown(context: DiscriminatingContext): Long {
+        override suspend fun getCooldown(context: DiscriminatingContext): Long {
             return cooldownManager.getChannelUserCd(context.channel.idLong, context.userId)?.until ?: 0
         }
 

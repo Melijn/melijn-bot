@@ -1,12 +1,12 @@
 package me.melijn.bot.database.model
 
-import me.melijn.apredgres.cacheable.Cacheable
 import me.melijn.apredgres.createtable.CreateTable
+import me.melijn.apredgres.tablemodel.TableModel
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 
 @CreateTable
-@Cacheable
+@TableModel(true)
 object BotRestartTrackQueue : Table("bot_restart_track_queue") {
 
     val guildId = long("guild_id")
@@ -24,7 +24,7 @@ object BotRestartTrackQueue : Table("bot_restart_track_queue") {
 }
 
 @CreateTable
-@Cacheable
+@TableModel(true)
 object BotRestartTrackEntry : TrackJoinTable("bot_restart_track_entry") {
 
     val guildId = long("guild_id")

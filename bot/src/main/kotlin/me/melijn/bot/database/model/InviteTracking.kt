@@ -1,13 +1,13 @@
 package me.melijn.bot.database.model
 
-import me.melijn.apredgres.cacheable.Cacheable
 import me.melijn.apredgres.createtable.CreateTable
+import me.melijn.apredgres.tablemodel.TableModel
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.duration
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
 @CreateTable
-@Cacheable
+@TableModel(true)
 object Invites : Table("invites") {
 
     var inviteCode = text("invite_code") // invite code: discord.gg/{inviteCode}
@@ -30,7 +30,7 @@ object Invites : Table("invites") {
 }
 
 @CreateTable
-@Cacheable
+@TableModel(true)
 object MemberJoinTracking : Table("member_join_tracking") {
 
     var guildId = long("guild_id")

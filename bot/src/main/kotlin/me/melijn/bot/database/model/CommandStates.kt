@@ -1,7 +1,7 @@
 package me.melijn.bot.database.model
 
-import me.melijn.apredgres.cacheable.Cacheable
 import me.melijn.apredgres.createtable.CreateTable
+import me.melijn.apredgres.tablemodel.TableModel
 import me.melijn.bot.model.enums.CommandState
 import org.jetbrains.exposed.sql.Table
 
@@ -12,7 +12,7 @@ import org.jetbrains.exposed.sql.Table
 // guildId, channelId, userId -> channel specific user state
 
 @CreateTable
-@Cacheable
+@TableModel(true)
 object CommandStates : Table("command_states") {
     val guildId = long("guild_id")
 

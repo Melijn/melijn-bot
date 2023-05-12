@@ -1,14 +1,14 @@
 package me.melijn.bot.database.model
 
-import me.melijn.apredgres.cacheable.Cacheable
 import me.melijn.apredgres.createtable.CreateTable
+import me.melijn.apredgres.tablemodel.TableModel
 import me.melijn.bot.model.TrackSource
 import me.melijn.bot.music.TrackType
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.duration
 
 @CreateTable
-@Cacheable
+@TableModel(true)
 object Track : Table("track") {
 
     val trackId = uuid("track_id")
@@ -30,7 +30,7 @@ object Track : Table("track") {
 }
 
 @CreateTable
-@Cacheable
+@TableModel(true)
 object FetchedTrack : TrackJoinTable("fetched_track") {
 
     override val trackId = reference("track_id", Track.trackId)
@@ -49,7 +49,7 @@ object FetchedTrack : TrackJoinTable("fetched_track") {
 }
 
 @CreateTable
-@Cacheable
+@TableModel(true)
 object SpotifyTrack : TrackJoinTable("spotify_track") {
 
     override val trackId = reference("track_id", Track.trackId)

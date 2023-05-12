@@ -171,7 +171,7 @@ class UtilityExtension : Extension() {
                 val profile = user.retrieveProfile().await()
                 val voiceState = member?.voiceState
                 val statusIconString = getStatusIcons(voiceState)
-                val inviteInfo = memberJoinTrackingManager.getCachedById(guild.idLong, user.idLong)
+                val inviteInfo = memberJoinTrackingManager.getById(guild.idLong, user.idLong)
 
                 respond {
                     embed {
@@ -199,7 +199,7 @@ class UtilityExtension : Extension() {
                         }
 
                         if (inviteInfo != null) {
-                            val inviteData = inviteManager.getCachedById(inviteInfo.inviteCode, guild.idLong)
+                            val inviteData = inviteManager.getById(inviteInfo.inviteCode, guild.idLong)
                             val inviteInfoString = inviteData?.let { invite ->
                                 val expiresString = invite.expiry?.let { TimeFormat.RELATIVE.format(invite.createdAt + it) }
                                     ?: "never"

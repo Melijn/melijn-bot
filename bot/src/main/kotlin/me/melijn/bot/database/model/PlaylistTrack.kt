@@ -1,11 +1,11 @@
 package me.melijn.bot.database.model
 
-import me.melijn.apredgres.cacheable.Cacheable
 import me.melijn.apredgres.createtable.CreateTable
+import me.melijn.apredgres.tablemodel.TableModel
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 
 @CreateTable
-@Cacheable
+@TableModel(true)
 object PlaylistTrack : TrackJoinTable("playlist_track") {
 
     val playlistId = reference("playlist", Playlist.playlistId)
