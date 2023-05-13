@@ -25,6 +25,8 @@ class UseLimitProcessor(
     val useLimitManagers: MutableSet<String> = mutableSetOf()
     val useLimitManagerFuncs: MutableList<String> = mutableListOf()
 
+    val useLimitTypeFuncsMap: MutableMap<String, String> = mutableMapOf()
+
     val limitImports: MutableSet<String> = mutableSetOf(
         "${DriverManager::class.qualifiedName}",
         "me.melijn.bot.model.kordex.MelUsageHistory",
@@ -88,6 +90,41 @@ $body
             useLimitManager.appendLine(limitImports.joinToString("\n") { "import $it" })
             useLimitManager.appendLine(useLimitManagerClass)
             useLimitManager.close()
+
+            // Use limit types
+            val limitTypes = codeGenerator.createNewFile(
+                Dependencies(false),
+                location, "PersistentUsageLimitType"
+            )
+            limitTypes.appendLine("package $location")
+            limitTypes.appendLine(limitImports.joinToString("\n") { "import $it" })
+
+
+            val body2 = useLimitTypeFuncsMap.entries.joinToString("\n") {
+                @Language("kotlin")
+                val t = """
+    object ${it.key} : PersistentUsageLimitType() {
+${it.value}
+    }
+                """
+                t
+            }
+
+            @Language("kotlin")
+            val limitTypesClass = """
+import com.kotlindiscord.kord.extensions.usagelimits.CommandLimitType
+import com.kotlindiscord.kord.extensions.usagelimits.DiscriminatingContext
+import com.kotlindiscord.kord.extensions.usagelimits.cooldowns.CooldownHistory
+import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.RateLimitHistory
+import kotlinx.datetime.Instant
+
+sealed class PersistentUsageLimitType : CommandLimitType {
+$body2
+}
+            """.trimIndent()
+            limitTypes.appendLine(limitTypesClass)
+            limitTypes.close()
+
         }
         return ret
     }
@@ -119,24 +156,12 @@ class $managerName(override val driverManager: DriverManager) : $abstractManager
             file.appendText(clazz)
             file.close()
 
-//            val properties = classDeclaration.getDeclaredProperties()
-//                .filter { it.simpleName.asString() != "primaryKey" }
-//
-//            val pkeyProperty: KSPropertyDeclaration = classDeclaration.getDeclaredProperties().first {
-//                it.type.resolve().toString() == "PrimaryKey"
-//            }
-
             val indexFields = getIndexes(classDeclaration).first().fields
-//            val autoIncrementing = Reflections.getAutoIncrementing(classDeclaration)
-//
-//            val fieldList = Reflections.getFields(pkeyProperty)
 
             val indexProps = classDeclaration.getDeclaredProperties()
                 .filter { it.simpleName.asString() != "primaryKey" }
                 .filter { indexFields.contains(it.simpleName.asString()) }
-//            val pkeyFields = pkeyProperties.map { it.simpleName.asString() }
-//                .filter { fieldList.contains(it) }
-//                .toList()
+
             val indexGetter = fieldsToIndexGetter[indexFields.toSet()]
             val funcId = indexFields.joinToString("") {
                 it.removeSuffix("Id").replaceFirstChar { c -> c.uppercase() }
@@ -155,16 +180,6 @@ class $managerName(override val driverManager: DriverManager) : $abstractManager
     }
             """
 
-            """
-    /** (userId, commandId) use limit history scope **/
-    fun getUserCmdHistory(userId: Long, commandId: Int): MelUsageHistory {
-        val usageEntries = usageHistoryManager.getByUserCommandKey(userId, commandId)
-        val limitHitEntries = userCommandUseLimitHistoryManager.getByUserCommandKey(userId, commandId)
-            .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
-        return intoUsageHistory(usageEntries, limitHitEntries)
-    }
-            """.trimIndent()
-
             @Language("kotlin")
             val setter = """
     /** (${indexFieldsAsArgs}) use limit history scope **/
@@ -181,6 +196,34 @@ ${indexFields.joinToString("\n") { " ".repeat(12) + "this[$simpleName.$it] = $it
             """
             useLimitManagerFuncs.add(getter)
             useLimitManagerFuncs.add(setter)
+
+            @Language("kotlin")
+            val limitHitUsageHistoryFuncs = """
+        override fun getCooldown(context: DiscriminatingContext): Instant {
+            TODO("Not yet implemented")
+        }
+        
+        override fun setCooldown(context: DiscriminatingContext, until: Instant) {
+            TODO("Not yet implemented")
+        }
+        
+        override fun getCooldownUsageHistory(context: DiscriminatingContext): CooldownHistory {
+            TODO("Not yet implemented")
+        }
+        
+        override fun getRateLimitUsageHistory(context: DiscriminatingContext): RateLimitHistory {
+            TODO("Not yet implemented")
+        }
+        
+        override fun setCooldownUsageHistory(context: DiscriminatingContext, usageHistory: CooldownHistory) {
+            TODO("Not yet implemented")
+        }
+        
+        override fun setRateLimitUsageHistory(context: DiscriminatingContext, rateLimitHistory: RateLimitHistory) {
+            TODO("Not yet implemented")
+        }
+            """
+            useLimitTypeFuncsMap[funcId] = limitHitUsageHistoryFuncs
         }
 
         override fun visitFunctionDeclaration(function: KSFunctionDeclaration, data: Unit) {}
