@@ -117,8 +117,12 @@ import com.kotlindiscord.kord.extensions.usagelimits.DiscriminatingContext
 import com.kotlindiscord.kord.extensions.usagelimits.cooldowns.CooldownHistory
 import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.RateLimitHistory
 import kotlinx.datetime.Instant
+import org.koin.core.component.inject
 
 sealed class PersistentUsageLimitType : CommandLimitType {
+
+    val usageLimitHistoryManager: UsageLimitHistoryManager by inject<>()
+    
 $body2
 }
             """.trimIndent()
@@ -200,15 +204,16 @@ ${indexFields.joinToString("\n") { " ".repeat(12) + "this[$simpleName.$it] = $it
             @Language("kotlin")
             val limitHitUsageHistoryFuncs = """
         override fun getCooldown(context: DiscriminatingContext): Instant {
-            TODO("Not yet implemented")
+     
         }
         
         override fun setCooldown(context: DiscriminatingContext, until: Instant) {
-            TODO("Not yet implemented")
+          
         }
         
         override fun getCooldownUsageHistory(context: DiscriminatingContext): CooldownHistory {
-            TODO("Not yet implemented")
+            val cd = usageLimitHistoryManager.get${funcId}History(${indexFields.joinToString(", ") { "context.$it" }})
+            return cd
         }
         
         override fun getRateLimitUsageHistory(context: DiscriminatingContext): RateLimitHistory {
@@ -216,7 +221,7 @@ ${indexFields.joinToString("\n") { " ".repeat(12) + "this[$simpleName.$it] = $it
         }
         
         override fun setCooldownUsageHistory(context: DiscriminatingContext, usageHistory: CooldownHistory) {
-            TODO("Not yet implemented")
+             usageLimitHistoryManager.set${funcId}HistSerialized(${indexFields.joinToString(", ") { "context.$it" }}, usageHistory)
         }
         
         override fun setRateLimitUsageHistory(context: DiscriminatingContext, rateLimitHistory: RateLimitHistory) {

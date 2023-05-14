@@ -1,15 +1,16 @@
 package me.melijn.bot.model.kordex
 
 import com.kotlindiscord.kord.extensions.usagelimits.UsageHistory
+import com.kotlindiscord.kord.extensions.usagelimits.cooldowns.CooldownHistory
+import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.RateLimitHistory
 import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.RateLimitType
 import kotlinx.datetime.Instant
 
 class MelUsageHistory(
-//    override val crossedCooldowns: List<Long>,
-//    override val crossedLimits: List<Long>,
-//    override val rateLimitState: Boolean,
+    override val rateLimitHits: List<Instant>,
+    override val rateLimitState: Boolean,
     override val usages: List<Instant>
-) : UsageHistory {
+) : UsageHistory, RateLimitHistory, CooldownHistory {
 
     /**
      * Instead of changing the [UsageHistory] state we track our usageHistory via [changes]
@@ -37,10 +38,6 @@ class MelUsageHistory(
         changes.crossedCooldownsChanges.added.add(moment)
     }
 
-    fun addCrossedLimit(moment: Instant) {
-        changes.crossedLimitChanges.added.add(moment)
-    }
-
     override suspend fun addUsage(moment: Instant) {
         changes.usageChanges.added.add(moment)
     }
@@ -50,12 +47,18 @@ class MelUsageHistory(
             changes.crossedCooldownsChanges.removeUnder?.let { maxOf(it, cutoffTime) } ?: cutoffTime
     }
 
-    fun removeExpiredCrossedLimits(cutoffTime: Instant) {
-        changes.crossedLimitChanges.removeUnder =
-            changes.crossedLimitChanges.removeUnder?.let { maxOf(it, cutoffTime) } ?: cutoffTime
-    }
-
     override suspend fun removeExpiredUsages(cutoffTime: Instant) {
         changes.usageChanges.removeUnder = changes.usageChanges.removeUnder?.let { maxOf(it, cutoffTime) } ?: cutoffTime
+    }
+
+    /** Adds a rateLimitHit moment to the usageHistory. **/
+    override fun addRateLimitHit(moment: Instant) {
+        changes.crossedLimitChanges.added.add(moment)
+    }
+
+    /** RateLimitHit moments before [cutoffTime] will be removed from the usageHistory. **/
+    override fun removeExpiredRateLimitHits(cutoffTime: Instant) {
+        changes.crossedLimitChanges.removeUnder =
+            changes.crossedLimitChanges.removeUnder?.let { maxOf(it, cutoffTime) } ?: cutoffTime
     }
 }
