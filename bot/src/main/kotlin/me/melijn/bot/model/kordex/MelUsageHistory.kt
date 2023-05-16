@@ -7,9 +7,10 @@ import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.RateLimitType
 import kotlinx.datetime.Instant
 
 class MelUsageHistory(
+    override val cooldownHits: List<Instant>,
     override val rateLimitHits: List<Instant>,
     override val rateLimitState: Boolean,
-    override val usages: List<Instant>
+    override val usages: List<Instant>,
 ) : UsageHistory, RateLimitHistory, CooldownHistory {
 
     /**
@@ -34,17 +35,8 @@ class MelUsageHistory(
         )
     }
 
-    fun addCrossedCooldown(moment: Instant) {
-        changes.crossedCooldownsChanges.added.add(moment)
-    }
-
     override suspend fun addUsage(moment: Instant) {
         changes.usageChanges.added.add(moment)
-    }
-
-    fun removeExpiredCrossedCooldowns(cutoffTime: Instant) {
-        changes.crossedCooldownsChanges.removeUnder =
-            changes.crossedCooldownsChanges.removeUnder?.let { maxOf(it, cutoffTime) } ?: cutoffTime
     }
 
     override suspend fun removeExpiredUsages(cutoffTime: Instant) {
@@ -52,13 +44,22 @@ class MelUsageHistory(
     }
 
     /** Adds a rateLimitHit moment to the usageHistory. **/
-    override fun addRateLimitHit(moment: Instant) {
+    override suspend fun addRateLimitHit(moment: Instant) {
         changes.crossedLimitChanges.added.add(moment)
     }
 
     /** RateLimitHit moments before [cutoffTime] will be removed from the usageHistory. **/
-    override fun removeExpiredRateLimitHits(cutoffTime: Instant) {
+    override suspend fun removeExpiredRateLimitHits(cutoffTime: Instant) {
         changes.crossedLimitChanges.removeUnder =
             changes.crossedLimitChanges.removeUnder?.let { maxOf(it, cutoffTime) } ?: cutoffTime
+    }
+
+    override fun addCooldownHit(moment: Instant) {
+        changes.crossedCooldownsChanges.added.add(moment)
+    }
+
+    override fun removeExpiredCooldownHits(cutoffTime: Instant) {
+        changes.crossedCooldownsChanges.removeUnder =
+            changes.crossedCooldownsChanges.removeUnder?.let { maxOf(it, cutoffTime) } ?: cutoffTime
     }
 }

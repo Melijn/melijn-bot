@@ -7,9 +7,11 @@ import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.*
 import com.google.devtools.ksp.validate
 import kotlinx.datetime.Clock
+import me.melijn.apredgres.util.Reflections
 import me.melijn.apredgres.util.Reflections.getIndexes
 import me.melijn.apredgres.util.Reflections.getParametersFromProperties
 import me.melijn.apredgres.util.Reflections.getSanitizedNameFromIndex
+import me.melijn.apredgres.util.Reflections.getType
 import me.melijn.apredgres.util.appendLine
 import me.melijn.apredgres.util.appendText
 import me.melijn.kordkommons.database.DriverManager
@@ -21,12 +23,20 @@ class UseLimitProcessor(
     val location: String
 ) : SymbolProcessor {
 
+    /** CooldownManager */
+    val cooldownManagers: MutableSet<String> = mutableSetOf()
+    val cooldownManagerFuncs: MutableList<String> = mutableListOf()
+
     /** For [UseLimit.TableType.LIMIT_HIT] type */
     val useLimitManagers: MutableSet<String> = mutableSetOf()
     val useLimitManagerFuncs: MutableList<String> = mutableListOf()
 
     val useLimitTypeFuncsMap: MutableMap<String, String> = mutableMapOf()
 
+    val limitTypeImports: MutableSet<String> = mutableSetOf()
+    val cooldownImports: MutableSet<String> = mutableSetOf(
+        "${DriverManager::class.qualifiedName}",
+    )
     val limitImports: MutableSet<String> = mutableSetOf(
         "${DriverManager::class.qualifiedName}",
         "me.melijn.bot.model.kordex.MelUsageHistory",
@@ -37,14 +47,9 @@ class UseLimitProcessor(
         "org.jetbrains.exposed.sql.and",
     )
 
-
     /** Maps sets of field names to their index getter name. Populated if [historyProcessed] == true */
     val fieldsToIndexGetter = mutableMapOf<Set<String>, String>()
 
-    private val useLimitManager = codeGenerator.createNewFile(
-        Dependencies(false),
-        location, "UsageLimitHistoryManager"
-    )
 
     @OptIn(KspExperimental::class)
     override fun process(resolver: Resolver): List<KSAnnotated> {
@@ -72,65 +77,114 @@ class UseLimitProcessor(
             }
 
         if (symbols.isNotEmpty()) {
-            val params =
-                useLimitManagers.joinToString(",\n") { manager ->
-                    "    val ${manager.replaceFirstChar { it.lowercase() }}: $manager"
-                }
-            val body = useLimitManagerFuncs.joinToString("")
+            createUseLimitClass()
+            createCooldownManagerClass()
 
-            @Language("kotlin")
-            val useLimitManagerClass = """
+            // Use limit types
+            createLimitTypesClass()
+
+        }
+        return ret
+    }
+
+    private fun createCooldownManagerClass() {
+        val params =
+            cooldownManagers.joinToString(",\n") { manager ->
+                "    val ${manager.replaceFirstChar { it.lowercase() }}: $manager"
+            }
+        val body = cooldownManagerFuncs.joinToString("")
+
+        @Language("kotlin")
+        val cooldownManagerClass = """
+class CooldownManager(
+$params
+) {
+$body
+}"""
+
+        val cooldownManager = codeGenerator.createNewFile(
+            Dependencies(false),
+            location, "CooldownManager"
+        )
+
+        cooldownManager.appendLine("package $location")
+        cooldownManager.appendLine(cooldownImports.joinToString("\n") { "import $it" })
+        cooldownManager.appendLine(cooldownManagerClass)
+        cooldownManager.close()
+    }
+
+    private fun createUseLimitClass() {
+        val params =
+            useLimitManagers.joinToString(",\n") { manager ->
+                "    val ${manager.replaceFirstChar { it.lowercase() }}: $manager"
+            }
+        val body = useLimitManagerFuncs.joinToString("")
+
+        @Language("kotlin")
+        val useLimitManagerClass = """
 class UsageLimitHistoryManager(
 $params
 ) {
 $body
-}
-            """.trimIndent()
-            useLimitManager.appendLine("package $location")
-            useLimitManager.appendLine(limitImports.joinToString("\n") { "import $it" })
-            useLimitManager.appendLine(useLimitManagerClass)
-            useLimitManager.close()
+}"""
 
-            // Use limit types
-            val limitTypes = codeGenerator.createNewFile(
-                Dependencies(false),
-                location, "PersistentUsageLimitType"
-            )
-            limitTypes.appendLine("package $location")
-            limitTypes.appendLine(limitImports.joinToString("\n") { "import $it" })
+        val useLimitManager = codeGenerator.createNewFile(
+            Dependencies(false),
+            location, "UsageLimitHistoryManager"
+        )
 
+        useLimitManager.appendLine("package $location")
+        useLimitManager.appendLine(limitImports.joinToString("\n") { "import $it" })
+        useLimitManager.appendLine(useLimitManagerClass)
+        useLimitManager.close()
+    }
 
-            val body2 = useLimitTypeFuncsMap.entries.joinToString("\n") {
-                @Language("kotlin")
-                val t = """
+    private fun createLimitTypesClass() {
+        val limitTypes = codeGenerator.createNewFile(
+            Dependencies(false),
+            location, "PersistentUsageLimitType"
+        )
+        limitTypes.appendLine("package $location")
+        limitTypes.appendLine(limitTypeImports.joinToString("\n") { "import $it" })
+
+        val body2 = useLimitTypeFuncsMap.entries.joinToString("\n") {
+            @Language("kotlin")
+            val t = """
     object ${it.key} : PersistentUsageLimitType() {
 ${it.value}
-    }
-                """
-                t
-            }
+    }"""
+            t
+        }
 
-            @Language("kotlin")
-            val limitTypesClass = """
+        @Language("kotlin")
+        val limitTypesClass = """
 import com.kotlindiscord.kord.extensions.usagelimits.CommandLimitType
 import com.kotlindiscord.kord.extensions.usagelimits.DiscriminatingContext
 import com.kotlindiscord.kord.extensions.usagelimits.cooldowns.CooldownHistory
 import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.RateLimitHistory
 import kotlinx.datetime.Instant
-import org.koin.core.component.inject
+import me.melijn.bot.utils.KoinUtil.inject
+import ${location}.CooldownManager
 
 sealed class PersistentUsageLimitType : CommandLimitType {
 
-    val usageLimitHistoryManager: UsageLimitHistoryManager by inject<>()
+    val usageLimitHistoryManager: UsageLimitHistoryManager by inject()
+    val cooldownManager: CooldownManager by inject()
+    val emptyHistory = MelUsageHistory(emptyList(), emptyList(), false, emptyList())
+
     
+    val DiscriminatingContext.userId: Long 
+        get() = this.user.idLong
+    val DiscriminatingContext.channelId: Long
+        get() = this.channel.idLong
+    val DiscriminatingContext.commandId
+        get() = this.event.command.getFullName().hashCode()
+
 $body2
 }
-            """.trimIndent()
-            limitTypes.appendLine(limitTypesClass)
-            limitTypes.close()
-
-        }
-        return ret
+                """
+        limitTypes.appendLine(limitTypesClass)
+        limitTypes.close()
     }
 
     inner class LimitHitTableVisitor : KSVisitorVoid() {
@@ -179,7 +233,7 @@ class $managerName(override val driverManager: DriverManager) : $abstractManager
     fun get${funcId}History(${params}): MelUsageHistory {
         val usageEntries = usageHistoryManager.getBy${funcId}Key(${indexFieldsAsArgs})
         val limitHitEntries = ${managerFieldName}.${indexGetter}(${indexFieldsAsArgs})
-            .groupBy({ it.type }, { it.moment.toEpochMilliseconds() })
+            .groupBy({ it.type }, { it.moment })
         return intoUsageHistory(usageEntries, limitHitEntries)
     }
             """
@@ -201,34 +255,42 @@ ${indexFields.joinToString("\n") { " ".repeat(12) + "this[$simpleName.$it] = $it
             useLimitManagerFuncs.add(getter)
             useLimitManagerFuncs.add(setter)
 
+            limitTypeImports.add("me.melijn.bot.model.kordex.MelUsageHistory")
+
+            var indexFieldsFromContextAsArgs = indexFields.joinToString(", ") { "context.$it" }
+
+            val properties = classDeclaration.getDeclaredProperties()
+                .filter { it.simpleName.asString() != "primaryKey" }
+
+            // Handle nullable guildId fields
+            val safeGuildId = properties.firstOrNull {
+                it.simpleName.asString() == "guildId" &&
+                        !getType(it, true, removeNullable = false).endsWith("?")
+            }?.let {
+                indexFieldsFromContextAsArgs = indexFieldsFromContextAsArgs.replace("context.guildId", "guildId")
+                "context.guildId?.let { guildId -> \n                " to "\n            } ?: emptyHistory"
+            } ?: ("" to "")
+
+
             @Language("kotlin")
             val limitHitUsageHistoryFuncs = """
-        override fun getCooldown(context: DiscriminatingContext): Instant {
-     
+        override suspend fun getCooldownUsageHistory(context: DiscriminatingContext): CooldownHistory {
+            return ${safeGuildId.first}usageLimitHistoryManager.get${funcId}History(${indexFieldsFromContextAsArgs})${safeGuildId.second}
+        }
+
+        override suspend fun setCooldownUsageHistory(context: DiscriminatingContext, usageHistory: CooldownHistory) {
+             ${safeGuildId.first}usageLimitHistoryManager.set${funcId}HistSerialized(${indexFieldsFromContextAsArgs}, usageHistory as MelUsageHistory)${safeGuildId.second}
+        }
+
+        override suspend fun getRateLimitUsageHistory(context: DiscriminatingContext): RateLimitHistory {
+            return ${safeGuildId.first}usageLimitHistoryManager.get${funcId}History(${indexFieldsFromContextAsArgs})${safeGuildId.second}
         }
         
-        override fun setCooldown(context: DiscriminatingContext, until: Instant) {
-          
-        }
-        
-        override fun getCooldownUsageHistory(context: DiscriminatingContext): CooldownHistory {
-            val cd = usageLimitHistoryManager.get${funcId}History(${indexFields.joinToString(", ") { "context.$it" }})
-            return cd
-        }
-        
-        override fun getRateLimitUsageHistory(context: DiscriminatingContext): RateLimitHistory {
-            TODO("Not yet implemented")
-        }
-        
-        override fun setCooldownUsageHistory(context: DiscriminatingContext, usageHistory: CooldownHistory) {
-             usageLimitHistoryManager.set${funcId}HistSerialized(${indexFields.joinToString(", ") { "context.$it" }}, usageHistory)
-        }
-        
-        override fun setRateLimitUsageHistory(context: DiscriminatingContext, rateLimitHistory: RateLimitHistory) {
-            TODO("Not yet implemented")
+        override suspend fun setRateLimitUsageHistory(context: DiscriminatingContext, rateLimitHistory: RateLimitHistory) {
+            ${safeGuildId.first}usageLimitHistoryManager.set${funcId}HistSerialized(${indexFieldsFromContextAsArgs}, rateLimitHistory as MelUsageHistory)${safeGuildId.second}
         }
             """
-            useLimitTypeFuncsMap[funcId] = limitHitUsageHistoryFuncs
+            useLimitTypeFuncsMap[funcId] = (useLimitTypeFuncsMap[funcId] ?: "") + limitHitUsageHistoryFuncs
         }
 
         override fun visitFunctionDeclaration(function: KSFunctionDeclaration, data: Unit) {}
@@ -302,7 +364,104 @@ class $managerName(override val driverManager: DriverManager) : $abstractManager
     inner class CooldownTableVisitor : KSVisitorVoid() {
 
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit) {
+            val simpleName = classDeclaration.simpleName.asString()
+            limitImports.add(classDeclaration.qualifiedName!!.asString())
 
+            val managerName = "${simpleName}Manager"
+            val managerFieldName = managerName.replaceFirstChar { c -> c.lowercase() }
+            val abstractManagerName = "Abstract$managerName"
+
+            val file = codeGenerator.createNewFile(
+                Dependencies(false),
+                location, managerName
+            )
+
+            cooldownManagers.add(managerName)
+            @Language("kotlin")
+            val clazz = """
+package $location
+import me.melijn.gen.database.manager.$abstractManagerName
+import ${DriverManager::class.qualifiedName}
+
+class $managerName(override val driverManager: DriverManager) : $abstractManagerName(driverManager)
+            """.trimIndent()
+            file.appendText(clazz)
+            file.close()
+
+            val pkeyProperty: KSPropertyDeclaration = classDeclaration.getDeclaredProperties().first {
+                it.type.resolve().toString() == "PrimaryKey"
+            }
+            val indexFields = Reflections.getFields(pkeyProperty)
+
+            val indexProps = classDeclaration.getDeclaredProperties()
+                .filter { it.simpleName.asString() != "primaryKey" }
+                .filter { indexFields.contains(it.simpleName.asString()) }
+
+            val funcId = indexFields.joinToString("") {
+                it.removeSuffix("Id").replaceFirstChar { c -> c.uppercase() }
+            }
+            val indexFieldsAsArgs = indexFields.joinToString(", ")
+            val params = getParametersFromProperties(indexProps)
+
+
+            @Language("kotlin")
+            val getter = """
+    /** (${indexFieldsAsArgs}) **/
+    suspend fun get${funcId}Cd(${params}): ${funcId}CooldownData? {
+        return ${managerFieldName}.getById(${indexFieldsAsArgs})
+    }
+            """
+
+            @Language("kotlin")
+            val setter = """
+    fun store${funcId}Cd(data: ${funcId}CooldownData) {
+        ${managerFieldName}.store(data)
+    }
+            """
+
+            cooldownImports.add("me.melijn.gen.${funcId}CooldownData")
+            limitTypeImports.add("me.melijn.gen.${funcId}CooldownData")
+
+            cooldownManagerFuncs.add(getter)
+            cooldownManagerFuncs.add(setter)
+
+
+            var indexFieldsFromContextAsArgs = indexFields.joinToString(", ") { "context.$it" }
+
+            val properties = classDeclaration.getDeclaredProperties()
+                .filter { it.simpleName.asString() != "primaryKey" }
+
+            var dataArgs = properties.joinToString(", ") {
+                val prop = it.simpleName.asString()
+                val expression = when (prop) {
+                    "until" -> "until.toEpochMilliseconds()"
+                    else -> "context.${prop}"
+                }
+                expression
+            }
+
+            // Handle nullable guildId fields
+            val safeGuildId = properties.firstOrNull {
+                it.simpleName.asString() == "guildId" &&
+                        !getType(it, true, removeNullable = false).endsWith("?")
+            }?.let {
+                indexFieldsFromContextAsArgs = indexFieldsFromContextAsArgs.replace("context.guildId", "guildId")
+                dataArgs = dataArgs.replace("context.guildId", "guildId")
+                "context.guildId?.let { guildId -> \n                " to "\n            }"
+            } ?: ("" to "")
+
+            @Language("kotlin")
+            val limitHitUsageHistoryFuncs = """
+        override suspend fun getCooldown(context: DiscriminatingContext): Instant {
+            val res = ${safeGuildId.first}cooldownManager.get${funcId}Cd($indexFieldsFromContextAsArgs)?.until ${safeGuildId.second}?: 0
+            return Instant.fromEpochMilliseconds(res)
+        }
+        
+        override suspend fun setCooldown(context: DiscriminatingContext, until: Instant) {
+            ${safeGuildId.first}cooldownManager.store${funcId}Cd(${funcId}CooldownData($dataArgs))${safeGuildId.second}
+        }
+            """
+            useLimitTypeFuncsMap[funcId] = (useLimitTypeFuncsMap[funcId] ?: "") + limitHitUsageHistoryFuncs
         }
     }
 }

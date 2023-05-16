@@ -11,10 +11,10 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.BalanceManager
-import me.melijn.bot.model.kordex.PersistentUsageLimitType
 import me.melijn.bot.utils.KordExUtils.availableCurrency
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.gen.UserBalanceData
+import me.melijn.gen.uselimits.PersistentUsageLimitType
 import org.koin.core.component.inject
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.hours
@@ -121,7 +121,7 @@ class EconomyExtension : Extension() {
             name = "beg"
             description = "Beg for a small amount of mel, max once every hour"
 
-            cooldown(PersistentUsageLimitType.USER_COMMAND) { 1.hours }
+            cooldown(PersistentUsageLimitType.UserCommand) { 1.hours }
 
             action {
                 val receivedAmount = Random.nextInt(11)
