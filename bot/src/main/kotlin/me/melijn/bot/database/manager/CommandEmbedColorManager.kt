@@ -13,7 +13,7 @@ class CommandEmbedColorManager(driverManager: DriverManager) : AbstractCommandEm
      * @param entityId guildId or userId
      */
     suspend fun getColor(entityId: ISnowflake): Color? {
-        val data = getCachedById(entityId.idLong)
+        val data = getById(entityId.idLong)
         return data?.color?.let { Color(it) }
     }
 }

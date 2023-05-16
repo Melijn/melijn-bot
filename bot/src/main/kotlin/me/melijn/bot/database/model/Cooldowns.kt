@@ -1,13 +1,15 @@
 package me.melijn.bot.database.model
 
-import me.melijn.apredgres.cacheable.Cacheable
 import me.melijn.apredgres.createtable.CreateTable
+import me.melijn.apredgres.tablemodel.TableModel
+import me.melijn.botannotationprocessors.uselimit.UseLimit
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 
 /** This does only hold normal command uses, not ratelimit hits or cooldown hits **/
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.HISTORY)
+@TableModel(true)
 object UsageHistory : Table("usage_history") {
 
     val guildId = long("guild_id").nullable()
@@ -35,7 +37,8 @@ object UsageHistory : Table("usage_history") {
 
 /** A cooldown in context of (user, commandId)  **/
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.COOLDOWN)
+@TableModel(true)
 object UserCommandCooldown : Table("user_command_cooldown") {
 
     val userId = long("user_id")
@@ -45,7 +48,8 @@ object UserCommandCooldown : Table("user_command_cooldown") {
     override val primaryKey: PrimaryKey = PrimaryKey(userId, commandId)
 }
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.LIMIT_HIT)
+@TableModel(true)
 object UserCommandUseLimitHistory : Table("user_command_use_limit_history") {
 
     val userId = long("user_id")
@@ -68,7 +72,8 @@ enum class UseLimitHitType {
 
 /** A cooldown in context of (user) **/
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.COOLDOWN)
+@TableModel(true)
 object UserCooldown : Table("user_cooldown") {
 
     val userId = long("user_id")
@@ -77,7 +82,8 @@ object UserCooldown : Table("user_cooldown") {
     override val primaryKey: PrimaryKey = PrimaryKey(userId)
 }
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.LIMIT_HIT)
+@TableModel(true)
 object UserUseLimitHistory : Table("user_use_limit_history") {
 
     val userId = long("user_id")
@@ -94,7 +100,8 @@ object UserUseLimitHistory : Table("user_use_limit_history") {
 
 /** A cooldown in context of (messageChannelId) **/
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.COOLDOWN)
+@TableModel(true)
 object ChannelCooldown : Table("channel_cooldown") {
 
     val channelId = long("channel_id")
@@ -104,7 +111,8 @@ object ChannelCooldown : Table("channel_cooldown") {
     override val primaryKey: PrimaryKey = PrimaryKey(channelId)
 }
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.LIMIT_HIT)
+@TableModel(true)
 object ChannelUseLimitHistory : Table("channel_use_limit_history") {
 
     val channelId = long("channel_id")
@@ -121,7 +129,8 @@ object ChannelUseLimitHistory : Table("channel_use_limit_history") {
 
 /** A cooldown in context of (guildId) **/
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.COOLDOWN)
+@TableModel(true)
 object GuildCooldown : Table("guild_cooldown") {
 
     val guildId = long("guild_id")
@@ -131,7 +140,8 @@ object GuildCooldown : Table("guild_cooldown") {
 }
 
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.LIMIT_HIT)
+@TableModel(true)
 object GuildUseLimitHistory : Table("guild_use_limit_history") {
 
     val guildId = long("guild_id")
@@ -148,7 +158,8 @@ object GuildUseLimitHistory : Table("guild_use_limit_history") {
 
 /** A cooldown in context of (guildId, userId) **/
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.COOLDOWN)
+@TableModel(true)
 object GuildUserCooldown : Table("guild_user_cooldown") {
 
     val guildId = long("guild_id")
@@ -159,7 +170,8 @@ object GuildUserCooldown : Table("guild_user_cooldown") {
 }
 
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.LIMIT_HIT)
+@TableModel(true)
 object GuildUserUseLimitHistory : Table("guild_user_use_limit_history") {
 
     val guildId = long("guild_id")
@@ -176,7 +188,8 @@ object GuildUserUseLimitHistory : Table("guild_user_use_limit_history") {
 
 /** A cooldown in context of (guildId, userId, commandId) **/
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.COOLDOWN)
+@TableModel(true)
 object GuildUserCommandCooldown : Table("guild_user_command_cooldown") {
 
     val guildId = long("guild_id")
@@ -192,7 +205,8 @@ object GuildUserCommandCooldown : Table("guild_user_command_cooldown") {
 }
 
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.LIMIT_HIT)
+@TableModel(true)
 object GuildUserCommandUseLimitHistory : Table("guild_user_command_use_limit_history") {
     val guildId = long("guild_id")
     val userId = long("user_id")
@@ -210,7 +224,8 @@ object GuildUserCommandUseLimitHistory : Table("guild_user_command_use_limit_his
 
 /** A cooldown in context of (channelId, commandId) **/
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.COOLDOWN)
+@TableModel(true)
 object ChannelCommandCooldown : Table("channel_command_cooldown") {
 
     val channelId = long("channel_id")
@@ -222,7 +237,8 @@ object ChannelCommandCooldown : Table("channel_command_cooldown") {
 }
 
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.LIMIT_HIT)
+@TableModel(true)
 object ChannelCommandUseLimitHistory : Table("channel_command_use_limit_history") {
 
     val channelId = long("channel_id")
@@ -240,7 +256,8 @@ object ChannelCommandUseLimitHistory : Table("channel_command_use_limit_history"
 
 /** A cooldown in context of (channelId, userId, commandId) **/
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.COOLDOWN)
+@TableModel(true)
 object ChannelUserCommandCooldown : Table("channel_user_command_cooldown") {
 
     val channelId = long("channel_id")
@@ -253,7 +270,8 @@ object ChannelUserCommandCooldown : Table("channel_user_command_cooldown") {
 }
 
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.LIMIT_HIT)
+@TableModel(true)
 object ChannelUserCommandUseLimitHistory : Table("channel_user_command_use_limit_history") {
 
     val channelId = long("channel_id")
@@ -272,7 +290,8 @@ object ChannelUserCommandUseLimitHistory : Table("channel_user_command_use_limit
 
 /** A cooldown in context of (channelId, userId) **/
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.COOLDOWN)
+@TableModel(true)
 object ChannelUserCooldown : Table("channel_user_cooldown") {
 
     val channelId = long("channel_id")
@@ -284,7 +303,8 @@ object ChannelUserCooldown : Table("channel_user_cooldown") {
 }
 
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.LIMIT_HIT)
+@TableModel(true)
 object ChannelUserUseLimitHistory : Table("channel_user_use_limit_history") {
 
     val channelId = long("channel_id")
@@ -302,7 +322,8 @@ object ChannelUserUseLimitHistory : Table("channel_user_use_limit_history") {
 
 /** A cooldown in context of (guildId, commandId) **/
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.COOLDOWN)
+@TableModel(true)
 object GuildCommandCooldown : Table("guild_command_cooldown") {
 
     val guildId = long("guild_id")
@@ -313,7 +334,8 @@ object GuildCommandCooldown : Table("guild_command_cooldown") {
 }
 
 @CreateTable
-@Cacheable
+@UseLimit(UseLimit.TableType.LIMIT_HIT)
+@TableModel(true)
 object GuildCommandUseLimitHistory : Table("guild_command_use_limit_history") {
 
     val guildId = long("guild_id")

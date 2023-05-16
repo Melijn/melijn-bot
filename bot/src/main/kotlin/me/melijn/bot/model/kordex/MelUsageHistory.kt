@@ -1,15 +1,17 @@
 package me.melijn.bot.model.kordex
 
+import com.kotlindiscord.kord.extensions.usagelimits.UsageHistory
+import com.kotlindiscord.kord.extensions.usagelimits.cooldowns.CooldownHistory
+import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.RateLimitHistory
 import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.RateLimitType
-import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.UsageHistory
-import java.lang.Long.max
+import kotlinx.datetime.Instant
 
 class MelUsageHistory(
-    override val crossedCooldowns: List<Long>,
-    override val crossedLimits: List<Long>,
+    override val cooldownHits: List<Instant>,
+    override val rateLimitHits: List<Instant>,
     override val rateLimitState: Boolean,
-    override val usages: List<Long>
-) : UsageHistory {
+    override val usages: List<Instant>,
+) : UsageHistory, RateLimitHistory, CooldownHistory {
 
     /**
      * Instead of changing the [UsageHistory] state we track our usageHistory via [changes]
@@ -28,34 +30,36 @@ class MelUsageHistory(
         val crossedCooldownsChanges: ChangeList = ChangeList(),
     ) {
         data class ChangeList(
-            val added: MutableList<Long> = ArrayList(),
-            var removeUnder: Long? = null
+            val added: MutableList<Instant> = ArrayList(),
+            var removeUnder: Instant? = null
         )
     }
 
-    override fun addCrossedCooldown(moment: Long) {
-        changes.crossedCooldownsChanges.added.add(moment)
-    }
-
-    override fun addCrossedLimit(moment: Long) {
-        changes.crossedLimitChanges.added.add(moment)
-    }
-
-    override fun addUsage(moment: Long) {
+    override suspend fun addUsage(moment: Instant) {
         changes.usageChanges.added.add(moment)
     }
 
-    override fun removeExpiredCrossedCooldowns(cutoffTime: Long) {
-        changes.crossedCooldownsChanges.removeUnder =
-            changes.crossedCooldownsChanges.removeUnder?.let { max(it, cutoffTime) } ?: cutoffTime
+    override suspend fun removeExpiredUsages(cutoffTime: Instant) {
+        changes.usageChanges.removeUnder = changes.usageChanges.removeUnder?.let { maxOf(it, cutoffTime) } ?: cutoffTime
     }
 
-    override fun removeExpiredCrossedLimits(cutoffTime: Long) {
+    /** Adds a rateLimitHit moment to the usageHistory. **/
+    override suspend fun addRateLimitHit(moment: Instant) {
+        changes.crossedLimitChanges.added.add(moment)
+    }
+
+    /** RateLimitHit moments before [cutoffTime] will be removed from the usageHistory. **/
+    override suspend fun removeExpiredRateLimitHits(cutoffTime: Instant) {
         changes.crossedLimitChanges.removeUnder =
-            changes.crossedLimitChanges.removeUnder?.let { max(it, cutoffTime) } ?: cutoffTime
+            changes.crossedLimitChanges.removeUnder?.let { maxOf(it, cutoffTime) } ?: cutoffTime
     }
 
-    override fun removeExpiredUsages(cutoffTime: Long) {
-        changes.usageChanges.removeUnder = changes.usageChanges.removeUnder?.let { max(it, cutoffTime) } ?: cutoffTime
+    override fun addCooldownHit(moment: Instant) {
+        changes.crossedCooldownsChanges.added.add(moment)
+    }
+
+    override fun removeExpiredCooldownHits(cutoffTime: Instant) {
+        changes.crossedCooldownsChanges.removeUnder =
+            changes.crossedCooldownsChanges.removeUnder?.let { maxOf(it, cutoffTime) } ?: cutoffTime
     }
 }
