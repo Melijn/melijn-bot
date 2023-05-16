@@ -432,8 +432,7 @@ class $managerName(override val driverManager: DriverManager) : $abstractManager
                 .filter { it.simpleName.asString() != "primaryKey" }
 
             var dataArgs = properties.joinToString(", ") {
-                val prop = it.simpleName.asString()
-                val expression = when (prop) {
+                val expression = when (val prop = it.simpleName.asString()) {
                     "until" -> "until.toEpochMilliseconds()"
                     else -> "context.${prop}"
                 }
