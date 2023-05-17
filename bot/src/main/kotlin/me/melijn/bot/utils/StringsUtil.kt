@@ -4,6 +4,7 @@ import io.github.furstenheim.CodeBlockStyle
 import io.github.furstenheim.CopyDown
 import io.github.furstenheim.OptionsBuilder
 import org.springframework.boot.ansi.AnsiColor
+import java.text.Normalizer
 
 object StringsUtil {
     private val htmlConverter: CopyDown = OptionsBuilder.anOptions().run {
@@ -35,5 +36,13 @@ object StringsUtil {
         bins += builder.toString()
 
         return bins
+    }
+
+    private fun normalize(s: String): String = Normalizer.normalize(s, Normalizer.Form.NFKC)
+
+    fun filterGarbage(s: String) = normalize(s).toCharArray().filter {
+        Character.isWhitespace(it) || Character.isLetterOrDigit(it)
+    }.joinToString(separator = "") {
+        if (it.isTitleCase()) it.lowercase() else it.toString()
     }
 }
