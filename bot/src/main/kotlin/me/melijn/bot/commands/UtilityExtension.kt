@@ -25,6 +25,7 @@ import me.melijn.bot.utils.KoinUtil
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
+import me.melijn.bot.utils.StringsUtil
 import me.melijn.bot.utils.StringsUtil.batchingJoinToString
 import me.melijn.bot.utils.TimeUtil.format
 import net.dv8tion.jda.api.entities.GuildVoiceState
@@ -71,7 +72,7 @@ class UtilityExtension : Extension() {
             }
         }
 
-        publicGuildSlashCommand(::RawArgs) {
+        publicSlashCommand(::RawArgs) {
             name = "raw"
             description = "replies with raw input"
             action {
@@ -355,8 +356,21 @@ class UtilityExtension : Extension() {
                 }).await()
             }
         }
-    }
 
+        publicSlashCommand(::RawArgs) {
+            name = "normalize-unicode"
+            description = "Normalize and strip garbage from unicode"
+            action {
+                respond {
+                    var filtered = StringsUtil.filterGarbage(arguments.raw)
+                    if (filtered.isBlank())
+                        filtered = "\u200b" // Just send a message that _looks_ empty
+
+                    content = filtered
+                }
+            }
+        }
+    }
 
     private fun getStatusIcons(voiceState: GuildVoiceState?): String {
         if (voiceState == null) {
