@@ -52,8 +52,13 @@ object Attendance: Table("attendance") {
 object Attendees : Table("attendees") {
     val attendanceId = long("attendance_id")
         .references(Attendance.attendanceId, onDelete = ReferenceOption.CASCADE)
+
     val userId = long("user_id")
     val moment = timestamp("moment")
 
     override val primaryKey: PrimaryKey = PrimaryKey(attendanceId, userId)
+
+    init {
+        index(false, attendanceId) // name = attendence_key
+    }
 }

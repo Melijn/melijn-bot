@@ -14,6 +14,8 @@ import com.kotlindiscord.kord.extensions.utils.waitFor
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.replyModal
 import dev.minn.jda.ktx.messages.MessageCreate
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toJavaInstant
 import kotlinx.datetime.toKotlinInstant
@@ -23,13 +25,17 @@ import me.melijn.bot.database.manager.AttendeesManager
 import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
+import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.embedWithColor
+import me.melijn.kordkommons.async.TaskManager
+import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.utils.TimeFormat
 import org.koin.core.component.inject
+import org.postgresql.util.GT.tr
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -71,11 +77,17 @@ class AttendanceExtension : Extension() {
                         this.short("topic", "Topic", true, topic)
                         this.paragraph("description", "Description", true, description)
                         this.short("schedule", "Schedule", false, schedule)
-                        this.short("moment", "Moment", false, arguments.moment?.toString(), placeholder = "yyyy-MM-dd HH:mm")
+                        this.short(
+                            "moment",
+                            "Moment",
+                            false,
+                            arguments.moment?.toString(),
+                            placeholder = "yyyy-MM-dd HH:mm"
+                        )
                     }.queue()
 
                     val modalInteractionEvent = shardManager.waitFor<ModalInteractionEvent>(100.minutes) {
-                       this.user.idLong == user.idLong && this.modalId == "attendance-create-modal"
+                        this.user.idLong == user.idLong && this.modalId == "attendance-create-modal"
                     } ?: bail("modal timeout ${user.asMention}")
 
                     topic = modalInteractionEvent.getValue("topic")!!.asString
@@ -83,7 +95,8 @@ class AttendanceExtension : Extension() {
                     schedule = modalInteractionEvent.getValue("schedule")?.asString
 
                     // Recalc given moment from modal reply
-                    val moment = modalInteractionEvent.getValue("moment")?.asString?.let { DateTimeConverter.parseFromString(it) }
+                    val moment =
+                        modalInteractionEvent.getValue("moment")?.asString?.let { DateTimeConverter.parseFromString(it) }
                     givenMoment = nextMomentFromMomentOrSchedule(moment, schedule)
 
                     val textChannel = arguments.channel as TextChannel
@@ -98,18 +111,20 @@ class AttendanceExtension : Extension() {
                     }).await()
 
                     val nextMoment = Instant.ofEpochMilli(ms).toKotlinInstant()
-                    val data = attendanceManager.genstore(
-                        topic,
+                    val data = attendanceManager.insertAndGetRow(
                         guild!!.idLong,
                         arguments.channel.idLong,
                         message.idLong,
+                        arguments.attendeesRole?.idLong,
+                        arguments.closeOffset?.toDuration(TimeZone.UTC),
                         arguments.notifyAttendees,
+                        arguments.notifyOffset?.toDuration(TimeZone.UTC),
+                        topic,
+                        description,
                         arguments.repeating,
                         nextMoment,
                         schedule,
-                        description,
-                        arguments.attendeesRole?.idLong,
-                        arguments.closeOffset?.toDuration(TimeZone.UTC),
+                        arguments.scheduleTimeout?.toDuration(TimeZone.UTC)
                     )
 
                     modalInteractionEvent.interaction.reply(MessageCreate {
@@ -162,6 +177,19 @@ class AttendanceExtension : Extension() {
                     }
                 }
             }
+
+            publicGuildSubCommand(::AttendanceInfoArgs) {
+                name = "info"
+                description = "Display all information of an attendance event"
+
+                action {
+                    val data = this.arguments.attendanceData.await()
+
+                    respond {
+                        content = data.toString()
+                    }
+                }
+            }
         }
     }
 
@@ -170,10 +198,53 @@ class AttendanceExtension : Extension() {
         val cronParser = CronParser(cronDefinition)
     }
 
+    val jumpUrlRegex = Message.JUMP_URL_PATTERN.toRegex()
+
+    inner class AttendanceInfoArgs : Arguments() {
+        private var isId = false
+        private val attendanceId by string {
+            name = "attendance-id"
+            description = "The id of the attendance event OR message-reference-url"
+
+            this.validate {
+                val id = this.value.toLongOrNull()
+                isId = id != null
+                if (isId) {
+                    this.pass()
+                } else if (jumpUrlRegex.matches(value)) {
+                    this.pass()
+                } else {
+                    this.fail(tr("attendance.suppliedInvalidIdOrMsgUrl"))
+                }
+            }
+        }
+        val attendanceData = TaskManager.coroutineScope.async(
+            TaskManager.dispatcher, start = CoroutineStart.LAZY
+        ) {
+            return@async if (isId)
+                attendanceManager.getByAttendanceKey(attendanceId.toLong())
+            else {
+                fun regexGroupBail(): Nothing = bail("broken jda regex: Message.JUMP_URL_PATTERN")
+
+                val res = jumpUrlRegex.find(attendanceId) ?: bail("you broke regex!")
+
+                val guildId = res.groups["guild"]?.value?.toLong() ?: regexGroupBail()
+                val channelId = res.groups["channel"]?.value?.toLong() ?: regexGroupBail()
+                val messageId = res.groups["message"]?.value?.toLong() ?: regexGroupBail()
+
+                attendanceManager.getById(guildId, channelId, messageId)
+            } ?: bail(tr("attendance.suppliedInvalidIdOrMsgUrl"))
+        }
+    }
+
     inner class AttendanceRemoveArgs : Arguments() {
         val attendanceId by long {
             name = "attendance-id"
             description = "The id of the attendance event"
+        }
+        val boop by optionalBoolean {
+            name = "boop"
+            description = "boop"
         }
     }
 
