@@ -1,0 +1,187 @@
+package me.melijn.bot.events.buttons
+
+import com.kotlindiscord.kord.extensions.utils.hasRole
+import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.events.listener
+import dev.minn.jda.ktx.messages.InlineEmbed
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import me.melijn.ap.injector.Inject
+import me.melijn.bot.database.manager.AttendanceManager
+import me.melijn.bot.database.manager.AttendeesManager
+import me.melijn.bot.utils.KoinUtil.inject
+import me.melijn.gen.AttendanceData
+import me.melijn.gen.AttendeesData
+import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.MessageEmbed
+import net.dv8tion.jda.api.entities.UserSnowflake
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
+import net.dv8tion.jda.api.interactions.InteractionHook
+import net.dv8tion.jda.api.sharding.ShardManager
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Duration.Companion.seconds
+
+@Inject(true)
+class AttendanceButtonHandler {
+
+    val attendanceManager by inject<AttendanceManager>()
+    val attendeesManager by inject<AttendeesManager>()
+
+    init {
+        val kord by inject<ShardManager>()
+        kord.listener<ButtonInteractionEvent> { interaction ->
+            if (!interaction.isFromGuild || !interaction.componentId.startsWith(ATTENDANCE_BTN_PREFIX)) return@listener
+            handle(interaction)
+        }
+    }
+
+    // AttendanceID -> Last update time, list of userIds
+    data class MessageUpdateInfo(
+        val lastUpdate: Instant,
+        val prevMessage: Message,
+        val lastInteractionHook: InteractionHook,
+        val newAttendees: MutableSet<UserSnowflake>,
+        val lostAttendees: MutableSet<UserSnowflake>
+    )
+
+    val messageUpdateMap = ConcurrentHashMap<Long, MessageUpdateInfo>()
+
+    private suspend fun handle(interaction: ButtonInteractionEvent) {
+        val buttonId = interaction.button.id ?: return
+        val guild = interaction.guild ?: return
+        val member = interaction.member ?: return
+        val guildId = guild.idLong
+        val channelId = interaction.channel.idLong
+        val messageId = interaction.messageIdLong
+        if (!buttonId.startsWith(ATTENDANCE_BTN_PREFIX)) return
+        if (buttonId == ATTENDANCE_BTN_PREFIX + ATTENDANCE_BTN_ATTEND) {
+            val attendanceEntry = attendanceManager.getById(guildId, channelId, messageId) ?: return
+            val role = attendanceEntry.roleId?.let { guild.getRoleById(it) ?: return }
+            if (role != null) {
+                if (!member.hasRole(role)) return
+            }
+            var nextCloseTime = attendanceEntry.nextMoment
+            attendanceEntry.closeOffset?.let {
+                nextCloseTime -= it
+            }
+            val now = Clock.System.now()
+            if (now < nextCloseTime) {
+                attendeesManager.getById(attendanceEntry.attendanceId, member.idLong)?.run {
+                    interaction.reply("You were already registered as attending for **${attendanceEntry.topic}**")
+                        .setEphemeral(true).await()
+                    return
+                }
+
+                attendeesManager.store(AttendeesData(attendanceEntry.attendanceId, interaction.user.idLong, now))
+                val hook = interaction.reply("You are now registered as attending for **${attendanceEntry.topic}**")
+                    .setEphemeral(true).await()
+                queueMessageUpdate(attendanceEntry, true, interaction.message, hook)
+            }
+        } else if (buttonId == ATTENDANCE_BTN_PREFIX + ATTENDANCE_BTN_REVOKE) {
+            val attendanceEntry = attendanceManager.getById(guildId, channelId, messageId) ?: return
+            val attendeeEntry = attendeesManager.getById(attendanceEntry.attendanceId, member.idLong) ?: run {
+                interaction.reply("You are not registered as attending for **${attendanceEntry.topic}**")
+                    .setEphemeral(true).await()
+                return
+            }
+            var nextCloseTime = attendanceEntry.nextMoment
+            attendanceEntry.closeOffset?.let {
+                nextCloseTime -= it
+            }
+            val now = Clock.System.now()
+            if (now < nextCloseTime) {
+                attendeesManager.delete(attendeeEntry)
+                val hook =
+                    interaction.reply("You are no longer registered as attending for **${attendanceEntry.topic}**")
+                        .setEphemeral(true).await()
+                queueMessageUpdate(attendanceEntry, false, interaction.message, hook)
+            }
+        }
+    }
+
+    private fun queueMessageUpdate(
+        attendanceEntry: AttendanceData,
+        new: Boolean,
+        message: Message,
+        hook: InteractionHook
+    ) {
+        val now = Clock.System.now()
+        val oldEmbed = message.embeds.first()
+        val user = hook.interaction.user
+        val queueEntry = messageUpdateMap[attendanceEntry.attendanceId] ?: MessageUpdateInfo(
+            Instant.DISTANT_PAST,
+            message,
+            hook,
+            mutableSetOf(),
+            mutableSetOf()
+        )
+        if (new) queueEntry.newAttendees.add(user)
+        else queueEntry.lostAttendees.add(user)
+
+        val prevTime = queueEntry.lastUpdate
+        if (prevTime < now - 5.seconds) {
+            runInstantMessageUpdate(oldEmbed, queueEntry)
+
+            // I hate this
+            messageUpdateMap[attendanceEntry.attendanceId] =
+                MessageUpdateInfo(now, message, hook, mutableSetOf(), mutableSetOf())
+        } else {
+
+            messageUpdateMap[attendanceEntry.attendanceId] =
+                MessageUpdateInfo(now, message, hook, mutableSetOf<UserSnowflake>().apply {
+                    addAll(queueEntry.newAttendees)
+                    if (new) add(user)
+                    else remove(user)
+
+                }, mutableSetOf<UserSnowflake>().apply {
+                    addAll(queueEntry.lostAttendees)
+                    if (!new) add(user)
+                    else remove(user)
+                })
+        }
+
+        messageUpdateMap
+            .filter { it.value.lastUpdate < now - 5.seconds }
+            .forEach { (attendanceId, updateInfo) ->
+                runInstantMessageUpdate(oldEmbed, updateInfo)
+                messageUpdateMap.remove(attendanceId)
+            }
+    }
+
+    private fun runInstantMessageUpdate(
+        oldEmbed: MessageEmbed,
+        messageUpdateInfo: MessageUpdateInfo
+    ) {
+        val lastInteractionHook = messageUpdateInfo.lastInteractionHook
+
+        lastInteractionHook.editMessageEmbedsById(
+            messageUpdateInfo.prevMessage.idLong,
+            InlineEmbed(oldEmbed).apply {
+                val sb = StringBuilder(oldEmbed.description)
+
+                // Regex("\n(?:<@id1>|<@id2>)")
+                val regex = ("\n(?:" + messageUpdateInfo.lostAttendees.joinToString("|") {
+                    Regex.escape(it.asMention)
+                } + ")").toRegex()
+
+                println(regex.toString())
+
+                (messageUpdateInfo.newAttendees).forEach {
+                    sb.append("\n")
+                    sb.append(it.asMention)
+                }
+
+                val out = sb.toString()
+                description =if (messageUpdateInfo.lostAttendees.isNotEmpty()) out.replace(regex, "")
+                else out
+            }.build()
+        ).queue()
+    }
+
+    companion object {
+        const val ATTENDANCE_BTN_ATTEND: String = "yes"
+        const val ATTENDANCE_BTN_PREFIX = "attendance-"
+        const val ATTENDANCE_BTN_REVOKE = "no"
+    }
+
+}

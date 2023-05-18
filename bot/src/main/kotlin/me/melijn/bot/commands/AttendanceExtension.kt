@@ -27,7 +27,7 @@ import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.embedWithColor
-import me.melijn.kordkommons.async.TaskManager
+import me.melijn.kordkommons.async.TaskScope
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
@@ -42,6 +42,9 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.jvm.optionals.getOrNull
 import kotlin.time.Duration.Companion.minutes
+import me.melijn.bot.events.buttons.AttendanceButtonHandler.Companion.ATTENDANCE_BTN_ATTEND as BTN_ATTEND_SUFFIX
+import me.melijn.bot.events.buttons.AttendanceButtonHandler.Companion.ATTENDANCE_BTN_PREFIX as BTN_PREFIX
+import me.melijn.bot.events.buttons.AttendanceButtonHandler.Companion.ATTENDANCE_BTN_REVOKE as BTN_REVOKE_SUFFIX
 
 @KordExtension
 class AttendanceExtension : Extension() {
@@ -84,7 +87,7 @@ class AttendanceExtension : Extension() {
                             arguments.moment?.toString(),
                             placeholder = "yyyy-MM-dd HH:mm"
                         )
-                    }.queue()
+                    }.await()
 
                     val modalInteractionEvent = shardManager.waitFor<ModalInteractionEvent>(100.minutes) {
                         this.user.idLong == user.idLong && this.modalId == "attendance-create-modal"
@@ -104,10 +107,10 @@ class AttendanceExtension : Extension() {
                         embedWithColor {
                             title = topic
                             this.description = description
-                            this.description += "\n\nAttendance for: $discordTimestamp"
+                            this.description += "\n\nScheduled for: $discordTimestamp\nAttendees:"
                             this.timestamp = givenMoment
                         }
-                        actionRow(Button.success("attendance-yes", "Attend"), Button.danger("attendance-no", "Revoke"))
+                        actionRow(Button.success(BTN_PREFIX + BTN_ATTEND_SUFFIX, "Attend"), Button.danger(BTN_PREFIX + BTN_REVOKE_SUFFIX, "Revoke"))
                     }).await()
 
                     val nextMoment = Instant.ofEpochMilli(ms).toKotlinInstant()
@@ -218,8 +221,8 @@ class AttendanceExtension : Extension() {
                 }
             }
         }
-        val attendanceData = TaskManager.coroutineScope.async(
-            TaskManager.dispatcher, start = CoroutineStart.LAZY
+        val attendanceData = TaskScope.async(
+            TaskScope.dispatcher, start = CoroutineStart.LAZY
         ) {
             return@async if (isId)
                 attendanceManager.getByAttendanceKey(attendanceId.toLong())
