@@ -27,6 +27,7 @@ import me.melijn.bot.utils.EnumUtil.lcc
 import me.melijn.bot.utils.RealLinearRetry
 import me.melijn.bot.web.server.HttpServer
 import me.melijn.gen.Settings
+import me.melijn.gen.uselimits.CommandLimitModule
 import me.melijn.kordkommons.database.ConfigUtil
 import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.logger.logger
@@ -100,7 +101,7 @@ object Melijn {
                         single { settings } bind Settings::class
                         single { objectMapper } bind ObjectMapper::class
                         single { driverManager } bind DriverManager::class
-                    }))
+                    }, CommandLimitModule.getModule()))
 
                     HttpServer.startProbeServer()
                 }

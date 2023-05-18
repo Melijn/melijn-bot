@@ -28,6 +28,7 @@ import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.embedWithColor
 import me.melijn.kordkommons.async.TaskScope
+import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
@@ -110,7 +111,10 @@ class AttendanceExtension : Extension() {
                             this.description += "\n\nScheduled for: $discordTimestamp\nAttendees:"
                             this.timestamp = givenMoment
                         }
-                        actionRow(Button.success(BTN_PREFIX + BTN_ATTEND_SUFFIX, "Attend"), Button.danger(BTN_PREFIX + BTN_REVOKE_SUFFIX, "Revoke"))
+                        actionRow(
+                            Button.success(BTN_PREFIX + BTN_ATTEND_SUFFIX, "Attend"),
+                            Button.danger(BTN_PREFIX + BTN_REVOKE_SUFFIX, "Revoke")
+                        )
                     }).await()
 
                     val nextMoment = Instant.ofEpochMilli(ms).toKotlinInstant()
@@ -256,10 +260,11 @@ class AttendanceExtension : Extension() {
             name = "topic"
             description = "The topic of the attendance event"
         }
-        val channel by channel {
+        val channel by channel<TextChannel> {
             name = "channel"
             description = "The channel of the attendance event"
-            requiredChannelTypes.add(ChannelType.TEXT)
+            requireChannelType(ChannelType.TEXT)
+            requirePermissions(Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_SEND)
         }
         val moment by optionalDateTime {
             name = "moment"
@@ -310,16 +315,23 @@ class AttendanceExtension : Extension() {
         }
     }
 
-    private fun nextMomentFromMomentOrSchedule(moment: LocalDateTime?, schedule: String?) =
+    private fun nextMomentFromMomentOrSchedule(moment: LocalDateTime?, schedule: String?): LocalDateTime =
         if (moment == null && schedule == null) {
             bail("You must provide either a moment or a schedule")
         } else if (moment != null) {
             moment
         } else {
-            val cron = cronParser.parse(schedule)
-            val execTimes = ExecutionTime.forCron(cron)
-            val now = ZonedDateTime.now(ZoneId.of("UTC"))
-            val next = execTimes.nextExecution(now)
-            next.getOrNull()?.toLocalDateTime() ?: bail("The schedule you provided is invalid")
+            fun invalidCron(): Nothing =
+                bail("The schedule you provided is invalid, it must be a quartz-cron job format")
+
+            try {
+                val cron = cronParser.parse(schedule)
+                val execTimes = ExecutionTime.forCron(cron)
+                val now = ZonedDateTime.now(ZoneId.of("UTC"))
+                val next = execTimes.nextExecution(now)
+                next.getOrNull()?.toLocalDateTime() ?: invalidCron()
+            } catch (e: Exception) {
+                invalidCron()
+            }
         }
 }

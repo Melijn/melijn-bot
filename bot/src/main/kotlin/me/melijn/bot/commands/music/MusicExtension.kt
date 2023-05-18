@@ -38,6 +38,7 @@ import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.utils.StringUtils
 import me.melijn.kordkommons.utils.escapeMarkdown
 import net.dv8tion.jda.api.entities.channel.ChannelType
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel
 import org.koin.core.component.inject
 import org.springframework.boot.ansi.AnsiColor
 import kotlin.math.max
@@ -784,19 +785,10 @@ class MusicExtension : Extension() {
     }
 
     private class VCArgs : Arguments() {
-
-        val channel = optionalChannel {
+        val channel = optionalChannel<VoiceChannel> {
             name = "voicechannel"
             description = "Used for advanced summoning spells"
-
-            validate {
-                val channel = this.value
-                failIf("This is not a voiceChannel!") {
-                    channel != null
-                            && channel.type != ChannelType.VOICE
-                            && channel.type != ChannelType.STAGE
-                }
-            }
+            requireChannelTypes(ChannelType.VOICE, ChannelType.STAGE)
         }
     }
 }

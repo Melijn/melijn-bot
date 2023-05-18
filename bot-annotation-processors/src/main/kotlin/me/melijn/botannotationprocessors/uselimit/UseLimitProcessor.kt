@@ -47,9 +47,25 @@ class UseLimitProcessor(
         "org.jetbrains.exposed.sql.and",
     )
 
+    val module = codeGenerator.createNewFile(
+        Dependencies(false),
+        location, "CommandLimitModule"
+    )
+
     /** Maps sets of field names to their index getter name. Populated if [historyProcessed] == true */
     val fieldsToIndexGetter = mutableMapOf<Set<String>, String>()
 
+    init {
+        module.appendLine("package $location")
+        module.appendLine((cooldownImports + limitImports).joinToString("\n") { "import $it" })
+        module.appendLine("import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent;import org.koin.core.component.get;import org.koin.core.parameter.ParametersHolder;")
+        module.appendLine("""
+            import org.koin.dsl.bind
+            import org.koin.dsl.module
+        """.trimIndent())
+        module.appendLine("object CommandLimitModule {")
+        module.appendLine("fun getModule() = module {")
+    }
 
     @OptIn(KspExperimental::class)
     override fun process(resolver: Resolver): List<KSAnnotated> {
@@ -82,9 +98,27 @@ class UseLimitProcessor(
 
             // Use limit types
             createLimitTypesClass()
-
+            finishLoadModule()
         }
         return ret
+    }
+
+    private fun finishLoadModule() {
+
+        module.appendLine("     single { CooldownManager(${buildList {
+            repeat(cooldownManagers.size) {
+                add("get()")
+            }
+        }.joinToString()}) } bind CooldownManager::class")
+        module.appendLine("     single { UsageHistoryManager(get()) } bind UsageHistoryManager::class")
+        module.appendLine("     single { UsageLimitHistoryManager(${buildList { 
+            repeat(useLimitManagers.size) {
+                add("get()")
+            }
+        }.joinToString()}) } bind UsageLimitHistoryManager::class")
+        module.appendLine("}")
+        module.appendLine("}")
+        module.close()
     }
 
     private fun createCooldownManagerClass() {
@@ -213,6 +247,8 @@ class $managerName(override val driverManager: DriverManager) : $abstractManager
             """.trimIndent()
             file.appendText(clazz)
             file.close()
+
+            module.appendLine("    single { $managerName(get()) } bind $managerName::class")
 
             val indexFields = getIndexes(classDeclaration).first().fields
 
@@ -387,6 +423,8 @@ class $managerName(override val driverManager: DriverManager) : $abstractManager
             """.trimIndent()
             file.appendText(clazz)
             file.close()
+
+            module.appendLine("    single { $managerName(get()) } bind $managerName::class")
 
             val pkeyProperty: KSPropertyDeclaration = classDeclaration.getDeclaredProperties().first {
                 it.type.resolve().toString() == "PrimaryKey"
