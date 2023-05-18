@@ -25,9 +25,10 @@ class RoleExtension : Extension() {
             publicSubCommand(::RoleArgs) {
                 name = "give"
                 description = "gives role"
-                check {
-                    requireBotPermissions(Permission.MANAGE_ROLES)
-                }
+
+                requireBotPermissions(Permission.MANAGE_ROLES)
+                requirePermission(Permission.MANAGE_ROLES)
+
                 action {
                     val role = arguments.role
                     val target = arguments.member
@@ -41,9 +42,10 @@ class RoleExtension : Extension() {
             publicSubCommand(::RoleArgs) {
                 name = "take"
                 description = "takes role"
-                check {
-                    requireBotPermissions(Permission.MANAGE_ROLES)
-                }
+
+                requireBotPermissions(Permission.MANAGE_ROLES)
+                requirePermission(Permission.MANAGE_ROLES)
+
                 action {
                     val role = arguments.role
                     val target = arguments.member
