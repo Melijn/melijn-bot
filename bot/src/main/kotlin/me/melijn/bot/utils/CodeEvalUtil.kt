@@ -8,8 +8,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import me.melijn.bot.commands.EvalCommand
 import me.melijn.bot.utils.script.evalCode
-import me.melijn.kordkommons.async.DeferredNKTRunnable
-import me.melijn.kordkommons.async.TaskManager
+import me.melijn.kordkommons.async.TaskScope
 import kotlin.reflect.KClass
 import kotlin.script.experimental.api.valueOr
 
@@ -66,19 +65,11 @@ object CodeEvalUtil {
         }
     }
 
-    class EvalDeferredNTask<T>(private val func: suspend () -> T?) : DeferredNKTRunnable<Pair<T?, String>> {
-        override suspend fun run(): Pair<T?, String> {
-            return try {
-                func() to ""
-            } catch (t: Throwable) {
-                null to (t.message ?: "unknown")
-            }
+    fun <T> evalTaskValueNAsync(block: suspend CoroutineScope.() -> T?): Deferred<Pair<T?, String>> = TaskScope.async {
+        try {
+            block() to ""
+        } catch (t: Throwable) {
+            null to (t.message ?: "unknown")
         }
-    }
-
-    fun <T> evalTaskValueNAsync(block: suspend CoroutineScope.() -> T?): Deferred<Pair<T?, String>> = TaskManager.coroutineScope.async {
-        EvalDeferredNTask {
-            block.invoke(this)
-        }.run()
     }
 }

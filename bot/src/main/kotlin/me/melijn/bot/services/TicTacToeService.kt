@@ -4,13 +4,14 @@ package me.melijn.bot.services
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.MessageEdit
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.database.manager.BalanceManager
 import me.melijn.bot.database.manager.TicTacToeManager
 import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.kordkommons.async.RunnableTask
-import me.melijn.kordkommons.async.TaskManager
+import me.melijn.kordkommons.async.TaskScope
 import net.dv8tion.jda.api.entities.UserSnowflake
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.sharding.ShardManager
@@ -28,7 +29,7 @@ class TicTacToeService : Service("tic-tac-toe", maxMoveDuration.times(0), maxMov
         val games = tttManager.getOlderGames(lastMoveCutoffMoment)
         tttManager.deleteOlderGames(lastMoveCutoffMoment)
 
-        TaskManager.async {
+        TaskScope.launch {
             for (game in games) { // go over expired games
 
                 val kord by inject<ShardManager>()

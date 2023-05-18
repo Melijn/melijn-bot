@@ -2,9 +2,10 @@ package me.melijn.bot.music
 
 import dev.schlaubi.lavakord.audio.Node
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import me.melijn.bot.Melijn
 import me.melijn.bot.utils.Log
-import me.melijn.kordkommons.async.TaskManager
+import me.melijn.kordkommons.async.TaskScope
 import net.dv8tion.jda.api.entities.Guild
 import java.util.concurrent.ConcurrentHashMap
 
@@ -23,7 +24,7 @@ object MusicManager {
     }
 
     suspend fun setupReconnects(node: Node) {
-        TaskManager.async {
+        TaskScope.launch {
             var lastUptime = 0L
             var available = false
             while (true) {

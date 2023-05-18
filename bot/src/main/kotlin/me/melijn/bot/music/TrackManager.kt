@@ -11,7 +11,6 @@ import me.melijn.bot.model.enums.IntLimit
 import me.melijn.bot.model.enums.PremiumTier
 import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.kordkommons.async.SafeList
-import me.melijn.kordkommons.async.Task
 import me.melijn.kordkommons.logger.logger
 import net.dv8tion.jda.api.entities.Member
 import kotlin.random.Random
@@ -61,10 +60,7 @@ class TrackManager(val link: Link) {
                 return
             }
 
-            Task {
-                link.destroy()
-            }.run()
-
+            link.destroy()
             return
         }
 
@@ -150,9 +146,7 @@ class TrackManager(val link: Link) {
         clear()
         stop()
 
-        Task {
-            link.destroy()
-        }.run()
+        link.destroy()
     }
 
     var target: Member? = null
