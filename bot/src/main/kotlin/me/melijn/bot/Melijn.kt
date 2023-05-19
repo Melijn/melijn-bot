@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kotlindiscord.kord.extensions.ExtensibleBot
 import com.kotlindiscord.kord.extensions.koin.KordExContext
-import com.kotlindiscord.kord.extensions.usagelimits.cooldowns.DefaultCooldownHandler
 import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.DefaultRateLimiter
 import com.kotlindiscord.kord.extensions.utils.getKoin
 import com.kotlindiscord.kord.extensions.utils.scheduling.TaskConfig
@@ -21,6 +20,7 @@ import me.melijn.apredgres.createtable.CreateTableInterface
 import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.model.Environment
 import me.melijn.bot.model.PodInfo
+import me.melijn.bot.model.kordex.MelijnCooldownHandler
 import me.melijn.bot.music.MusicManager
 import me.melijn.bot.services.ServiceManager
 import me.melijn.bot.utils.EnumUtil.lcc
@@ -136,7 +136,7 @@ object Melijn {
             }
 
             val defaultRateLimiter = DefaultRateLimiter()
-            val defaultCooldownHandler = DefaultCooldownHandler()
+            val defaultCooldownHandler = MelijnCooldownHandler()
             applicationCommands {
                 enabled = true
 
