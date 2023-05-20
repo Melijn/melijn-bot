@@ -47,12 +47,14 @@ class AttendanceManager(override val driverManager: DriverManager) : AbstractAtt
             column.minus(expression)
         }
     }
+
     /** @return entries where (nextMoment - notifyOffset) < now() + [upto] **/
     fun getEntriesAboutToNotify(upto: Duration): List<AttendanceData> {
         return getEntriesAboutToDoSomething(upto, Attendance.notifyOffset) { column, expression ->
             column.minus(expression)
         }
     }
+
     /** @return entries where (nextMoment + scheduleTimeout) < now() + [upto] **/
     fun getEntriesAboutToReopen(upto: Duration): List<AttendanceData> {
         return getEntriesAboutToDoSomething(upto, Attendance.scheduleTimeout) { column, expression ->
@@ -71,10 +73,22 @@ class AttendanceManager(override val driverManager: DriverManager) : AbstractAtt
             // makes exposed think this is an instant, so it can use the minus operator
             val offsetAsInstant = CustomExpression<Instant>("((${offsetColumn.name} / 1e+9) * INTERVAL '1 second')")
             Attendance.select {
-                (offsetColumn neq null) and ((operator(Attendance.nextMoment, offsetAsInstant)) lessEq threshold)
+                (offsetColumn neq null) and
+                        ((operator(Attendance.nextMoment, offsetAsInstant)) lessEq threshold) and
+                        PodCheckOp(Attendance.guildId)
             }.map {
                 AttendanceData.fromResRow(it)
             }
+        }
+    }
+
+    fun getEntriesAboutToHappen(includeRangeFromNow: Duration) {
+        val now = Clock.System.now()
+        val threshold = now + includeRangeFromNow
+        return scopedTransaction {
+            Attendance.select {
+                (Attendance.nextMoment lessEq threshold) and PodCheckOp(Attendance.guildId)
+            }.map { AttendanceData.fromResRow(it) }
         }
     }
 

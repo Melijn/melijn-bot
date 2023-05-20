@@ -64,7 +64,7 @@ class BotRestartTrackEntryManager(driverManager: DriverManager) : AbstractBotRes
     fun deleteAll(shardId: Int) {
         scopedTransaction {
             BotRestartTrackEntry.deleteWhere {
-                PodCheckOp(BotRestartTrackEntry.guildId, shardId)
+                ShardCheckOp(BotRestartTrackEntry.guildId, shardId)
             }
         }
     }
@@ -76,7 +76,7 @@ class BotRestartTrackQueueManager(driverManager: DriverManager) : AbstractBotRes
     fun getAll(shardId: Int): List<BotRestartTrackQueueData> {
         return scopedTransaction {
             BotRestartTrackQueue.select {
-                PodCheckOp(BotRestartTrackQueue.guildId, shardId)
+                ShardCheckOp(BotRestartTrackQueue.guildId, shardId)
             }.map {
                 BotRestartTrackQueueData.fromResRow(it)
             }
@@ -86,15 +86,26 @@ class BotRestartTrackQueueManager(driverManager: DriverManager) : AbstractBotRes
     fun deleteAll(shardId: Int) {
         scopedTransaction {
             BotRestartTrackQueue.deleteWhere {
-                PodCheckOp(BotRestartTrackQueue.guildId, shardId)
+                ShardCheckOp(BotRestartTrackQueue.guildId, shardId)
             }
         }
     }
 }
 
 class PodCheckOp(
+    private val guildIdColumn: ExpressionWithColumnType<Long>
+) : Op<Boolean>() {
+
+    override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+        queryBuilder.append("(((")
+        guildIdColumn.toQueryBuilder(queryBuilder)
+        queryBuilder.append(" >> 22) % ${PodInfo.shardCount}) BETWEEN ${PodInfo.minShardId} AND ${PodInfo.maxShardId})")
+    }
+}
+
+class ShardCheckOp(
     private val guildIdColumn: ExpressionWithColumnType<Long>,
-    private val shardId: Int
+    private val shardId: Int? = null
 ) : Op<Boolean>() {
 
     override fun toQueryBuilder(queryBuilder: QueryBuilder) {

@@ -104,18 +104,14 @@ class AttendanceExtension : Extension() {
                     givenMoment = nextMomentFromMomentOrSchedule(moment, schedule)
 
                     val textChannel = arguments.channel as TextChannel
-                    val message = textChannel.sendMessage(MessageCreate {
-                        embedWithColor {
-                            title = topic
-                            this.description = description
-                            this.description += "\n\nScheduled for: $discordTimestamp\nAttendees:"
-                            this.timestamp = givenMoment
-                        }
-                        actionRow(
-                            Button.success(BTN_PREFIX + BTN_ATTEND_SUFFIX, "Attend"),
-                            Button.danger(BTN_PREFIX + BTN_REVOKE_SUFFIX, "Revoke")
+                    val message = textChannel.sendMessage(
+                        getAttendanceMessage(
+                            topic,
+                            description,
+                            givenMoment,
+                            zone
                         )
-                    }).await()
+                    ).await()
 
                     val nextMoment = Instant.ofEpochMilli(ms).toKotlinInstant()
                     val data = attendanceManager.insertAndGetRow(
@@ -198,6 +194,27 @@ class AttendanceExtension : Extension() {
                 }
             }
         }
+    }
+
+
+    private suspend fun getAttendanceMessage(
+        topic: String,
+        description: String?,
+        givenMoment: LocalDateTime,
+        timeZone: ZoneId
+    ) = MessageCreate {
+        val discordTimestamp = TimeFormat.DATE_TIME_LONG.format(givenMoment.atZone(timeZone))
+        val discordReltime = TimeFormat.DATE_TIME_LONG.format(givenMoment.atZone(timeZone))
+        embed {
+            title = topic
+            this.description = description
+            this.description += "\n\nScheduled for: $discordTimestamp\nIn: $discordReltime\nAttendees:"
+            this.timestamp = givenMoment
+        }
+        actionRow(
+            Button.success(BTN_PREFIX + BTN_ATTEND_SUFFIX, "Attend"),
+            Button.danger(BTN_PREFIX + BTN_REVOKE_SUFFIX, "Revoke")
+        )
     }
 
     companion object {
