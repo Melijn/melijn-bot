@@ -51,10 +51,7 @@ class DevExtension : Extension() {
 
             action {
                 respond {
-                    val names = getNames()
-
-
-                    content = "called `${names.joinToString(" ")}`"
+                    content = "blub"
                 }
             }
         }
@@ -106,7 +103,7 @@ class DevExtension : Extension() {
                 // get presence lines
                 val possibleMusicActivities = member.activities
                 if (arguments.raw) {
-                    this.channel.createMessage( "```$possibleMusicActivities```")
+                    this.channel.createMessage("```$possibleMusicActivities```")
                 }
 
                 val split = possibleMusicActivities.chunked(5)
@@ -172,15 +169,15 @@ class DevExtension : Extension() {
     }
 
     private fun SlashCommandContext<*, *>.getNames(): List<String> {
-       return buildList {
-           add(event.interaction.name)
-           event.interaction.subcommandGroup?.let { add(it) }
-           event.interaction.subcommandName?.let { add(it) }
+        return buildList {
+            add(event.interaction.name)
+            event.interaction.subcommandGroup?.let { add(it) }
+            event.interaction.subcommandName?.let { add(it) }
         }
     }
-    
+
     companion object {
-        fun activityNameMatch(name: String): (activity: Activity) -> Boolean  = { it.name == name }
+        fun activityNameMatch(name: String): (activity: Activity) -> Boolean = { it.name == name }
 
         context(InlineEmbed)
         fun addActivityIntoEmbed(activity: Activity) {

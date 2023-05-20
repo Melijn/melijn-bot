@@ -15,7 +15,7 @@ object Attendance: Table("attendance") {
 
     val guildId = long("guild_id")
     val channelId = long("channel_id")
-    val messageId = long("message_id").nullable()
+    val messageId = long("message_id")
 
     // given to attendees for this attendance event
     val roleId = long("role_id").nullable()
@@ -36,7 +36,7 @@ object Attendance: Table("attendance") {
     val schedule = text("schedule").nullable()
 
     // time between last moment and starting the next attendance occurrence
-    // attendees are cleared when nextMoment + schedule_timeout is hit
+    // attendees are cleared when (nextMoment + schedule_timeout) is hit
     val scheduleTimeout = duration("schedule_timeout").nullable()
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, channelId, messageId)

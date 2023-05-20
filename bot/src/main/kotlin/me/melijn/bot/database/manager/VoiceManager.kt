@@ -3,10 +3,12 @@ package me.melijn.bot.database.manager
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import me.melijn.ap.injector.Inject
+import me.melijn.bot.utils.ExposedUtil.CustomExpression
+import me.melijn.bot.utils.ExposedUtil.intervalEpoch
+import me.melijn.bot.utils.ExposedUtil.retype
 import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.logger.logger
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.Function
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.minus
@@ -137,21 +139,5 @@ class VoiceManager(val driverManager: DriverManager) {
     data class GuildStatisticsEntry(val userId: Long, val timeSpentTotal: Duration, val timeSpentLongest: Duration)
 
     data class VoiceJoinEntry(val guild: Long, val channel: Long, val userId: Long, val timestamp: Instant)
-
-    private class CustomExpression<T>(private val content: String) : Expression<T>() {
-        override fun toQueryBuilder(queryBuilder: QueryBuilder) = queryBuilder {
-            append(content)
-        }
-    }
-
-    private inline fun <reified T> retype(expression: Expression<*>) = object : Expression<T>() {
-        override fun toQueryBuilder(queryBuilder: QueryBuilder) = expression.toQueryBuilder(queryBuilder)
-    }
-
-    private fun intervalEpoch(interval: Expression<*>) = object : Function<Duration?>(KotlinDurationColumnType()) {
-        override fun toQueryBuilder(queryBuilder: QueryBuilder) = queryBuilder {
-            append("extract(epoch from ", interval, ") * 1e+9")
-        }
-    }
 
 }

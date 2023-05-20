@@ -21,12 +21,10 @@ import kotlin.script.experimental.jvmhost.createJvmCompilationConfigurationFromT
  * this file:
  * https://github.com/Kotlin/kotlin-script-examples/blob/99bca23d0de02b27ba0e9f2a9b2bb246174fce3e/jvm/basic/jvm-maven-deps/host/src/main/kotlin/org/jetbrains/kotlin/script/examples/jvm/resolve/maven/host/host.kt
  */
-
-
 fun evalCode(script: String, implicitReceivers: ChatCommandContext<out EvalCommand.EvalArgs>, props: Map<String, Any?>): ResultWithDiagnostics<EvaluationResult> {
 
     val compilationConfiguration = createJvmCompilationConfigurationFromTemplate<ScriptWithMavenDeps>()
-
+    println("|\n$script\n|")
     return BasicJvmScriptingHost().eval(StringScriptSource(script), compilationConfiguration, ScriptEvaluationConfiguration {
         this.providedProperties("test" to implicitReceivers)
         println(implicitReceivers)

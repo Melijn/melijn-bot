@@ -52,8 +52,17 @@ object CodeEvalUtil {
 //            se.compile(code).eval()
 //            engine.eval(code)
             val results = evalCode(code, receiver, props.toMap())
-            return results.valueOr {
-                return "ERROR:\n```${it.reports.joinToString("\n") { it.message }}```"
+            return results.also {
+                println(it.reports.joinToString("\n") {
+                    it.exception?.printStackTrace()
+                    it.message
+                })
+            }.valueOr {
+                return "ERROR:\n```${it.reports.joinToString("\n") {
+                    it.exception?.printStackTrace()
+                    it.message
+                    
+                }}```"
             }.returnValue.toString()
 
 //            val resp = se.invokeFunction(functionName, params) as Deferred<Pair<Any?, String>>
@@ -61,6 +70,7 @@ object CodeEvalUtil {
 //            val (result, error) = resp.await()
 //            result?.toString() ?: "ERROR:\n```${error}```"
         } catch (t: Throwable) {
+            t.printStackTrace()
             "ERROR:\n```${t.message}```"
         }
     }
