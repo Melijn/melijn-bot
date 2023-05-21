@@ -65,6 +65,7 @@ class AttendanceManager(override val driverManager: DriverManager) : AbstractAtt
     private inline fun getEntriesAboutToDoSomething(
         includeRangeFromNow: Duration,
         offsetColumn: Column<Duration?>,
+        state:
         crossinline operator: (Column<Instant>, Expression<Instant>) -> CustomOperator<Instant>
     ): List<AttendanceData> {
         val now = Clock.System.now()

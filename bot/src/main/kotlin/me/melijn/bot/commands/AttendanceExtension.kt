@@ -8,6 +8,7 @@ import com.cronutils.parser.CronParser
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
+import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.utils.toDuration
 import com.kotlindiscord.kord.extensions.utils.waitFor
@@ -22,6 +23,7 @@ import kotlinx.datetime.toKotlinInstant
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.AttendanceManager
 import me.melijn.bot.database.manager.AttendeesManager
+import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
@@ -36,11 +38,11 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.utils.TimeFormat
 import org.koin.core.component.inject
-import org.postgresql.util.GT.tr
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.*
 import kotlin.jvm.optionals.getOrNull
 import kotlin.time.Duration.Companion.minutes
 import me.melijn.bot.events.buttons.AttendanceButtonHandler.Companion.ATTENDANCE_BTN_ATTEND as BTN_ATTEND_SUFFIX
@@ -78,9 +80,9 @@ class AttendanceExtension : Extension() {
                     val discordTimestamp = TimeFormat.DATE_TIME_LONG.format(givenMoment.atZone(zone))
 
                     this.event.replyModal("attendance-create-modal", "Create Attendance Event") {
-                        this.short("topic", "Topic", true, topic)
-                        this.paragraph("description", "Description", true, description)
-                        this.short("schedule", "Schedule", false, schedule)
+                        this.short("topic", "Topic", true, topic, placeholder = "Title or topic for the event")
+                        this.paragraph("description", "Description", true, description, placeholder = "What is the event about ?")
+                        this.short("schedule", "Schedule [QUARTZ CRON format]", false, schedule, placeholder = "0 15 10 ? * 6L 2022-2025")
                         this.short(
                             "moment",
                             "Moment",
@@ -103,7 +105,7 @@ class AttendanceExtension : Extension() {
                         modalInteractionEvent.getValue("moment")?.asString?.let { DateTimeConverter.parseFromString(it) }
                     givenMoment = nextMomentFromMomentOrSchedule(moment, schedule)
 
-                    val textChannel = arguments.channel as TextChannel
+                    val textChannel = arguments.channel
                     val message = textChannel.sendMessage(
                         getAttendanceMessage(
                             topic,
@@ -127,6 +129,7 @@ class AttendanceExtension : Extension() {
                         arguments.repeating,
                         nextMoment,
                         schedule,
+                        zone.toString(),
                         arguments.scheduleTimeout?.toDuration(TimeZone.UTC)
                     )
 
@@ -197,40 +200,56 @@ class AttendanceExtension : Extension() {
     }
 
 
-    private suspend fun getAttendanceMessage(
-        topic: String,
-        description: String?,
-        givenMoment: LocalDateTime,
-        timeZone: ZoneId
-    ) = MessageCreate {
-        val discordTimestamp = TimeFormat.DATE_TIME_LONG.format(givenMoment.atZone(timeZone))
-        val discordReltime = TimeFormat.DATE_TIME_LONG.format(givenMoment.atZone(timeZone))
-        embed {
-            title = topic
-            this.description = description
-            this.description += "\n\nScheduled for: $discordTimestamp\nIn: $discordReltime\nAttendees:"
-            this.timestamp = givenMoment
-        }
-        actionRow(
-            Button.success(BTN_PREFIX + BTN_ATTEND_SUFFIX, "Attend"),
-            Button.danger(BTN_PREFIX + BTN_REVOKE_SUFFIX, "Revoke")
-        )
-    }
-
     companion object {
         val cronDefinition: CronDefinition = CronDefinitionBuilder.instanceDefinitionFor(CronType.QUARTZ)
         val cronParser = CronParser(cronDefinition)
+
+        fun getAttendanceMessage(
+            topic: String,
+            description: String?,
+            givenMoment: LocalDateTime,
+            timeZone: ZoneId
+        ) = MessageCreate {
+            val discordTimestamp = TimeFormat.DATE_TIME_LONG.format(givenMoment.atZone(timeZone))
+            val discordReltime = TimeFormat.DATE_TIME_LONG.format(givenMoment.atZone(timeZone))
+            val translations: TranslationsProvider by inject()
+            embed {
+                title = topic
+                this.description = translations.tr(
+                    "attendance.messageLayout.active", Locale.getDefault(),
+                    description,
+                    discordTimestamp,
+                    discordReltime
+                )
+                this.timestamp = givenMoment
+            }
+            actionRow(
+                Button.success(BTN_PREFIX + BTN_ATTEND_SUFFIX, "Attend"),
+                Button.danger(BTN_PREFIX + BTN_REVOKE_SUFFIX, "Revoke")
+            )
+        }
+
+        fun nextMomentFromCronSchedule(schedule: String): LocalDateTime? {
+            val cron = cronParser.parse(schedule)
+            val execTimes = ExecutionTime.forCron(cron)
+            val now = ZonedDateTime.now(ZoneId.of("UTC"))
+            val next = execTimes.nextExecution(now)
+            return next.getOrNull()?.toLocalDateTime()
+        }
     }
 
     val jumpUrlRegex = Message.JUMP_URL_PATTERN.toRegex()
 
     inner class AttendanceInfoArgs : Arguments() {
         private var isId = false
+        private lateinit var locale: Locale
+
         private val attendanceId by string {
             name = "attendance-id"
             description = "The id of the attendance event OR message-reference-url"
 
             this.validate {
+                locale = this.context.resolvedLocale.await()
                 val id = this.value.toLongOrNull()
                 isId = id != null
                 if (isId) {
@@ -242,9 +261,12 @@ class AttendanceExtension : Extension() {
                 }
             }
         }
+
         val attendanceData = TaskScope.async(
             TaskScope.dispatcher, start = CoroutineStart.LAZY
         ) {
+            val translations: TranslationsProvider by inject()
+
             return@async if (isId)
                 attendanceManager.getByAttendanceKey(attendanceId.toLong())
             else {
@@ -257,7 +279,7 @@ class AttendanceExtension : Extension() {
                 val messageId = res.groups["message"]?.value?.toLong() ?: regexGroupBail()
 
                 attendanceManager.getById(guildId, channelId, messageId)
-            } ?: bail(tr("attendance.suppliedInvalidIdOrMsgUrl"))
+            } ?: bail(translations.tr("attendance.suppliedInvalidIdOrMsgUrl", locale))
         }
     }
 
@@ -338,15 +360,12 @@ class AttendanceExtension : Extension() {
         } else if (moment != null) {
             moment
         } else {
+            requireNotNull(schedule) // compiler can't infer this is true sadly
             fun invalidCron(): Nothing =
                 bail("The schedule you provided is invalid, it must be a quartz-cron job format")
-
             try {
-                val cron = cronParser.parse(schedule)
-                val execTimes = ExecutionTime.forCron(cron)
-                val now = ZonedDateTime.now(ZoneId.of("UTC"))
-                val next = execTimes.nextExecution(now)
-                next.getOrNull()?.toLocalDateTime() ?: invalidCron()
+                val next = nextMomentFromCronSchedule(schedule)
+                next ?: invalidCron()
             } catch (e: Exception) {
                 invalidCron()
             }

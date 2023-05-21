@@ -34,6 +34,9 @@ object Attendance: Table("attendance") {
     val nextMoment = timestamp("next_moment")
     // cron format
     val schedule = text("schedule").nullable()
+    val zoneId = text("timezone").nullable()
+
+    val state = enumeration("state", AttendanceState::class)
 
     // time between last moment and starting the next attendance occurrence
     // attendees are cleared when (nextMoment + schedule_timeout) is hit
@@ -45,6 +48,13 @@ object Attendance: Table("attendance") {
         index(true, attendanceId) // name = attendance_key
         index(false, guildId) // name = guild_key
     }
+}
+
+enum class AttendanceState {
+    LISTENING,
+    CLOSED,
+    NOTIFIED,
+    FINISHED
 }
 
 @CreateTable
