@@ -56,7 +56,7 @@ class AttendanceButtonHandler {
         if (!buttonId.startsWith(ATTENDANCE_BTN_PREFIX)) return
         if (buttonId == ATTENDANCE_BTN_PREFIX + ATTENDANCE_BTN_ATTEND) {
             val attendanceEntry = attendanceManager.getById(guildId, channelId, messageId) ?: return
-            val role = attendanceEntry.roleId?.let { guild.getRoleById(it) ?: return }
+            val role = attendanceEntry.requiredRole?.let { guild.getRoleById(it) ?: return }
             if (role != null) {
                 if (!member.hasRole(role)) return
             }
@@ -73,7 +73,18 @@ class AttendanceButtonHandler {
                 }
 
                 attendeesManager.store(AttendeesData(attendanceEntry.attendanceId, interaction.user.idLong, now))
-                val hook = interaction.reply("You are now registered as attending for **${attendanceEntry.topic}**")
+
+                // Give notify role if configured
+                var extraInfo = ""
+                attendanceEntry.notifyRoleId?.let {
+                    val notifyRole = guild.getRoleById(it) ?: return@let
+                    try {
+                        guild.addRoleToMember(member, notifyRole).reason("attendance notify role").queue()
+                    } catch (t: Exception) {
+                        extraInfo = "Couldn't give you the notify role: ${t.message}"
+                    }
+                }
+                val hook = interaction.reply("You are now registered as attending for **${attendanceEntry.topic}**\n" + extraInfo)
                     .setEphemeral(true).await()
                 queueMessageUpdate(attendanceEntry, true, interaction.message, hook)
             }

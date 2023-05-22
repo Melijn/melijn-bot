@@ -1,15 +1,26 @@
 package me.melijn.bot.utils
 
+import io.ktor.server.util.*
+import io.ktor.util.*
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.toJavaInstant
 import kotlinx.datetime.toKotlinLocalDateTime
 import net.dv8tion.jda.api.entities.ISnowflake
 import net.dv8tion.jda.api.utils.TimeFormat
+import java.text.SimpleDateFormat
+import java.time.ZoneId
+import java.util.*
 import kotlin.time.Duration
 import kotlin.time.toKotlinDuration
 
 object TimeUtil {
+    @OptIn(InternalAPI::class)
+    fun SimpleDateFormat.parseOrNull(given: String) = try {  parse(given)?.toLocalDateTime() } catch (t: Exception) { null }
+
+    val java.time.LocalDateTime.normalDate
+        get() = Date.from(this.atZone(ZoneId.systemDefault()).toInstant())
+
     fun java.time.Duration.formatElapsed(): String = this.toKotlinDuration().formatElapsed()
     fun Duration.formatElapsed(): String {
         val millis = inWholeMilliseconds % 1000

@@ -28,6 +28,7 @@ import me.melijn.bot.database.manager.AttendeesManager
 import me.melijn.bot.database.model.AttendanceState
 import me.melijn.bot.services.AttendanceService
 import me.melijn.bot.utils.KoinUtil.inject
+import me.melijn.bot.utils.KordExUtils
 import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
@@ -75,6 +76,7 @@ class AttendanceExtension : Extension() {
                 noDefer()
 
                 action {
+                    val guild = guild!!
                     var topic = this.arguments.topic
                     var description = this.arguments.description
                     var schedule = this.arguments.schedule
@@ -88,8 +90,20 @@ class AttendanceExtension : Extension() {
 
                     this.event.replyModal("attendance-create-modal", "Create Attendance Event") {
                         this.short("topic", "Topic", true, topic, placeholder = "Title or topic for the event")
-                        this.paragraph("description", "Description", true, description, placeholder = "What is the event about ?")
-                        this.short("schedule", "Schedule [QUARTZ CRON format]", false, schedule, placeholder = "0 15 10 ? * 6L 2022-2025")
+                        this.paragraph(
+                            "description",
+                            "Description",
+                            true,
+                            description,
+                            placeholder = "What is the event about ?"
+                        )
+                        this.short(
+                            "schedule",
+                            "Schedule [QUARTZ CRON format]",
+                            false,
+                            schedule,
+                            placeholder = "0 15 10 ? * 6L 2022-2025"
+                        )
                         this.short(
                             "moment",
                             "Moment",
@@ -129,11 +143,17 @@ class AttendanceExtension : Extension() {
 
                     val maxOffset = maxOf(closeOffset ?: ZERO, notifyOffset ?: ZERO)
 
+                    val notifyRoleId = arguments.notifyRole?.idLong?.let {
+                        val role = guild.getRoleById(it)?: return@let null
+                        guild.createCopyOfRole(role).reason("attendance notify role creation").await().idLong
+                    }
+
                     val data = attendanceManager.insertAndGetRow(
-                        guild!!.idLong,
+                        guild.idLong,
                         arguments.channel.idLong,
                         message.idLong,
-                        arguments.attendeesRole?.idLong,
+                        arguments.requiredRole?.idLong,
+                        notifyRoleId,
                         closeOffset,
                         arguments.notifyAttendees,
                         notifyOffset,
@@ -260,11 +280,11 @@ class AttendanceExtension : Extension() {
 
             this@InlineEmbed.title = "[Finished] $topic"
             this@InlineEmbed.description = translations.tr(
-                    "attendance.messageLayout.finished", Locale.getDefault(),
-                    description,
-                    discordTimestamp,
-                    attendees
-                )
+                "attendance.messageLayout.finished", Locale.getDefault(),
+                description,
+                discordTimestamp,
+                attendees
+            )
             this@InlineMessage.builder.setComponents(emptySet())
         }
 
@@ -344,10 +364,14 @@ class AttendanceExtension : Extension() {
             requireChannelType(ChannelType.TEXT)
             requirePermissions(Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_SEND)
         }
+
         val moment by optionalDateTime {
             name = "moment"
-            description = "The moment of the attendance event, you can provide this or schedule"
+            description = "The next-moment of the attendance event, you must provide this or schedule"
+
+            KordExUtils.addDateTimeAutocompletion()
         }
+
         val zoneId by defaultingZoneId {
             name = "time-zone"
             description = "Your timezone zoneId (e.g. Europe/Amsterdam, Europe/Brussels, UTC)"
@@ -355,7 +379,7 @@ class AttendanceExtension : Extension() {
         }
         val schedule by optionalString {
             name = "schedule"
-            description = "The schedule of the attendance events"
+            description = "The (quartz-cron) schedule of the attendance events"
         }
         val description by optionalString {
             name = "description"
@@ -383,9 +407,13 @@ class AttendanceExtension : Extension() {
             description = "Whether or not to notify attendees"
             defaultValue = true
         }
-        val attendeesRole by optionalRole {
-            name = "attendees-role"
-            description = "The role given to attendees"
+        val notifyRole by optionalRole {
+            name = "notify-role"
+            description = "The role template to notify attendees with (will be cloned)"
+        }
+        val requiredRole by optionalRole {
+            name = "required-role"
+            description = "Attendees will need this role before being able to attend"
         }
 
         val nextMoment: LocalDateTime by lazy {

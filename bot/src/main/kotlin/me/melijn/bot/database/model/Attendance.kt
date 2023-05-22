@@ -18,7 +18,8 @@ object Attendance: Table("attendance") {
     val messageId = long("message_id")
 
     // given to attendees for this attendance event
-    val roleId = long("role_id").nullable()
+    val requiredRole = long("required_role_id").nullable()
+    val notifyRoleId = long("notify_role_id").nullable()
 
     // At (nextMoment - closeOffset) we should stop accepting new attendees
     val closeOffset = duration("close_offset").nullable()
@@ -49,6 +50,7 @@ object Attendance: Table("attendance") {
 
     init {
         index(true, attendanceId) // name = attendance_key
+        index(false, nextStateChangeMoment) // name = attendance_key
         index(false, guildId) // name = guild_key
     }
 }

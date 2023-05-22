@@ -12,6 +12,7 @@ import kotlinx.datetime.toKotlinInstant
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.commands.AttendanceExtension
 import me.melijn.bot.database.manager.AttendanceManager
+import me.melijn.bot.database.manager.AttendeesManager
 import me.melijn.bot.database.model.AttendanceState
 import me.melijn.bot.utils.ExceptionUtil.unreachable
 import me.melijn.bot.utils.JDAUtil.awaitOrNull
@@ -21,6 +22,7 @@ import me.melijn.gen.AttendanceData
 import me.melijn.kordkommons.async.TaskScope
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.sharding.ShardManager
 import net.dv8tion.jda.api.utils.messages.MessageEditBuilder
 import net.dv8tion.jda.api.utils.messages.MessageEditData
@@ -32,13 +34,14 @@ class UnHandleableAttendanceException : Throwable() {
 
 }
 
-@Inject()
+@Inject
 class AttendanceService {
 
-    val attendanceManager by inject<AttendanceManager>()
-    val shardManager by inject<ShardManager>()
-    val logger by Log
-    val mentionRegex = Message.MentionType.USER.pattern.toRegex()
+    private val attendanceManager by inject<AttendanceManager>()
+    private val attendeesManager by inject<AttendeesManager>()
+    private val shardManager by inject<ShardManager>()
+    private val logger by Log
+    private val mentionRegex = Message.MentionType.USER.pattern.toRegex()
 
     /** it's the job of [AttendanceExtension] to cancel [waitingJob] */
     var waitingJob = TaskScope.launch { }
@@ -100,29 +103,7 @@ class AttendanceService {
         if (nextAvailableState == null) {
             if (entry.state == AttendanceState.FINISHED) {
 
-                /** Reopen attendance logic */
-                val nextMoment = entry.schedule?.let {
-                    try {
-                        AttendanceExtension.nextMomentFromCronSchedule(it)
-                    } catch (t: Throwable) {
-                        logger.error(t) { "A corrupt cron schedule is trying to get processed" }
-                        throw UnHandleableAttendanceException()
-                    }
-                } ?: throw UnHandleableAttendanceException()
-
-                val timeZone = entry.zoneId?.let { ZoneId.of(it) } ?: ZoneId.of("UTC")
-                val messageData = AttendanceExtension.getAttendanceMessage(
-                    entry.topic, entry.description, nextMoment, timeZone
-                )
-
-                val nextInstant = java.time.Instant.from(nextMoment).toKotlinInstant()
-                entry.apply {
-                    this.messageId = textChannel.sendMessage(messageData).await().idLong
-                    this.state = AttendanceState.LISTENING
-                    this.nextMoment = nextInstant
-                    this.nextStateChangeMoment =
-                        nextInstant - maxOf(this.closeOffset ?: Duration.ZERO, this.notifyOffset ?: Duration.ZERO)
-                }
+                reopenAttendance(entry, textChannel)
             } else {
                 logger.warn { "We're trying to update an attendance $entry that has no next state" }
             }
@@ -154,7 +135,7 @@ class AttendanceService {
                 }
 
                 AttendanceState.NOTIFIED -> {
-                    val role = entry.roleId?.let { guild.getRoleById(it) }
+                    val role = entry.notifyRoleId?.let { guild.getRoleById(it) }
                     if (role != null) {
                         messageEditor.apply {
                             content = "Reminder: ${role.asMention}"
@@ -189,6 +170,46 @@ class AttendanceService {
 
         messageEditor.builder.setEmbeds(embedEditor.build())
         message.editMessage(messageEditor.build()).queue()
+    }
+
+    private suspend fun reopenAttendance(
+        entry: AttendanceData,
+        textChannel: TextChannel
+    ) {
+        /** Reopen attendance logic */
+        val nextMoment = entry.schedule?.let {
+            try {
+                AttendanceExtension.nextMomentFromCronSchedule(it)
+            } catch (t: Throwable) {
+                logger.error(t) { "A corrupt cron schedule is trying to get processed" }
+                throw UnHandleableAttendanceException()
+            }
+        } ?: throw UnHandleableAttendanceException()
+
+        val timeZone = entry.zoneId?.let { ZoneId.of(it) } ?: ZoneId.of("UTC")
+        val messageData = AttendanceExtension.getAttendanceMessage(
+            entry.topic, entry.description, nextMoment, timeZone
+        )
+
+        val nextInstant = java.time.Instant.from(nextMoment).toKotlinInstant()
+        entry.apply {
+            this.messageId = textChannel.sendMessage(messageData).await().idLong
+            this.state = AttendanceState.LISTENING
+            this.nextMoment = nextInstant
+            this.nextStateChangeMoment =
+                nextInstant - maxOf(this.closeOffset ?: Duration.ZERO, this.notifyOffset ?: Duration.ZERO)
+        }
+
+        // recreates the notify role so it's removed from attendees, saves the new id to the entry state
+        entry.notifyRoleId?.let {
+            val notifyRole = textChannel.guild.getRoleById(it) ?: return@let
+            val newNotifyRole = textChannel.guild.createCopyOfRole(notifyRole).reason("attendance notify role creation").awaitOrNull()
+            entry.notifyRoleId = newNotifyRole?.idLong
+            notifyRole.delete().reason("delete attendance notify role").queue()
+        }
+
+        // deregister all attendees
+        attendeesManager.deleteByAttendenceKey(entry.attendanceId)
     }
 
     private fun AttendanceData.getNextStateChangeMoment(): Instant {
@@ -236,7 +257,7 @@ class AttendanceService {
             }
 
             AttendanceState.CLOSED -> {
-                return if (notifyOffset == null || this.roleId == null || notifyOffset > closeOffset!!) {
+                return if (notifyOffset == null || this.notifyRoleId == null || notifyOffset > closeOffset!!) {
                     if (this.nextMoment < now) {
                         AttendanceState.FINISHED
                     } else null

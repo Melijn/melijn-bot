@@ -16,6 +16,7 @@ import com.kotlindiscord.kord.extensions.commands.chat.ChatCommand
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandContext
 import com.kotlindiscord.kord.extensions.commands.converters.SingleConverter
 import com.kotlindiscord.kord.extensions.commands.converters.Validator
+import com.kotlindiscord.kord.extensions.commands.converters.builders.ConverterBuilder
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
 import com.kotlindiscord.kord.extensions.commands.converters.impl.LongConverterBuilder
 import com.kotlindiscord.kord.extensions.commands.converters.impl.OptionalLongConverterBuilder
@@ -33,6 +34,8 @@ import me.melijn.bot.database.manager.PlaylistManager
 import me.melijn.bot.utils.EnumUtil.ucc
 import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.bot.utils.KordExUtils.tr
+import me.melijn.bot.utils.TimeUtil.normalDate
+import me.melijn.bot.utils.TimeUtil.parseOrNull
 import me.melijn.gen.PlaylistData
 import me.melijn.gen.Settings
 import me.melijn.kordkommons.utils.SPACE_PATTERN
@@ -44,6 +47,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import org.jetbrains.annotations.PropertyKey
 import org.koin.core.component.inject
+import java.text.SimpleDateFormat
 import java.util.*
 
 object KordExUtils {
@@ -354,6 +358,69 @@ object KordExUtils {
 
         failIf(tr(negativeOrZeroAmount)) { valueVal <= 0 }
         failIf(tr(tooLittleBalance, valueVal, balance)) { valueVal > balance }
+    }
+
+    context(ConverterBuilder<*>)
+    fun addDateTimeAutocompletion() {
+        this@ConverterBuilder.autoComplete {
+            val given = this.getOption("moment")?.asString
+                ?.removeSuffix("-")
+                ?.removeSuffix(":")
+                ?.trim()
+            val date = Date()
+            val calendar = Calendar.getInstance()
+            val simpleFormat = SimpleDateFormat("yyyy-MM-dd HH:mm")
+            val simpleFormaty = SimpleDateFormat("yyyy")
+            val simpleFormatm = SimpleDateFormat("yyyy-MM")
+            val simpleFormatd = SimpleDateFormat("yyyy-MM-dd")
+            val simpleFormath = SimpleDateFormat("yyyy-MM-dd HH")
+            val now = simpleFormat.format(date)
+
+            if (given.isNullOrBlank()) {
+                this.replyChoice(now, "yyyy-MM-dd HH:mm").queue()
+
+            } else {
+                val parsedh = simpleFormath.parseOrNull(given)
+                if (parsedh != null) {
+                    this.replyChoiceStrings(buildList<String> {
+                        repeat(6) {
+                            add(simpleFormat.format(parsedh.plusMinutes(10L * it).normalDate))
+                        }
+                    }).queue()
+                    return@autoComplete
+                }
+                val parsedd = simpleFormatd.parseOrNull(given)
+                if (parsedd != null) {
+                    this.replyChoiceStrings(buildList<String> {
+                        repeat(24) {
+                            val plussed = parsedd.plusHours(it.toLong())
+                            add(simpleFormat.format(plussed.normalDate))
+                        }
+                    }).queue()
+                    return@autoComplete
+                }
+                val parsedm = simpleFormatm.parseOrNull(given)
+                if (parsedm != null) {
+                    this.replyChoiceStrings(buildList<String> {
+                        repeat(25) {
+                            add(simpleFormat.format(parsedm.plusDays(calendar.get(Calendar.DAY_OF_MONTH) - 1 + it.toLong()).normalDate))
+                        }
+                    }).queue()
+                    return@autoComplete
+                }
+                val parsedy = simpleFormaty.parseOrNull(given)
+                if (parsedy != null) {
+                    this.replyChoiceStrings(buildList<String> {
+                        repeat(12) {
+                            add(simpleFormat.format(parsedy.plusMonths(calendar.get(Calendar.MONTH) + it.toLong()).normalDate))
+                        }
+                    }).queue()
+                    return@autoComplete
+                }
+
+                this.replyChoice("yyyy-MM-dd HH:mm", "yyyy-MM-dd HH:mm").queue()
+            }
+        }
     }
 }
 
