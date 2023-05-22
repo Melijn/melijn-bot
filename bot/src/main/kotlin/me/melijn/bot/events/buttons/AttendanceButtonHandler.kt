@@ -4,6 +4,9 @@ import com.kotlindiscord.kord.extensions.utils.hasRole
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.messages.InlineEmbed
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import me.melijn.ap.injector.Inject
@@ -12,6 +15,7 @@ import me.melijn.bot.database.manager.AttendeesManager
 import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.gen.AttendanceData
 import me.melijn.gen.AttendeesData
+import me.melijn.kordkommons.async.TaskScope
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.entities.UserSnowflake
@@ -35,15 +39,16 @@ class AttendanceButtonHandler {
         }
     }
 
-    // AttendanceID -> Last update time, list of userIds
+
     data class MessageUpdateInfo(
-        val lastUpdate: Instant,
+        var lastUpdate: Instant,
         val prevMessage: Message,
         val lastInteractionHook: InteractionHook,
-        val newAttendees: MutableSet<UserSnowflake>,
-        val lostAttendees: MutableSet<UserSnowflake>
+        var newAttendees: MutableSet<UserSnowflake>,
+        var lostAttendees: MutableSet<UserSnowflake>,
+        var updater: Job? = null
     )
-
+    // AttendanceID -> updateInfo
     val messageUpdateMap = ConcurrentHashMap<Long, MessageUpdateInfo>()
 
     private suspend fun handle(interaction: ButtonInteractionEvent) {
@@ -124,7 +129,8 @@ class AttendanceButtonHandler {
             message,
             hook,
             mutableSetOf(),
-            mutableSetOf()
+            mutableSetOf(),
+            updaterJob(attendanceEntry.attendanceId)
         )
         if (new) queueEntry.newAttendees.add(user)
         else queueEntry.lostAttendees.add(user)
@@ -148,15 +154,31 @@ class AttendanceButtonHandler {
                     addAll(queueEntry.lostAttendees)
                     if (!new) add(user)
                     else remove(user)
-                })
+                }, queueEntry.updater)
         }
+    }
 
-        messageUpdateMap
-            .filter { it.value.lastUpdate < now - 5.seconds }
-            .forEach { (attendanceId, updateInfo) ->
-                runInstantMessageUpdate(oldEmbed, updateInfo)
-                messageUpdateMap.remove(attendanceId)
+    private fun updaterJob(attendanceId: Long): Job = TaskScope.launch {
+        delay(5.seconds)
+        val now = Clock.System.now()
+        val updateInfo = messageUpdateMap[attendanceId] ?: return@launch
+        if (updateInfo.lastUpdate < now - 5.seconds) {
+            messageUpdateMap[attendanceId] = updateInfo.apply {
+                this.updater = updaterJob(attendanceId)
             }
+            return@launch
+        }
+        if (updateInfo.newAttendees.isNotEmpty() || updateInfo.lostAttendees.isNotEmpty()) {
+            runInstantMessageUpdate(updateInfo.prevMessage.embeds.first(), updateInfo)
+            messageUpdateMap[attendanceId] = updateInfo.apply {
+                this.newAttendees = mutableSetOf()
+                this.lostAttendees = mutableSetOf()
+                this.lastUpdate = Clock.System.now()
+                this.updater = updaterJob(attendanceId)
+            }
+        } else {
+            messageUpdateMap.remove(attendanceId)
+        }
     }
 
     private fun runInstantMessageUpdate(
@@ -174,8 +196,6 @@ class AttendanceButtonHandler {
                 val regex = ("\n(?:" + messageUpdateInfo.lostAttendees.joinToString("|") {
                     Regex.escape(it.asMention)
                 } + ")").toRegex()
-
-                println(regex.toString())
 
                 (messageUpdateInfo.newAttendees).forEach {
                     sb.append("\n")

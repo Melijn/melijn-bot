@@ -6,6 +6,7 @@ import com.cronutils.model.definition.CronDefinitionBuilder
 import com.cronutils.model.time.ExecutionTime
 import com.cronutils.parser.CronParser
 import com.kotlindiscord.kord.extensions.commands.Arguments
+import com.kotlindiscord.kord.extensions.commands.CommandContext
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
@@ -33,7 +34,9 @@ import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
 import me.melijn.bot.utils.KordExUtils.tr
+import me.melijn.bot.utils.TimeUtil.formatElapsed
 import me.melijn.bot.utils.embedWithColor
+import me.melijn.gen.AttendanceData
 import me.melijn.kordkommons.async.TaskScope
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
@@ -43,6 +46,7 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.utils.TimeFormat
 import net.dv8tion.jda.api.utils.messages.MessageEditData
+import net.dv8tion.jda.internal.utils.Helpers
 import org.koin.core.component.inject
 import java.time.Instant
 import java.time.LocalDateTime
@@ -85,8 +89,6 @@ class AttendanceExtension : Extension() {
                     val zone = this.arguments.zoneId
                     val atZone = givenMoment.atZone(zone)
                     val ms = atZone.toEpochSecond() * 1000
-
-                    val discordTimestamp = TimeFormat.DATE_TIME_LONG.format(givenMoment.atZone(zone))
 
                     this.event.replyModal("attendance-create-modal", "Create Attendance Event") {
                         this.short("topic", "Topic", true, topic, placeholder = "Title or topic for the event")
@@ -144,7 +146,7 @@ class AttendanceExtension : Extension() {
                     val maxOffset = maxOf(closeOffset ?: ZERO, notifyOffset ?: ZERO)
 
                     val notifyRoleId = arguments.notifyRole?.idLong?.let {
-                        val role = guild.getRoleById(it)?: return@let null
+                        val role = guild.getRoleById(it) ?: return@let null
                         guild.createCopyOfRole(role).reason("attendance notify role creation").await().idLong
                     }
 
@@ -172,7 +174,10 @@ class AttendanceExtension : Extension() {
                     service.waitingJob.cancel(CancellationException("new attendance, recheck first"))
 
                     modalInteractionEvent.interaction.reply(MessageCreate {
-                        content = "Next attendance is at: $atZone\n${discordTimestamp}\n${data}"
+                        embedWithColor {
+                            this.title = tr("attendance.created")
+                            this.description = getAttendanceInfoMessage(data, message.jumpUrl)
+                        }
                     }).await()
                 }
             }
@@ -228,15 +233,44 @@ class AttendanceExtension : Extension() {
 
                 action {
                     val data = this.arguments.attendanceData.await()
+                    val jumpUrl = Helpers.format(
+                        Message.JUMP_URL,
+                        data.guildId,
+                        data.channelId,
+                        data.messageId
+                    )
 
                     respond {
-                        content = data.toString()
+                        embedWithColor {
+                            title = tr("attendance.infoTitle")
+                            description = getAttendanceInfoMessage(data, jumpUrl)
+                        }
                     }
                 }
             }
         }
     }
 
+    context(CommandContext)
+    private suspend fun getAttendanceInfoMessage(data: AttendanceData, jumpUrl: String): String {
+        val nextMomentTimestamp = TimeFormat.DATE_TIME_LONG.format(data.nextMoment.toJavaInstant())
+        val nextStateChangeMomentTimestamp = TimeFormat.DATE_TIME_LONG.format(data.nextStateChangeMoment.toJavaInstant())
+
+        return tr("attendance.info",
+            data.topic,
+            data.description ?: "",
+            jumpUrl,
+            nextMomentTimestamp,
+            data.notifyOffset?.formatElapsed() ?: "unset",
+            data.notifyRoleId?.let { "<@&$it>" } ?: "unset",
+            data.closeOffset?.formatElapsed() ?: "unset",
+            data.scheduleTimeout?.formatElapsed() ?: "unset",
+            nextStateChangeMomentTimestamp,
+            data.state.toString(),
+            data.schedule ?: "unset",
+            data.attendanceId
+        )
+    }
 
     companion object {
         val cronDefinition: CronDefinition = CronDefinitionBuilder.instanceDefinitionFor(CronType.QUARTZ)
@@ -272,10 +306,9 @@ class AttendanceExtension : Extension() {
             topic: String,
             description: String?,
             attendees: String,
-            givenMoment: LocalDateTime,
-            timeZone: ZoneId
+            givenMoment: Instant
         ) {
-            val discordTimestamp = TimeFormat.DATE_TIME_LONG.format(givenMoment.atZone(timeZone))
+            val discordTimestamp = TimeFormat.DATE_TIME_LONG.format(givenMoment)
             val translations: TranslationsProvider by inject()
 
             this@InlineEmbed.title = "[Finished] $topic"
@@ -310,14 +343,20 @@ class AttendanceExtension : Extension() {
             this.validate {
                 locale = this.context.resolvedLocale.await()
                 val id = this.value.toLongOrNull()
+                val guildId: Long = this@validate.context.guild?.idLong!!
                 isId = id != null
                 if (isId) {
-                    this.pass()
+                    this.failIf {
+                        attendanceManager.getByAttendanceKey(id!!)?.guildId != guildId
+                    }
                 } else if (jumpUrlRegex.matches(value)) {
-                    this.pass()
+                    failIf {
+                        jumpUrlRegex.find(value)?.groups?.get("guild")?.value?.toLong() != guildId
+                    }
                 } else {
                     this.fail(tr("attendance.suppliedInvalidIdOrMsgUrl"))
                 }
+                this.pass()
             }
         }
 

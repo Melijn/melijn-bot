@@ -26,7 +26,6 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.sharding.ShardManager
 import net.dv8tion.jda.api.utils.messages.MessageEditBuilder
 import net.dv8tion.jda.api.utils.messages.MessageEditData
-import java.time.LocalDateTime
 import java.time.ZoneId
 import kotlin.time.Duration
 
@@ -157,8 +156,8 @@ class AttendanceService {
                                 entry.topic,
                                 entry.description,
                                 attendees,
-                                LocalDateTime.ofInstant(entry.nextMoment.toJavaInstant(), ZoneId.of("UTC")),
-                                entry.zoneId?.let { ZoneId.of(it) } ?: ZoneId.of("UTC"))
+                                entry.nextMoment.toJavaInstant()
+                            )
                         }
                     }
                     entry.nextStateChangeMoment = entry.getNextStateChangeMoment()
@@ -203,7 +202,8 @@ class AttendanceService {
         // recreates the notify role so it's removed from attendees, saves the new id to the entry state
         entry.notifyRoleId?.let {
             val notifyRole = textChannel.guild.getRoleById(it) ?: return@let
-            val newNotifyRole = textChannel.guild.createCopyOfRole(notifyRole).reason("attendance notify role creation").awaitOrNull()
+            val newNotifyRole =
+                textChannel.guild.createCopyOfRole(notifyRole).reason("attendance notify role creation").awaitOrNull()
             entry.notifyRoleId = newNotifyRole?.idLong
             notifyRole.delete().reason("delete attendance notify role").queue()
         }
