@@ -81,7 +81,6 @@ class AttendanceService {
         }
     }
 
-
     private suspend fun doUpdates(entry: AttendanceData) {
         val guild = shardManager.getGuildById(entry.guildId)
         val textChannel = guild
@@ -132,7 +131,8 @@ class AttendanceService {
 
         val builder = MessageEditBuilder().applyMessage(message)
         val messageEditor = InlineMessage<MessageEditData>(builder)
-        val embedEditor = InlineEmbed(message.embeds.first())
+        val messageEmbed = message.embeds.first()
+        val embedEditor = InlineEmbed(messageEmbed)
 
 
         while (nextAvailableState != null) {
@@ -147,7 +147,7 @@ class AttendanceService {
                 AttendanceState.LISTENING -> unreachable()
                 AttendanceState.CLOSED -> {
                     embedEditor.apply {
-                        this.title = "[Closed] ${this.title}"
+                        this.title = "[Closed] ${entry.topic}"
                     }
 
                     entry.nextStateChangeMoment = entry.getNextStateChangeMoment()
@@ -169,7 +169,7 @@ class AttendanceService {
                 AttendanceState.FINISHED -> {
                     with(messageEditor) {
                         with(embedEditor) {
-                            val attendees = this.description?.lines()?.filter {
+                            val attendees = messageEmbed.description?.lines()?.filter {
                                 it.contains(mentionRegex)
                             }?.joinToString("\n") ?: ""
                             AttendanceExtension.applyFinishedMessage(

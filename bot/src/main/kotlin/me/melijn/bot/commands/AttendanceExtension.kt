@@ -240,7 +240,6 @@ class AttendanceExtension : Extension() {
                     discordReltime,
                     ""
                 )
-                this.timestamp = givenMoment
             }
             actionRow(
                 Button.success(BTN_PREFIX + BTN_ATTEND_SUFFIX, "Attend"),
