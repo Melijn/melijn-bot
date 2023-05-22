@@ -73,10 +73,16 @@ class AttendanceExtension : Extension() {
         publicGuildSlashCommand {
             name = "attendance"
             description = "Manage attendance events"
+            check {
+                requirePermission(Permission.ADMINISTRATOR)
+            }
 
             publicGuildSubCommand(::AttendanceCreateArgs) {
                 name = "create"
                 description = "Create a new attendance event"
+                check {
+                    requirePermission(Permission.ADMINISTRATOR)
+                }
                 noDefer()
 
                 action {
@@ -185,6 +191,9 @@ class AttendanceExtension : Extension() {
             publicGuildSubCommand(::AttendanceRemoveArgs) {
                 name = "remove"
                 description = "Remove an attendance event"
+                check {
+                    requirePermission(Permission.ADMINISTRATOR)
+                }
 
                 action {
                     val attendanceId = arguments.attendanceId
@@ -203,6 +212,9 @@ class AttendanceExtension : Extension() {
             publicGuildSubCommand {
                 name = "list"
                 description = "List the attendance events"
+                check {
+                    requirePermission(Permission.ADMINISTRATOR)
+                }
 
                 action {
                     val attendanceEvents = attendanceManager.getByGuildKey(guild!!.idLong)
@@ -230,6 +242,9 @@ class AttendanceExtension : Extension() {
             publicGuildSubCommand(::AttendanceInfoArgs) {
                 name = "info"
                 description = "Display all information of an attendance event"
+                check {
+                    requirePermission(Permission.ADMINISTRATOR)
+                }
 
                 action {
                     val data = this.arguments.attendanceData.await()
