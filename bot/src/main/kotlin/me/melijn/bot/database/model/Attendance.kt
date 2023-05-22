@@ -32,11 +32,14 @@ object Attendance: Table("attendance") {
 
     val repeating = bool("repeating")
     val nextMoment = timestamp("next_moment")
-    // cron format
-    val schedule = text("schedule").nullable()
-    val zoneId = text("timezone").nullable()
 
     val state = enumeration("state", AttendanceState::class)
+
+    val nextStateChangeMoment = timestamp("next_state_change_moment")
+    // cron format
+    val schedule = text("schedule").nullable()
+
+    val zoneId = text("timezone").nullable()
 
     // time between last moment and starting the next attendance occurrence
     // attendees are cleared when (nextMoment + schedule_timeout) is hit
@@ -51,6 +54,7 @@ object Attendance: Table("attendance") {
 }
 
 enum class AttendanceState {
+    DISABLED,
     LISTENING,
     CLOSED,
     NOTIFIED,

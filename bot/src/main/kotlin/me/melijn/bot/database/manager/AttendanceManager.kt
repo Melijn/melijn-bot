@@ -1,10 +1,8 @@
 package me.melijn.bot.database.manager
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.database.model.Attendance
-import me.melijn.bot.utils.ExposedUtil.CustomExpression
+import me.melijn.bot.database.model.AttendanceState
 import me.melijn.gen.AttendanceData
 import me.melijn.gen.database.manager.AbstractAttendanceManager
 import me.melijn.gen.database.manager.AbstractAttendeesManager
@@ -12,9 +10,6 @@ import me.melijn.kordkommons.database.DriverManager
 import org.intellij.lang.annotations.Language
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.minus
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
-import kotlin.time.Duration
 
 @Inject
 class AttendanceManager(override val driverManager: DriverManager) : AbstractAttendanceManager(driverManager) {
@@ -41,58 +36,18 @@ class AttendanceManager(override val driverManager: DriverManager) : AbstractAtt
         }
     }
 
-    /** @return entries where (nextMoment - closeOffset) < now() + [upto] **/
-    fun getEntriesAboutToClose(upto: Duration): List<AttendanceData> {
-        return getEntriesAboutToDoSomething(upto, Attendance.closeOffset) { column, expression ->
-            column.minus(expression)
-        }
-    }
-
-    /** @return entries where (nextMoment - notifyOffset) < now() + [upto] **/
-    fun getEntriesAboutToNotify(upto: Duration): List<AttendanceData> {
-        return getEntriesAboutToDoSomething(upto, Attendance.notifyOffset) { column, expression ->
-            column.minus(expression)
-        }
-    }
-
-    /** @return entries where (nextMoment + scheduleTimeout) < now() + [upto] **/
-    fun getEntriesAboutToReopen(upto: Duration): List<AttendanceData> {
-        return getEntriesAboutToDoSomething(upto, Attendance.scheduleTimeout) { column, expression ->
-            column.plus(expression)
-        }
-    }
-
-    private inline fun getEntriesAboutToDoSomething(
-        includeRangeFromNow: Duration,
-        offsetColumn: Column<Duration?>,
-        state:
-        crossinline operator: (Column<Instant>, Expression<Instant>) -> CustomOperator<Instant>
-    ): List<AttendanceData> {
-        val now = Clock.System.now()
-        val threshold = now + includeRangeFromNow
-        return scopedTransaction {
-            // makes exposed think this is an instant, so it can use the minus operator
-            val offsetAsInstant = CustomExpression<Instant>("((${offsetColumn.name} / 1e+9) * INTERVAL '1 second')")
-            Attendance.select {
-                (offsetColumn neq null) and
-                        ((operator(Attendance.nextMoment, offsetAsInstant)) lessEq threshold) and
-                        PodCheckOp(Attendance.guildId)
-            }.map {
-                AttendanceData.fromResRow(it)
-            }
-        }
-    }
-
-    fun getEntriesAboutToHappen(includeRangeFromNow: Duration) {
-        val now = Clock.System.now()
-        val threshold = now + includeRangeFromNow
+    fun getNextChangingEntry(): AttendanceData? {
         return scopedTransaction {
             Attendance.select {
-                (Attendance.nextMoment lessEq threshold) and PodCheckOp(Attendance.guildId)
-            }.map { AttendanceData.fromResRow(it) }
+                Attendance.state neq AttendanceState.DISABLED
+            }.orderBy(Attendance.nextStateChangeMoment, SortOrder.ASC)
+                .limit(1)
+                .iterator()
+                .asSequence()
+                .firstOrNull()
+                ?.let { AttendanceData.fromResRow(it) }
         }
     }
-
 }
 
 @Inject

@@ -14,6 +14,8 @@ import com.kotlindiscord.kord.extensions.utils.toDuration
 import com.kotlindiscord.kord.extensions.utils.waitFor
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.interactions.components.replyModal
+import dev.minn.jda.ktx.messages.InlineEmbed
+import dev.minn.jda.ktx.messages.InlineMessage
 import dev.minn.jda.ktx.messages.MessageCreate
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
@@ -23,6 +25,8 @@ import kotlinx.datetime.toKotlinInstant
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.AttendanceManager
 import me.melijn.bot.database.manager.AttendeesManager
+import me.melijn.bot.database.model.AttendanceState
+import me.melijn.bot.services.AttendanceService
 import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
@@ -37,13 +41,16 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.utils.TimeFormat
+import net.dv8tion.jda.api.utils.messages.MessageEditData
 import org.koin.core.component.inject
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
+import java.util.concurrent.CancellationException
 import kotlin.jvm.optionals.getOrNull
+import kotlin.time.Duration.Companion.ZERO
 import kotlin.time.Duration.Companion.minutes
 import me.melijn.bot.events.buttons.AttendanceButtonHandler.Companion.ATTENDANCE_BTN_ATTEND as BTN_ATTEND_SUFFIX
 import me.melijn.bot.events.buttons.AttendanceButtonHandler.Companion.ATTENDANCE_BTN_PREFIX as BTN_PREFIX
@@ -116,22 +123,33 @@ class AttendanceExtension : Extension() {
                     ).await()
 
                     val nextMoment = Instant.ofEpochMilli(ms).toKotlinInstant()
+
+                    val closeOffset = arguments.closeOffset?.toDuration(TimeZone.UTC)
+                    val notifyOffset = arguments.notifyOffset?.toDuration(TimeZone.UTC)
+
+                    val maxOffset = maxOf(closeOffset ?: ZERO, notifyOffset ?: ZERO)
+
                     val data = attendanceManager.insertAndGetRow(
                         guild!!.idLong,
                         arguments.channel.idLong,
                         message.idLong,
                         arguments.attendeesRole?.idLong,
-                        arguments.closeOffset?.toDuration(TimeZone.UTC),
+                        closeOffset,
                         arguments.notifyAttendees,
-                        arguments.notifyOffset?.toDuration(TimeZone.UTC),
+                        notifyOffset,
                         topic,
                         description,
                         arguments.repeating,
                         nextMoment,
+                        AttendanceState.LISTENING,
+                        nextMoment - maxOffset,
                         schedule,
                         zone.toString(),
                         arguments.scheduleTimeout?.toDuration(TimeZone.UTC)
                     )
+
+                    val service by inject<AttendanceService>()
+                    service.waitingJob.cancel(CancellationException("new attendance, recheck first"))
 
                     modalInteractionEvent.interaction.reply(MessageCreate {
                         content = "Next attendance is at: $atZone\n${discordTimestamp}\n${data}"
@@ -211,7 +229,7 @@ class AttendanceExtension : Extension() {
             timeZone: ZoneId
         ) = MessageCreate {
             val discordTimestamp = TimeFormat.DATE_TIME_LONG.format(givenMoment.atZone(timeZone))
-            val discordReltime = TimeFormat.DATE_TIME_LONG.format(givenMoment.atZone(timeZone))
+            val discordReltime = TimeFormat.RELATIVE.format(givenMoment.atZone(timeZone))
             val translations: TranslationsProvider by inject()
             embed {
                 title = topic
@@ -219,7 +237,8 @@ class AttendanceExtension : Extension() {
                     "attendance.messageLayout.active", Locale.getDefault(),
                     description,
                     discordTimestamp,
-                    discordReltime
+                    discordReltime,
+                    ""
                 )
                 this.timestamp = givenMoment
             }
@@ -227,6 +246,27 @@ class AttendanceExtension : Extension() {
                 Button.success(BTN_PREFIX + BTN_ATTEND_SUFFIX, "Attend"),
                 Button.danger(BTN_PREFIX + BTN_REVOKE_SUFFIX, "Revoke")
             )
+        }
+
+        context(InlineMessage<MessageEditData>, InlineEmbed)
+        fun applyFinishedMessage(
+            topic: String,
+            description: String?,
+            attendees: String,
+            givenMoment: LocalDateTime,
+            timeZone: ZoneId
+        ) {
+            val discordTimestamp = TimeFormat.DATE_TIME_LONG.format(givenMoment.atZone(timeZone))
+            val translations: TranslationsProvider by inject()
+
+            this@InlineEmbed.title = "[Finished] $topic"
+            this@InlineEmbed.description = translations.tr(
+                    "attendance.messageLayout.finished", Locale.getDefault(),
+                    description,
+                    discordTimestamp,
+                    attendees
+                )
+            this@InlineMessage.builder.setComponents(emptySet())
         }
 
         fun nextMomentFromCronSchedule(schedule: String): LocalDateTime? {

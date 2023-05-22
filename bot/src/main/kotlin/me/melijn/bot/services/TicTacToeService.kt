@@ -20,12 +20,12 @@ import kotlin.time.Duration.Companion.seconds
 val maxMoveDuration = 90.seconds
 
 @Inject(true)
-class TicTacToeService : Service("tic-tac-toe", preFetchDuration.times(0), preFetchDuration) {
+class TicTacToeService : Service("tic-tac-toe", maxMoveDuration.times(0), maxMoveDuration) {
 
     val tttManager by inject<TicTacToeManager>()
 
     override val service: RunnableTask = RunnableTask {
-        val lastMoveCutoffMoment = Clock.System.now().minus(preFetchDuration)
+        val lastMoveCutoffMoment = Clock.System.now().minus(maxMoveDuration)
         val games = tttManager.getOlderGames(lastMoveCutoffMoment)
         tttManager.deleteOlderGames(lastMoveCutoffMoment)
 
