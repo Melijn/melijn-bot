@@ -7,20 +7,21 @@ import com.cronutils.model.time.ExecutionTime
 import com.cronutils.parser.CronParser
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.CommandContext
+import com.kotlindiscord.kord.extensions.commands.converters.builders.ValidationContext
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
 import com.kotlindiscord.kord.extensions.types.respond
-import com.kotlindiscord.kord.extensions.utils.toDuration
 import com.kotlindiscord.kord.extensions.utils.waitFor
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.interactions.components.SelectOption
+import dev.minn.jda.ktx.interactions.components.StringSelectMenu
 import dev.minn.jda.ktx.interactions.components.replyModal
 import dev.minn.jda.ktx.messages.InlineEmbed
 import dev.minn.jda.ktx.messages.InlineMessage
 import dev.minn.jda.ktx.messages.MessageCreate
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toJavaInstant
 import kotlinx.datetime.toKotlinInstant
 import me.melijn.apkordex.command.KordExtension
@@ -42,7 +43,10 @@ import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
+import net.dv8tion.jda.api.interactions.components.ActionRow
 import net.dv8tion.jda.api.interactions.components.buttons.Button
 import net.dv8tion.jda.api.utils.TimeFormat
 import net.dv8tion.jda.api.utils.messages.MessageEditData
@@ -55,8 +59,10 @@ import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.CancellationException
 import kotlin.jvm.optionals.getOrNull
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.ZERO
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import me.melijn.bot.events.buttons.AttendanceButtonHandler.Companion.ATTENDANCE_BTN_ATTEND as BTN_ATTEND_SUFFIX
 import me.melijn.bot.events.buttons.AttendanceButtonHandler.Companion.ATTENDANCE_BTN_PREFIX as BTN_PREFIX
 import me.melijn.bot.events.buttons.AttendanceButtonHandler.Companion.ATTENDANCE_BTN_REVOKE as BTN_REVOKE_SUFFIX
@@ -73,16 +79,15 @@ class AttendanceExtension : Extension() {
         publicGuildSlashCommand {
             name = "attendance"
             description = "Manage attendance events"
-            check {
-                requirePermission(Permission.ADMINISTRATOR)
-            }
+
+            requirePermission(Permission.ADMINISTRATOR)
+
 
             publicGuildSubCommand(::AttendanceCreateArgs) {
                 name = "create"
                 description = "Create a new attendance event"
-                check {
-                    requirePermission(Permission.ADMINISTRATOR)
-                }
+
+                requirePermission(Permission.ADMINISTRATOR)
                 noDefer()
 
                 action {
@@ -146,8 +151,8 @@ class AttendanceExtension : Extension() {
 
                     val nextMoment = Instant.ofEpochMilli(ms).toKotlinInstant()
 
-                    val closeOffset = arguments.closeOffset?.toDuration(TimeZone.UTC)
-                    val notifyOffset = arguments.notifyOffset?.toDuration(TimeZone.UTC)
+                    val closeOffset = arguments.closeOffset
+                    val notifyOffset = arguments.notifyOffset
 
                     val maxOffset = maxOf(closeOffset ?: ZERO, notifyOffset ?: ZERO)
 
@@ -173,7 +178,7 @@ class AttendanceExtension : Extension() {
                         nextMoment - maxOffset,
                         schedule,
                         zone.toString(),
-                        arguments.scheduleTimeout?.toDuration(TimeZone.UTC)
+                        arguments.scheduleTimeout
                     )
 
                     val service by inject<AttendanceService>()
@@ -188,12 +193,70 @@ class AttendanceExtension : Extension() {
                 }
             }
 
+            publicGuildSubCommand(::AttendanceRefArgs) {
+                name = "edit"
+                description = "Edits an existing attendance event"
+
+                requirePermission(Permission.ADMINISTRATOR)
+                noDefer()
+
+                action {
+                    val guild = guild!!
+
+                    val components = StringSelectMenu("attendance-edit-selector", options = buildList {
+                        add(
+                            SelectOption(
+                                "General",
+                                "general",
+                                "Topic, description",
+                                Emoji.fromUnicode("\uD83E\uDEA7")
+                            )
+                        )
+                        add(
+                            SelectOption(
+                                "Schedule",
+                                "schedule",
+                                "Schedule, next-moment, repeating, close- and reopen-time",
+                                Emoji.fromUnicode("\uD83D\uDDD3")
+                            )
+                        )
+                        add(
+                            SelectOption(
+                                "Notification",
+                                "notification",
+                                "Notification settings",
+                                Emoji.fromUnicode("\uD83D\uDD14")
+                            )
+                        )
+                        add(
+                            SelectOption(
+                                "Misc",
+                                "misc",
+                                "Required role, state, timezone",
+                                Emoji.fromUnicode("\uD83D\uDD27")
+                            )
+                        )
+                    })
+                    val selector = this.event.reply(MessageCreate {
+                        content = "Select a category to edit"
+                        actionRow(components)
+                    }).setEphemeral(true).await()
+
+
+                    val selectEvent = shardManager.waitFor<StringSelectInteractionEvent>(15.minutes) {
+                        this.user.idLong == user.idLong && this.componentId == "attendance-edit-selector"
+                    } ?: bail("modal timeout ${user.asMention}")
+                    selector.editOriginalComponents(ActionRow.of(components.withDisabled(true))).queue()
+
+                    val selected = selectEvent.values.first()
+                    selectEvent.reply("You selected $selected, L!").queue()
+                }
+            }
+
             publicGuildSubCommand(::AttendanceRemoveArgs) {
                 name = "remove"
                 description = "Remove an attendance event"
-                check {
-                    requirePermission(Permission.ADMINISTRATOR)
-                }
+                requirePermission(Permission.ADMINISTRATOR)
 
                 action {
                     val attendanceId = arguments.attendanceId
@@ -212,9 +275,7 @@ class AttendanceExtension : Extension() {
             publicGuildSubCommand {
                 name = "list"
                 description = "List the attendance events"
-                check {
-                    requirePermission(Permission.ADMINISTRATOR)
-                }
+                requirePermission(Permission.ADMINISTRATOR)
 
                 action {
                     val attendanceEvents = attendanceManager.getByGuildKey(guild!!.idLong)
@@ -239,12 +300,12 @@ class AttendanceExtension : Extension() {
                 }
             }
 
-            publicGuildSubCommand(::AttendanceInfoArgs) {
+            publicGuildSubCommand(::AttendanceRefArgs) {
                 name = "info"
                 description = "Display all information of an attendance event"
-                check {
-                    requirePermission(Permission.ADMINISTRATOR)
-                }
+
+                requirePermission(Permission.ADMINISTRATOR)
+
 
                 action {
                     val data = this.arguments.attendanceData.await()
@@ -269,7 +330,8 @@ class AttendanceExtension : Extension() {
     context(CommandContext)
     private suspend fun getAttendanceInfoMessage(data: AttendanceData, jumpUrl: String): String {
         val nextMomentTimestamp = TimeFormat.DATE_TIME_LONG.format(data.nextMoment.toJavaInstant())
-        val nextStateChangeMomentTimestamp = TimeFormat.DATE_TIME_LONG.format(data.nextStateChangeMoment.toJavaInstant())
+        val nextStateChangeMomentTimestamp =
+            TimeFormat.DATE_TIME_LONG.format(data.nextStateChangeMoment.toJavaInstant())
 
         return tr("attendance.info",
             data.topic,
@@ -288,8 +350,8 @@ class AttendanceExtension : Extension() {
     }
 
     companion object {
-        val cronDefinition: CronDefinition = CronDefinitionBuilder.instanceDefinitionFor(CronType.QUARTZ)
-        val cronParser = CronParser(cronDefinition)
+        private val cronDefinition: CronDefinition = CronDefinitionBuilder.instanceDefinitionFor(CronType.QUARTZ)
+        private val cronParser = CronParser(cronDefinition)
 
         fun getAttendanceMessage(
             topic: String,
@@ -347,7 +409,7 @@ class AttendanceExtension : Extension() {
 
     val jumpUrlRegex = Message.JUMP_URL_PATTERN.toRegex()
 
-    inner class AttendanceInfoArgs : Arguments() {
+    inner class AttendanceRefArgs : Arguments() {
         private var isId = false
         private lateinit var locale: Locale
 
@@ -401,10 +463,6 @@ class AttendanceExtension : Extension() {
             name = "attendance-id"
             description = "The id of the attendance event"
         }
-        val boop by optionalBoolean {
-            name = "boop"
-            description = "boop"
-        }
     }
 
     inner class AttendanceCreateArgs : Arguments() {
@@ -442,19 +500,29 @@ class AttendanceExtension : Extension() {
         val repeating by defaultingBoolean {
             name = "repeating"
             description = "Whether to plan the next attendance based on the schedule after the last one + closeOffset"
-            defaultValue = false
+            defaultValue = true
         }
         val closeOffset by optionalDuration {
             name = "close-offset"
             description = "The close offset of the attendance event"
+            validate {
+                requireMinDuration(5.minutes)
+            }
         }
         val notifyOffset by optionalDuration {
             name = "notify-offset"
             description = "The notify offset of the attendance event"
+            validate {
+                requireMinDuration(10.seconds)
+            }
         }
-        val scheduleTimeout by optionalDuration {
+        val scheduleTimeout by defaultingDuration {
             name = "schedule-timeout"
             description = "The schedule timeout of the attendance event"
+            defaultValue = 10.seconds
+            validate {
+                requireMinDuration(10.seconds)
+            }
         }
         val notifyAttendees by defaultingBoolean {
             name = "notify-attendees"
@@ -464,6 +532,12 @@ class AttendanceExtension : Extension() {
         val notifyRole by optionalRole {
             name = "notify-role"
             description = "The role template to notify attendees with (will be cloned)"
+            validate {
+                if (value != null) {
+                    failIf { context.guild?.selfMember?.canInteract(value!!) == false }
+                    failIf { context.guild?.selfMember?.hasPermission(Permission.MANAGE_ROLES) == false }
+                }
+            }
         }
         val requiredRole by optionalRole {
             name = "required-role"
@@ -472,6 +546,12 @@ class AttendanceExtension : Extension() {
 
         val nextMoment: LocalDateTime by lazy {
             nextMomentFromMomentOrSchedule(moment, schedule)
+        }
+    }
+
+    private suspend fun ValidationContext<Duration?>.requireMinDuration(min: Duration) {
+        failIf(tr("duration.minimalValue", min)) {
+            value != null && value!! < min
         }
     }
 
