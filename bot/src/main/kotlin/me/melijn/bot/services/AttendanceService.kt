@@ -136,9 +136,11 @@ class AttendanceService {
                 AttendanceState.NOTIFIED -> {
                     val role = entry.notifyRoleId?.let { guild.getRoleById(it) }
                     if (role != null) {
-                        messageEditor.apply {
-                            content = "Reminder: ${role.asMention}"
-                        }
+                        textChannel
+                            .sendMessage("Reminder: ${role.asMention}")
+                            .mentionRoles(role.id)
+                            .setMessageReference(message.idLong)
+                            .awaitOrNull() ?: throw UnHandleableAttendanceException()
                     } else {
                         entry.notifyOffset = null
                     }
