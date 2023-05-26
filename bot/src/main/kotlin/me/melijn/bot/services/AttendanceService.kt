@@ -8,7 +8,6 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toJavaInstant
-import kotlinx.datetime.toKotlinInstant
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.commands.AttendanceExtension
 import me.melijn.bot.database.manager.AttendanceManager
@@ -188,11 +187,13 @@ class AttendanceService {
         } ?: throw UnHandleableAttendanceException()
 
         val timeZone = entry.zoneId?.let { ZoneId.of(it) } ?: ZoneId.of("UTC")
+        val nextZoned = nextMoment.atZone(timeZone)
+        val ms = nextZoned.toEpochSecond() * 1000
         val messageData = AttendanceExtension.getAttendanceMessage(
-            entry.topic, entry.description, nextMoment, timeZone
+            entry.topic, entry.description, nextZoned
         )
 
-        val nextInstant = java.time.Instant.from(nextMoment).toKotlinInstant()
+        val nextInstant = Instant.fromEpochMilliseconds(ms)
         entry.apply {
             this.messageId = textChannel.sendMessage(messageData).await().idLong
             this.state = AttendanceState.LISTENING

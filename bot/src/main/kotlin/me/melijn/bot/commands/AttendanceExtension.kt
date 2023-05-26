@@ -98,8 +98,6 @@ class AttendanceExtension : Extension() {
                     var givenMoment = this.arguments.nextMoment
 
                     val zone = this.arguments.zoneId
-                    val atZone = givenMoment.atZone(zone)
-                    val ms = atZone.toEpochSecond() * 1000
 
                     this.event.replyModal("attendance-create-modal", "Create Attendance Event") {
                         this.short("topic", "Topic", true, topic, placeholder = "Title or topic for the event")
@@ -138,14 +136,15 @@ class AttendanceExtension : Extension() {
                     val moment =
                         modalInteractionEvent.getValue("moment")?.asString?.let { DateTimeConverter.parseFromString(it) }
                     givenMoment = nextMomentFromMomentOrSchedule(moment, schedule)
+                    val atZone = givenMoment.atZone(zone)
+                    val ms = atZone.toEpochSecond() * 1000
 
                     val textChannel = arguments.channel
                     val message = textChannel.sendMessage(
                         getAttendanceMessage(
                             topic,
                             description,
-                            givenMoment,
-                            zone
+                            atZone
                         )
                     ).await()
 
@@ -356,11 +355,10 @@ class AttendanceExtension : Extension() {
         fun getAttendanceMessage(
             topic: String,
             description: String?,
-            givenMoment: LocalDateTime,
-            timeZone: ZoneId
+            givenZoned: ZonedDateTime
         ) = MessageCreate {
-            val discordTimestamp = TimeFormat.DATE_TIME_LONG.format(givenMoment.atZone(timeZone))
-            val discordReltime = TimeFormat.RELATIVE.format(givenMoment.atZone(timeZone))
+            val discordTimestamp = TimeFormat.DATE_TIME_LONG.format(givenZoned)
+            val discordReltime = TimeFormat.RELATIVE.format(givenZoned)
             val translations: TranslationsProvider by inject()
             embed {
                 title = topic
