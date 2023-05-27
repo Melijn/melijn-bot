@@ -46,11 +46,11 @@ object Attendance: Table("attendance") {
     // attendees are cleared when (nextMoment + schedule_timeout) is hit
     val scheduleTimeout = duration("schedule_timeout").nullable()
 
-    override val primaryKey: PrimaryKey = PrimaryKey(guildId, channelId, messageId)
+    override val primaryKey: PrimaryKey = PrimaryKey(attendanceId)
 
     init {
-        index(true, attendanceId) // name = attendance_key
-        index(false, nextStateChangeMoment) // name = attendance_key
+        index(true, guildId, channelId, messageId) // name = guild_channel_message_key
+        index(false, nextStateChangeMoment) // name = next_state_change_key
         index(false, guildId) // name = guild_key
     }
 }

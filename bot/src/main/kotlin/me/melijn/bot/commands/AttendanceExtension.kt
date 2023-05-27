@@ -422,7 +422,7 @@ class AttendanceExtension : Extension() {
                 isId = id != null
                 if (isId) {
                     this.failIf {
-                        attendanceManager.getByAttendanceKey(id!!)?.guildId != guildId
+                        attendanceManager.getById(id!!)?.guildId != guildId
                     }
                 } else if (jumpUrlRegex.matches(value)) {
                     failIf {
@@ -441,7 +441,7 @@ class AttendanceExtension : Extension() {
             val translations: TranslationsProvider by inject()
 
             return@async if (isId)
-                attendanceManager.getByAttendanceKey(attendanceId.toLong())
+                attendanceManager.getById(attendanceId.toLong())
             else {
                 fun regexGroupBail(): Nothing = bail("broken jda regex: Message.JUMP_URL_PATTERN")
 
@@ -451,7 +451,7 @@ class AttendanceExtension : Extension() {
                 val channelId = res.groups["channel"]?.value?.toLong() ?: regexGroupBail()
                 val messageId = res.groups["message"]?.value?.toLong() ?: regexGroupBail()
 
-                attendanceManager.getById(guildId, channelId, messageId)
+                attendanceManager.getByGuildChannelMessageKey(guildId, channelId, messageId)
             } ?: bail(translations.tr("attendance.suppliedInvalidIdOrMsgUrl", locale))
         }
     }

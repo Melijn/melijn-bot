@@ -60,7 +60,7 @@ class AttendanceButtonHandler {
         val messageId = interaction.messageIdLong
         if (!buttonId.startsWith(ATTENDANCE_BTN_PREFIX)) return
         if (buttonId == ATTENDANCE_BTN_PREFIX + ATTENDANCE_BTN_ATTEND) {
-            val attendanceEntry = attendanceManager.getById(guildId, channelId, messageId) ?: return
+            val attendanceEntry = attendanceManager.getByGuildChannelMessageKey(guildId, channelId, messageId) ?: return
             val role = attendanceEntry.requiredRole?.let { guild.getRoleById(it) ?: return }
             if (role != null) {
                 if (!member.hasRole(role)) return
@@ -94,7 +94,7 @@ class AttendanceButtonHandler {
                 queueMessageUpdate(attendanceEntry, true, interaction.message, hook)
             }
         } else if (buttonId == ATTENDANCE_BTN_PREFIX + ATTENDANCE_BTN_REVOKE) {
-            val attendanceEntry = attendanceManager.getById(guildId, channelId, messageId) ?: return
+            val attendanceEntry = attendanceManager.getByGuildChannelMessageKey(guildId, channelId, messageId) ?: return
             val attendeeEntry = attendeesManager.getById(attendanceEntry.attendanceId, member.idLong) ?: run {
                 interaction.reply("You are not registered as attending for **${attendanceEntry.topic}**")
                     .setEphemeral(true).await()
