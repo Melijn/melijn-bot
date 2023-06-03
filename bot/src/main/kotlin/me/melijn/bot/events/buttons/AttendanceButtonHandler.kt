@@ -50,6 +50,7 @@ class AttendanceButtonHandler {
         var lostAttendees: MutableSet<UserSnowflake>,
         var updater: Job? = null
     )
+
     // AttendanceID -> updateInfo
     val messageUpdateMap = ConcurrentHashMap<Long, MessageUpdateInfo>()
 
@@ -86,14 +87,15 @@ class AttendanceButtonHandler {
                 attendanceEntry.notifyRoleId?.let {
                     val notifyRole = guild.getRoleById(it) ?: return@let
                     try {
-                        guild.addRoleToMember(member, notifyRole).reason("attendance notify role").queue()
+                        guild.addRoleToMember(member, notifyRole).reason("(attendance attend)").queue()
                     } catch (t: Exception) {
                         extraInfo = "Couldn't give you the notify role: ${t.message}"
                     }
                 }
-                val hook = interaction.reply("You are now registered as attending for **${attendanceEntry.topic}**\n" + extraInfo)
-                    .setEphemeral(true)
-                    .await()
+                val hook =
+                    interaction.reply("You are now registered as attending for **${attendanceEntry.topic}**\n" + extraInfo)
+                        .setEphemeral(true)
+                        .await()
                 queueMessageUpdate(attendanceEntry, true, interaction.message, hook)
             }
         } else if (buttonId == ATTENDANCE_BTN_PREFIX + ATTENDANCE_BTN_REVOKE) {
@@ -110,8 +112,19 @@ class AttendanceButtonHandler {
             val now = Clock.System.now()
             if (now < nextCloseTime) {
                 attendeesManager.delete(attendeeEntry)
+                // Give notify role if configured
+
+                var extraInfo = ""
+                attendanceEntry.notifyRoleId?.let {
+                    val notifyRole = guild.getRoleById(it) ?: return@let
+                    try {
+                        guild.removeRoleFromMember(member, notifyRole).reason("(attendance revoke)").queue()
+                    } catch (t: Exception) {
+                        extraInfo = "Couldn't take your notify role away: ${t.message}"
+                    }
+                }
                 val hook =
-                    interaction.reply("You are no longer registered as attending for **${attendanceEntry.topic}**")
+                    interaction.reply("You are no longer registered as attending for **${attendanceEntry.topic}**\n" + extraInfo)
                         .setEphemeral(true).await()
                 queueMessageUpdate(attendanceEntry, false, interaction.message, hook)
             }
@@ -213,7 +226,7 @@ class AttendanceButtonHandler {
                 }
 
                 val out = sb.toString()
-                description =if (messageUpdateInfo.lostAttendees.isNotEmpty()) out.replace(regex, "")
+                description = if (messageUpdateInfo.lostAttendees.isNotEmpty()) out.replace(regex, "")
                 else out
             }.build()
         ).queue()
