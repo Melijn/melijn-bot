@@ -13,6 +13,7 @@ import me.melijn.ap.injector.Inject
 import me.melijn.bot.database.manager.AttendanceManager
 import me.melijn.bot.database.manager.AttendeesManager
 import me.melijn.bot.utils.KoinUtil.inject
+import me.melijn.bot.utils.Log
 import me.melijn.gen.AttendanceData
 import me.melijn.gen.AttendeesData
 import me.melijn.kordkommons.async.TaskScope
@@ -30,6 +31,7 @@ class AttendanceButtonHandler {
 
     val attendanceManager by inject<AttendanceManager>()
     val attendeesManager by inject<AttendeesManager>()
+    val logger by Log
 
     init {
         val kord by inject<ShardManager>()
@@ -90,7 +92,8 @@ class AttendanceButtonHandler {
                     }
                 }
                 val hook = interaction.reply("You are now registered as attending for **${attendanceEntry.topic}**\n" + extraInfo)
-                    .setEphemeral(true).await()
+                    .setEphemeral(true)
+                    .await()
                 queueMessageUpdate(attendanceEntry, true, interaction.message, hook)
             }
         } else if (buttonId == ATTENDANCE_BTN_PREFIX + ATTENDANCE_BTN_REVOKE) {
@@ -186,6 +189,13 @@ class AttendanceButtonHandler {
         messageUpdateInfo: MessageUpdateInfo
     ) {
         val lastInteractionHook = messageUpdateInfo.lastInteractionHook
+
+        logger.info("Updating attendance message for ${messageUpdateInfo.prevMessage.idLong}")
+
+        logger.info("Application ID: ${messageUpdateInfo.prevMessage.applicationId}")
+        logger.info("Interaction ID: ${lastInteractionHook.interaction.id}")
+        logger.info("Interaction Token: ${lastInteractionHook.interaction.token}")
+
 
         lastInteractionHook.editMessageEmbedsById(
             messageUpdateInfo.prevMessage.idLong,
