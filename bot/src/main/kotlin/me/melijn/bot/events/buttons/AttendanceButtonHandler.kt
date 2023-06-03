@@ -45,7 +45,7 @@ class AttendanceButtonHandler {
     data class MessageUpdateInfo(
         var lastUpdate: Instant,
         val prevMessage: Message,
-        val lastInteractionHook: InteractionHook,
+        var lastInteractionHook: InteractionHook,
         var newAttendees: MutableSet<UserSnowflake>,
         var lostAttendees: MutableSet<UserSnowflake>,
         var updater: Job? = null
@@ -148,6 +148,8 @@ class AttendanceButtonHandler {
             mutableSetOf(),
             updaterJob(attendanceEntry.attendanceId)
         )
+        queueEntry.lastInteractionHook = hook
+
         if (new) queueEntry.newAttendees.add(user)
         else queueEntry.lostAttendees.add(user)
 
@@ -203,12 +205,12 @@ class AttendanceButtonHandler {
     ) {
         val lastInteractionHook = messageUpdateInfo.lastInteractionHook
 
-        logger.info("Updating attendance message for ${messageUpdateInfo.prevMessage.idLong}")
+        logger.info(">> Updating attendance message for ${messageUpdateInfo.prevMessage.idLong}")
 
-        logger.info("Application ID: ${messageUpdateInfo.prevMessage.applicationId}")
+        val shardManager by inject<ShardManager>()
+        logger.info("Application ID: ${shardManager.shards.first().selfUser.applicationId}")
         logger.info("Interaction ID: ${lastInteractionHook.interaction.id}")
         logger.info("Interaction Token: ${lastInteractionHook.interaction.token}")
-
 
         lastInteractionHook.editMessageEmbedsById(
             messageUpdateInfo.prevMessage.idLong,
@@ -229,7 +231,11 @@ class AttendanceButtonHandler {
                 description = if (messageUpdateInfo.lostAttendees.isNotEmpty()) out.replace(regex, "")
                 else out
             }.build()
-        ).queue()
+        ).queue({ s ->
+            logger.info("<< Updated attendance message for ${messageUpdateInfo.prevMessage.idLong}")
+        }, {
+            logger.error("<< Couldn't update attendance message: ${it.message}", it)
+        })
     }
 
     companion object {
