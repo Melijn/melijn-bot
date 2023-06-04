@@ -19,7 +19,10 @@ object Attendance: Table("attendance") {
 
     // given to attendees for this attendance event
     val requiredRole = long("required_role_id").nullable()
+
+    val notifyRoleTemplateId = long("notify_role_template_id").nullable()
     val notifyRoleId = long("notify_role_id").nullable()
+    val notifyMessageId = long("notify_message_id").nullable()
 
     // At (nextMoment - closeOffset) we should stop accepting new attendees
     val closeOffset = duration("close_offset").nullable()

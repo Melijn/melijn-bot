@@ -135,11 +135,12 @@ class AttendanceService {
                 AttendanceState.NOTIFIED -> {
                     val role = entry.notifyRoleId?.let { guild.getRoleById(it) }
                     if (role != null) {
-                        textChannel
+                        val msg = textChannel
                             .sendMessage("Reminder: ${role.asMention}")
                             .mentionRoles(role.id)
                             .setMessageReference(message.idLong)
                             .awaitOrNull() ?: throw UnHandleableAttendanceException()
+                        entry.notifyMessageId = msg.idLong
                     } else {
                         entry.notifyOffset = null
                     }
@@ -202,13 +203,28 @@ class AttendanceService {
                 nextInstant - maxOf(this.closeOffset ?: Duration.ZERO, this.notifyOffset ?: Duration.ZERO)
         }
 
-        // recreates the notify role so it's removed from attendees, saves the new id to the entry state
-        entry.notifyRoleId?.let {
-            val notifyRole = textChannel.guild.getRoleById(it) ?: return@let
+        // recreates the notify role, so it's removed from attendees, saves the new id to the entry state
+        entry.notifyRoleTemplateId?.let {
+            val templateRole = textChannel.guild.getRoleById(it) ?: return@let
+            val oldNotifyRole = entry.notifyRoleId?.let { it1 -> textChannel.guild.getRoleById(it1) }
             val newNotifyRole =
-                textChannel.guild.createCopyOfRole(notifyRole).reason("attendance notify role creation").awaitOrNull()
+                textChannel.guild
+                    .createCopyOfRole(templateRole)
+                    .setName(templateRole.name + "*")
+                    .reason("(attendance) create notify role").awaitOrNull()
             entry.notifyRoleId = newNotifyRole?.idLong
-            notifyRole.delete().reason("delete attendance notify role").queue()
+            oldNotifyRole?.delete()?.reason("(attendance) delete old notify role")?.queue()
+
+            // Make the now outdated notify message appear still valid by swapping out
+            // the mention for the template role mention
+            entry.notifyMessageId?.let { it1 ->
+                textChannel.retrieveMessageById(it1)
+                    .awaitOrNull()
+                    ?.editMessage("Reminder: ${templateRole.asMention}")
+                    ?.queue()
+                entry.notifyMessageId = null
+            }
+
         }
 
         // deregister all attendees

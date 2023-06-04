@@ -155,9 +155,12 @@ class AttendanceExtension : Extension() {
 
                     val maxOffset = maxOf(closeOffset ?: ZERO, notifyOffset ?: ZERO)
 
-                    val notifyRoleId = arguments.notifyRole?.idLong?.let {
+                    val notifyRoleTemplateId = arguments.notifyRoleTemplate?.idLong
+                    val notifyRoleId = notifyRoleTemplateId?.let {
                         val role = guild.getRoleById(it) ?: return@let null
-                        guild.createCopyOfRole(role).reason("attendance notify role creation").await().idLong
+                        guild.createCopyOfRole(role).setName(role.name + "*")
+                            .reason("(attendance) notify role creation")
+                            .await().idLong
                     }
 
                     val data = attendanceManager.insertAndGetRow(
@@ -165,7 +168,9 @@ class AttendanceExtension : Extension() {
                         arguments.channel.idLong,
                         message.idLong,
                         arguments.requiredRole?.idLong,
+                        notifyRoleTemplateId,
                         notifyRoleId,
+                        null,
                         closeOffset,
                         arguments.notifyAttendees,
                         notifyOffset,
@@ -527,7 +532,7 @@ class AttendanceExtension : Extension() {
             description = "Whether or not to notify attendees"
             defaultValue = true
         }
-        val notifyRole by optionalRole {
+        val notifyRoleTemplate by optionalRole {
             name = "notify-role"
             description = "The role template to notify attendees with (will be cloned)"
             validate {
