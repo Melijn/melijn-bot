@@ -186,6 +186,7 @@ $body
             val t = """
     object ${it.key} : PersistentUsageLimitType() {
 ${it.value}
+        override fun toString(): String { return "${it.key}" }
     }"""
             t
         }

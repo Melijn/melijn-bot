@@ -185,7 +185,8 @@ class UtilityExtension : Extension() {
                             user.id, user.isBot, isSupporter, user.effectiveAvatarUrl,
                             profile.banner != null, profile.bannerUrl,
                             TimeFormat.DATE_TIME_SHORT.format(user),
-                            user.flags.joinToString(separator = " ") { getBadge(it) })
+                            user.flags.joinToString(separator = " ") { getBadge(it) },
+                            user.globalName)
 
                         if (member != null) {
                             val roleString = member.roles.toList()
@@ -196,7 +197,7 @@ class UtilityExtension : Extension() {
                                 }
                             description += tr(
                                 "userInfo.memberInfoSection", roleString,
-                                member.nickname ?: "",
+                                member.nickname,
                                 member.isOwner,
                                 TimeFormat.DATE_TIME_SHORT.format(member.timeJoined),
                                 member.timeBoosted?.let { TimeFormat.DATE_TIME_SHORT.format(it) } ?: "",
@@ -388,7 +389,7 @@ class UtilityExtension : Extension() {
                 val target = guild.retrieveMember(this.target).await()
 
                 val currentName = target.effectiveName
-                val properName = StringsUtil.filterGarbage(currentName)
+                val properName = StringsUtil.getNormalizedUsername(target)
                 if (properName == currentName) {
                     respond {
                         content = tr("namenormalization.fail.noSanitize")
@@ -397,7 +398,7 @@ class UtilityExtension : Extension() {
                     if (!guild.selfMember.canInteract(target))
                         bail(tr("namenormalization.fail.noPermission"))
 
-                    UserNameListener.fixName(target)
+                    UserNameListener.fixName(target, properName)
 
                     respond {
                         content = tr("namenormalization.success", MarkdownUtil.monospace(currentName), MarkdownUtil.monospace(properName))
