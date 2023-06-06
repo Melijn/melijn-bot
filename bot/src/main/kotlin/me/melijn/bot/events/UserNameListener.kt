@@ -46,7 +46,7 @@ class UserNameListener {
     }
 
     companion object {
-        suspend fun fixName(member: Member, properName: String) {
+        suspend fun fixName(member: Member, properName: String = StringsUtil.filterGarbage(member.effectiveName)) {
             member.modifyNickname(properName)
                 .reason("Name contains extraneous characters.")
                 .await()
