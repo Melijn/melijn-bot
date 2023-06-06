@@ -9,6 +9,7 @@ import com.kotlindiscord.kord.extensions.commands.application.DefaultApplication
 import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandRegistry
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
+import com.kotlindiscord.kord.extensions.extensions.ephemeralUserCommand
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.extensions.publicUserCommand
 import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
@@ -19,19 +20,23 @@ import dev.minn.jda.ktx.messages.MessageEdit
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.InvitesManager
 import me.melijn.bot.database.manager.MemberJoinTrackingManager
+import me.melijn.bot.events.UserNameListener
 import me.melijn.bot.utils.JDAUtil.asTag
 import me.melijn.bot.utils.JDAUtil.toHex
 import me.melijn.bot.utils.KoinUtil
+import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.StringsUtil
 import me.melijn.bot.utils.StringsUtil.batchingJoinToString
 import me.melijn.bot.utils.TimeUtil.format
+import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.GuildVoiceState
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Role
 import net.dv8tion.jda.api.entities.User
+import net.dv8tion.jda.api.utils.MarkdownUtil
 import net.dv8tion.jda.api.utils.SplitUtil
 import net.dv8tion.jda.api.utils.TimeFormat
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
@@ -202,8 +207,9 @@ class UtilityExtension : Extension() {
                         if (inviteInfo != null) {
                             val inviteData = inviteManager.getById(inviteInfo.inviteCode, guild.idLong)
                             val inviteInfoString = inviteData?.let { invite ->
-                                val expiresString = invite.expiry?.let { TimeFormat.RELATIVE.format(invite.createdAt + it) }
-                                    ?: "never"
+                                val expiresString =
+                                    invite.expiry?.let { TimeFormat.RELATIVE.format(invite.createdAt + it) }
+                                        ?: "never"
                                 "(`${invite.inviteCode}`, uses: **${invite.uses}**, expiry: ${expiresString})"
                             } ?: "`${inviteInfo.inviteCode}`"
                             description += tr(
@@ -367,6 +373,36 @@ class UtilityExtension : Extension() {
                         filtered = "\u200b" // Just send a message that _looks_ empty
 
                     content = filtered
+                }
+            }
+        }
+
+
+        ephemeralUserCommand {
+            name = "Normalize name"
+
+            requireBotPermissions(Permission.NICKNAME_CHANGE)
+            requirePermission(Permission.NICKNAME_CHANGE)
+
+            action {
+                val guild = this.guild ?: bail("Must be executed in a guild")
+                val target = guild.retrieveMember(this.target).await()
+
+                val currentName = target.effectiveName
+                val properName = StringsUtil.filterGarbage(currentName)
+                if (properName == currentName) {
+                    respond {
+                        content = tr("namenormalization.fail.noSanitize")
+                    }
+                } else {
+                    if (!guild.selfMember.canInteract(target))
+                        bail(tr("namenormalization.fail.noPermission"))
+
+                    UserNameListener.fixName(target, properName)
+
+                    respond {
+                        content = tr("namenormalization.success", MarkdownUtil.monospace(currentName), MarkdownUtil.monospace(properName))
+                    }
                 }
             }
         }
