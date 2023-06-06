@@ -48,11 +48,11 @@ val kotlin = "1.8.20"
 val scrimage = "4.0.34"
 
 val jda = "5.0.0-beta.10"
-val kordEx = "1.5.7-SNAPSHOT"
-val kordKommons = "0.0.6-SNAPSHOT"
+val kordEx = "1.6.0-SNAPSHOT"
+val kordKommons = "0.0.7-SNAPSHOT"
 
 dependencies {
-    implementation("net.dv8tion:JDA:$jda")   // let kord-ex handle kord version
+    implementation("net.dv8tion:JDA:$jda")
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
     ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
 
