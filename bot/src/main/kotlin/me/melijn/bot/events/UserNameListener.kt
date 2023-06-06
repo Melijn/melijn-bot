@@ -41,6 +41,12 @@ class UserNameListener {
         val properName = StringsUtil.filterGarbage(effectiveName)
         if (properName != effectiveName) {
             // change it.
+            fixName(member, properName)
+        }
+    }
+
+    companion object {
+        suspend fun fixName(member: Member, properName: String) {
             member.modifyNickname(properName)
                 .reason("Name contains extraneous characters.")
                 .await()
