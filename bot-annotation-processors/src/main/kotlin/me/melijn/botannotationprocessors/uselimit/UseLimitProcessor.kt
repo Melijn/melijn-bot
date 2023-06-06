@@ -284,8 +284,8 @@ class $managerName(override val driverManager: DriverManager) : $abstractManager
 ${indexFields.joinToString(" and\n") { " ".repeat(20) + "($simpleName.$it eq $it)" }}
         }, { moment, type ->
 ${indexFields.joinToString("\n") { " ".repeat(12) + "this[$simpleName.$it] = $it" }}
-            this[UserCommandUseLimitHistory.type] = type
-            this[UserCommandUseLimitHistory.moment] = moment
+            this[$simpleName.type] = type
+            this[$simpleName.moment] = moment
         })
             """
             useLimitManagerFuncs.add(getter)
