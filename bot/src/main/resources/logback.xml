@@ -17,9 +17,28 @@
     <logger name="io.lettuce.core" level="INFO"/>
     <logger name="com.zaxxer.hikari" level="INFO"/>
     <logger name="net.dv8tion.jda.api.requests.RestRateLimiter" level="TRACE"/>
+    <logger name="net.dv8tion.jda.internal.requests.Requester" level="TRACE"/>
 
-<!--    <root level="ERROR">-->
-<!--        <appender-ref ref="FILE"/>-->
-<!--    </root>-->
+    <appender name="DAILYFILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/watchdog.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/watchdog-%i.log.zip</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>10</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>100MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%d{dd-MM-yyyy HH:mm:ss} %thread %logger{0} %level %msg%n
+            </pattern>
+            <pattern>%d{yyyy-MM-dd} %d{HH:mm:ss} %5level %40.40logger{40} | %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="DAILYFILE"/>
+    </root>
 
 </configuration>
