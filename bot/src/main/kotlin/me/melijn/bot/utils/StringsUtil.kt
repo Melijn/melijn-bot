@@ -5,6 +5,7 @@ import io.github.furstenheim.CopyDown
 import io.github.furstenheim.OptionsBuilder
 import net.dv8tion.jda.api.entities.Member
 import org.springframework.boot.ansi.AnsiColor
+import java.lang.Character.UnicodeBlock
 import java.text.Normalizer
 import kotlin.random.Random
 
@@ -47,17 +48,30 @@ object StringsUtil {
     private fun normalize(s: String): String = Normalizer.normalize(s, Normalizer.Form.NFKC)
 
     fun getNormalizedUsername(member: Member): String {
+        if (filterGarbage(member.effectiveName) == member.effectiveName) return member.effectiveName
+
         val username = member.user.name
         val displayName = member.user.globalName
         val nick = member.nickname
-        return nick?.let { filterGarbage(it) }?.takeIf { it.isNotBlank() } ?: displayName?.let { filterGarbage(it) }
-            ?.takeIf { it.isNotBlank() } ?: filterGarbage(username).takeIf { it.isNotBlank() } ?: "Nr${
-            Random.nextInt(member.guild.memberCount)
-        }"
+
+        fun improveNameOrNull(nick: String?): String? = nick?.let {
+            filterGarbage(it)
+        }?.takeIf {
+            it.isNotBlank() && it != username
+        }
+
+        return improveNameOrNull(nick)
+            ?: improveNameOrNull(displayName)
+            ?: improveNameOrNull(username)
+            ?: "Nr${Random.nextInt(member.guild.memberCount)}"
     }
 
-    fun filterGarbage(s: String) = normalize(s).toCharArray().filter {
-        Character.isWhitespace(it) || Character.isLetterOrDigit(it)
+    private val allowedBlocks: Set<UnicodeBlock> = setOf(
+        UnicodeBlock.THAI
+    )
+
+    fun filterGarbage(s: String): String = normalize(s).toCharArray().filter {
+        Character.isWhitespace(it) || Character.isLetterOrDigit(it) || allowedBlocks.contains(UnicodeBlock.of(it))
     }.joinToString(separator = "") {
         if (it.isTitleCase()) it.lowercase() else it.toString()
     }.trim()

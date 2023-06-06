@@ -5,6 +5,7 @@ import dev.minn.jda.ktx.events.listener
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.database.manager.GuildSettingsManager
 import me.melijn.bot.utils.KoinUtil
+import me.melijn.bot.utils.Log
 import me.melijn.bot.utils.StringsUtil
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Guild
@@ -17,6 +18,7 @@ import net.dv8tion.jda.api.sharding.ShardManager
 class UserNameListener {
 
     private val guildSettingsManager by KoinUtil.inject<GuildSettingsManager>()
+    val logger by Log
 
     init {
         val shardManager by KoinUtil.inject<ShardManager>()
@@ -40,6 +42,7 @@ class UserNameListener {
         val effectiveName = member.effectiveName
         val properName = StringsUtil.getNormalizedUsername(member)
         if (properName != effectiveName) {
+            logger.info { "Fixing updated name of ${member.user.idLong} in ${member.guild.idLong} from $effectiveName to $properName" }
             // change it.
             fixName(member, properName)
         }
@@ -52,6 +55,4 @@ class UserNameListener {
                 .await()
         }
     }
-
-
 }
