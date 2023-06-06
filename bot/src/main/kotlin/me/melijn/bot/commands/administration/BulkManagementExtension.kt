@@ -3,6 +3,7 @@ package me.melijn.bot.commands.administration
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.minn.jda.ktx.coroutines.await
+import kotlinx.datetime.Clock
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.events.UserNameListener
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
@@ -11,6 +12,7 @@ import me.melijn.bot.utils.StringsUtil
 import me.melijn.gen.uselimits.PersistentUsageLimitType
 import net.dv8tion.jda.api.Permission
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 
 @KordExtension
 class BulkManagementExtension : Extension() {
@@ -46,11 +48,13 @@ class BulkManagementExtension : Extension() {
                     content = header
                 }
 
+                var lastUpdate = Clock.System.now()
                 members.forEachIndexed { index, member ->
                     val count = index + 1
-                    if (count % 100 == 0) {
+                    if (count % 100 == 0 || (Clock.System.now() - lastUpdate > 5.minutes)) {
                         hook.editMessage("$header\n\n${tr("namenormalization.admin.progress", count)}")
                             .await()
+                        lastUpdate = Clock.System.now()
                     }
                     UserNameListener.fixName(member)
                 }
