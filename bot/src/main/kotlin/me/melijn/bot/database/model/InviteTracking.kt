@@ -42,7 +42,6 @@ object MemberJoinTracking : Table("member_join_tracking") {
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId)
 
     init {
-        index(true, guildId) // name = guild_user_key
-        index(false, guildId, userId) // name = guild_user_key
+        index(false, guildId) // name = guild_key
     }
 }
