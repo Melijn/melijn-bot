@@ -21,19 +21,19 @@ class UserNameListener {
     init {
         val shardManager by KoinUtil.inject<ShardManager>()
         shardManager.listener<GuildMemberJoinEvent> { event ->
-            if (shouldNameNormalize(event.guild)) return@listener
+            if (!shouldNameNormalize(event.guild)) return@listener
             fixUserName(event.member)
         }
 
         shardManager.listener<GuildMemberUpdateEvent> { event ->
-            if (shouldNameNormalize(event.guild)) return@listener
+            if (!shouldNameNormalize(event.guild)) return@listener
             fixUserName(event.member)
         }
     }
 
     private suspend fun shouldNameNormalize(guild: Guild): Boolean =
-        !guildSettingsManager.get(guild).enableNameNormalization ||
-                !guild.selfMember.hasPermission(Permission.NICKNAME_CHANGE)
+        guildSettingsManager.get(guild).enableNameNormalization
+                && guild.selfMember.hasPermission(Permission.NICKNAME_CHANGE)
 
     private suspend fun fixUserName(member: Member) {
         // if the user has a garbage name,
