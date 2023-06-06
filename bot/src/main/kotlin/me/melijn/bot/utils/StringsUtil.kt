@@ -44,5 +44,5 @@ object StringsUtil {
         Character.isWhitespace(it) || Character.isLetterOrDigit(it)
     }.joinToString(separator = "") {
         if (it.isTitleCase()) it.lowercase() else it.toString()
-    }
+    }.trim()
 }
