@@ -47,7 +47,7 @@ val kotlinX = "1.6.4" // https://mvnrepository.com/artifact/org.jetbrains.kotlin
 val kotlin = "1.8.20"
 val scrimage = "4.0.34"
 
-val jda = "5.0.0-beta.6"
+val jda = "5.0.0-beta.10"
 val kordEx = "1.5.7-SNAPSHOT"
 val kordKommons = "0.0.6-SNAPSHOT"
 
