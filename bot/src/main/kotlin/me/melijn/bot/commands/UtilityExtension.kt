@@ -377,7 +377,6 @@ class UtilityExtension : Extension() {
             }
         }
 
-
         ephemeralUserCommand {
             name = "Normalize name"
 
@@ -398,7 +397,7 @@ class UtilityExtension : Extension() {
                     if (!guild.selfMember.canInteract(target))
                         bail(tr("namenormalization.fail.noPermission"))
 
-                    UserNameListener.fixName(target, properName)
+                    UserNameListener.fixName(target)
 
                     respond {
                         content = tr("namenormalization.success", MarkdownUtil.monospace(currentName), MarkdownUtil.monospace(properName))

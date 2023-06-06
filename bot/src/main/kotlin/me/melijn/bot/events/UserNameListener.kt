@@ -38,7 +38,7 @@ class UserNameListener {
     private suspend fun fixUserName(member: Member) {
         // if the user has a garbage name,
         val effectiveName = member.effectiveName
-        val properName = StringsUtil.filterGarbage(effectiveName)
+        val properName = StringsUtil.getNormalizedUsername(member)
         if (properName != effectiveName) {
             // change it.
             fixName(member, properName)
@@ -46,7 +46,7 @@ class UserNameListener {
     }
 
     companion object {
-        suspend fun fixName(member: Member, properName: String = StringsUtil.filterGarbage(member.effectiveName)) {
+        suspend fun fixName(member: Member, properName: String = StringsUtil.getNormalizedUsername(member)) {
             member.modifyNickname(properName)
                 .reason("Name contains extraneous characters.")
                 .await()

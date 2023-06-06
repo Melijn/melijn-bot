@@ -32,7 +32,7 @@ class BulkManagementExtension : Extension() {
                 val guild = this.guild!!
                 val members = guild.findMembers {
                     !it.user.isBot
-                            && StringsUtil.filterGarbage(it.effectiveName) != it.effectiveName
+                            && StringsUtil.getNormalizedUsername(it) != it.effectiveName
                             && guild.selfMember.canInteract(it)
                 }.await()
 
