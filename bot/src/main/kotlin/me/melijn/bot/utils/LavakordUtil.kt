@@ -1,11 +1,40 @@
 package me.melijn.bot.utils
 
+import com.kotlindiscord.kord.extensions.utils.getKoin
+import com.kotlindiscord.kord.extensions.utils.scheduling.TaskConfig
 import dev.schlaubi.lavakord.audio.retry.Retry
+import dev.schlaubi.lavakord.jda.LavaKordShardManager
+import dev.schlaubi.lavakord.jda.lavakord
 import kotlinx.coroutines.delay
+import me.melijn.bot.Melijn
+import me.melijn.bot.music.MusicManager
+import me.melijn.gen.Settings
+import net.dv8tion.jda.api.sharding.ShardManager
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
-internal class RealLinearRetry constructor(
+suspend fun loadLavaLink(lShardManager: LavaKordShardManager) {
+    val kord by getKoin().inject<ShardManager>()
+    Melijn.lavalink = kord.lavakord(lShardManager, TaskConfig.dispatcher) {
+        link {
+            autoReconnect = true
+            retry = RealLinearRetry(1.seconds, 60.seconds, Int.MAX_VALUE)
+        }
+    }
+
+    val nodeUrls = Settings.lavalink.url
+    val nodePasswords = Settings.lavalink.password
+
+    for (i in nodeUrls.indices) {
+        Melijn.lavalink.addNode(nodeUrls[i], nodePasswords[i], "node$i")
+    }
+    for (node in Melijn.lavalink.nodes) {
+        MusicManager.setupReconnects(node)
+    }
+}
+
+internal class RealLinearRetry(
     private val firstBackoff: Duration,
     private val maxBackoff: Duration,
     private val maxTries: Int

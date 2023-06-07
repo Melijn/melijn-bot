@@ -267,7 +267,7 @@ class $managerName(override val driverManager: DriverManager) : $abstractManager
             @Language("kotlin")
             val getter = """
     /** (${indexFieldsAsArgs}) use limit history scope **/
-    fun get${funcId}History(${params}): MelUsageHistory {
+    suspend fun get${funcId}History(${params}): MelUsageHistory {
         val usageEntries = usageHistoryManager.getBy${funcId}Key(${indexFieldsAsArgs})
         val limitHitEntries = ${managerFieldName}.${indexGetter}(${indexFieldsAsArgs})
             .groupBy({ it.type }, { it.moment })
@@ -278,7 +278,7 @@ class $managerName(override val driverManager: DriverManager) : $abstractManager
             @Language("kotlin")
             val setter = """
     /** (${indexFieldsAsArgs}) use limit history scope **/
-    fun set${funcId}HistSerialized(${params}, usageHistory: MelUsageHistory) =
+    suspend fun set${funcId}HistSerialized(${params}, usageHistory: MelUsageHistory) =
         usageHistoryManager.runQueriesForHitTypes(usageHistory, $simpleName, { moment, type ->
             ($simpleName.moment less moment) and
                     ($simpleName.type eq type) and
@@ -366,7 +366,7 @@ import org.jetbrains.exposed.sql.deleteWhere
 class $managerName(override val driverManager: DriverManager) : $abstractManagerName(driverManager) {
 
     /** Usage history tracker **/
-    fun updateUsage(guildId: Long?, channelId: ISnowflake, userId: ISnowflake, commandId: Int) {
+    suspend fun updateUsage(guildId: Long?, channelId: ISnowflake, userId: ISnowflake, commandId: Int) {
         val moment = Clock.System.now()
         scopedTransaction {
             store(
@@ -453,7 +453,7 @@ class $managerName(override val driverManager: DriverManager) : $abstractManager
 
             @Language("kotlin")
             val setter = """
-    fun store${funcId}Cd(data: ${funcId}CooldownData) {
+    suspend fun store${funcId}Cd(data: ${funcId}CooldownData) {
         ${managerFieldName}.store(data)
     }
             """

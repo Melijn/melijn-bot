@@ -20,15 +20,15 @@ class BalanceManager(driverManager: DriverManager) : AbstractUserBalanceManager(
         return getById(userId) ?: UserBalanceData(userId, 0)
     }
 
-    fun add(id: ISnowflake, amount: Long) {
+    suspend fun add(id: ISnowflake, amount: Long) {
         update(id, amount) { it + amount }
     }
 
-    fun min(id: ISnowflake, amount: Long) {
+    suspend fun min(id: ISnowflake, amount: Long) {
         update(id, amount) { it - amount }
     }
 
-    private fun update(flake: ISnowflake, amount: Long, exp: (Column<Long>) -> Expression<Long>) {
+    private suspend fun update(flake: ISnowflake, amount: Long, exp: (Column<Long>) -> Expression<Long>) {
         scopedTransaction {
             UserBalance.insertOrUpdate({
                 it[this.userId] = flake.idLong

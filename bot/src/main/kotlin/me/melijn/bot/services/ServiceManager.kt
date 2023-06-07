@@ -6,10 +6,14 @@ import org.koin.core.annotation.KoinInternalApi
 import org.koin.core.definition.Kind
 import kotlin.reflect.full.isSubclassOf
 
-@Inject
+@Inject(true)
 class ServiceManager {
 
     private val services: MutableList<Service> = mutableListOf()
+
+    init {
+        startAll()
+    }
 
     fun startAll() {
         val services = getAllCustom<Service>()

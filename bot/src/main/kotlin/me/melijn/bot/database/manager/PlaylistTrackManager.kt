@@ -30,12 +30,12 @@ class PlaylistTrackManager(override val driverManager: DriverManager) : Abstract
 
     private val trackManager by inject<TrackManager>()
 
-    fun newTrack(playlist: PlaylistData, track: Track) {
+    suspend fun newTrack(playlist: PlaylistData, track: Track) {
         val trackId = trackManager.storeMusicTrack(track)
         store(PlaylistTrackData(playlist.playlistId, TimeUtil.localDateTimeNow(), trackId))
     }
 
-    fun getTracksInPlaylist(playlist: PlaylistData): List<Pair<PlaylistTrackData, me.melijn.gen.TrackData>> {
+    suspend fun getTracksInPlaylist(playlist: PlaylistData): List<Pair<PlaylistTrackData, me.melijn.gen.TrackData>> {
         return scopedTransaction {
             PlaylistTrack.join(DBTrack, JoinType.INNER) {
                 PlaylistTrack.trackId.eq(DBTrack.trackId)
@@ -47,7 +47,7 @@ class PlaylistTrackManager(override val driverManager: DriverManager) : Abstract
         }
     }
 
-    fun getMelijnTracksInPlaylist(playlist: PlaylistData, requester: PartialUser): List<Track> {
+    suspend fun getMelijnTracksInPlaylist(playlist: PlaylistData, requester: PartialUser): List<Track> {
         val sortableTracks: SortableTracks = mutableListOf()
         val where = { trackType: TrackType ->
             DBTrack.trackType.eq(trackType)
@@ -65,14 +65,14 @@ class PlaylistTrackManager(override val driverManager: DriverManager) : Abstract
         return sortableTracks.sortedBy { it.first }.sortedBy { it.second }.map { it.third }
     }
 
-    fun deleteAll(tracks: List<PlaylistTrackData>) {
+    suspend fun deleteAll(tracks: List<PlaylistTrackData>) {
         scopedTransaction {
             for (track in tracks)
                 PlaylistTrack.deleteWhere { PlaylistTrack.trackId.eq(track.trackId) }
         }
     }
 
-    fun getTrackCount(existingPlaylist: PlaylistData): Long {
+    suspend fun getTrackCount(existingPlaylist: PlaylistData): Long {
         return scopedTransaction {
             PlaylistTrack.select {
                 PlaylistTrack.playlistId.eq(existingPlaylist.playlistId)
@@ -90,7 +90,7 @@ class TrackManager(
     private val fetchedTrackManager: FetchedTrackManager
 ) : AbstractTrackManager(driverManager) {
 
-    fun storeMusicTrack(musicTrack: Track): UUID = musicTrack.run {
+    suspend fun storeMusicTrack(musicTrack: Track): UUID = musicTrack.run {
         val trackId = getByIndex1(title, url, isStream, length, sourceType.trackType)?.trackId ?: UUID.randomUUID()
 
         store(GenTrackData(trackId, title, url, isStream, length, sourceType.trackType))
@@ -121,7 +121,7 @@ class TrackManager(
         )
     }
 
-    fun joinAllTypesInto(
+    suspend fun joinAllTypesInto(
         table: TrackJoinTable,
         where: (TrackType) -> Op<Boolean>, trackCollector: (ResultRow, TrackType) -> Boolean
     ) {

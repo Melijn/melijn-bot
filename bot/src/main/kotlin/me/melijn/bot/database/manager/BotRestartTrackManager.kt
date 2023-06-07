@@ -26,7 +26,7 @@ class BotRestartTrackEntryManager(driverManager: DriverManager) : AbstractBotRes
     private val trackManager by inject<TrackManager>()
     private val settings by inject<Settings>()
 
-    fun newTrack(guildId: Long, position: Int, track: Track) {
+    suspend fun newTrack(guildId: Long, position: Int, track: Track) {
         val trackId = trackManager.storeMusicTrack(track)
 
         val userId = track.data?.requester?.idLong ?: settings.bot.id
@@ -36,7 +36,7 @@ class BotRestartTrackEntryManager(driverManager: DriverManager) : AbstractBotRes
         store(BotRestartTrackEntryData(guildId, trackId, position, userId, addedAt))
     }
 
-    fun getMelijnTracks(guildId: Long): List<Track> {
+    suspend fun getMelijnTracks(guildId: Long): List<Track> {
         val sortableTracks = mutableListOf<Pair<BotRestartTrackEntryData, Track>>()
         val where = { trackType: TrackType ->
             DBTrack.trackType.eq(trackType)
@@ -61,7 +61,7 @@ class BotRestartTrackEntryManager(driverManager: DriverManager) : AbstractBotRes
         return sortableTracks.sortedBy { it.first.position }.map { it.second }
     }
 
-    fun deleteAll(shardId: Int) {
+    suspend fun deleteAll(shardId: Int) {
         scopedTransaction {
             BotRestartTrackEntry.deleteWhere {
                 ShardCheckOp(BotRestartTrackEntry.guildId, shardId)
@@ -73,7 +73,7 @@ class BotRestartTrackEntryManager(driverManager: DriverManager) : AbstractBotRes
 @Inject
 class BotRestartTrackQueueManager(driverManager: DriverManager) : AbstractBotRestartTrackQueueManager(driverManager) {
 
-    fun getAll(shardId: Int): List<BotRestartTrackQueueData> {
+    suspend fun getAll(shardId: Int): List<BotRestartTrackQueueData> {
         return scopedTransaction {
             BotRestartTrackQueue.select {
                 ShardCheckOp(BotRestartTrackQueue.guildId, shardId)
@@ -83,7 +83,7 @@ class BotRestartTrackQueueManager(driverManager: DriverManager) : AbstractBotRes
         }
     }
 
-    fun deleteAll(shardId: Int) {
+    suspend fun deleteAll(shardId: Int) {
         scopedTransaction {
             BotRestartTrackQueue.deleteWhere {
                 ShardCheckOp(BotRestartTrackQueue.guildId, shardId)

@@ -16,17 +16,17 @@ import java.util.*
 @Inject
 class PlaylistManager(override val driverManager: DriverManager) : AbstractPlaylistManager(driverManager) {
 
-    fun getByNameOrDefault(userFlake: UserSnowflake, name: String): PlaylistData {
+    suspend fun getByNameOrDefault(userFlake: UserSnowflake, name: String): PlaylistData {
         return getByName(userFlake, name)
             ?: PlaylistData(UUID.randomUUID(), userFlake.idLong, TimeUtil.now(), name, false)
     }
 
-    private fun getByName(userFlake: UserSnowflake, name: String) = getByIndex2(userFlake.idLong, name)
-    fun getPlaylistsOfUser(userFlake: UserSnowflake): List<PlaylistData> {
+    private suspend fun getByName(userFlake: UserSnowflake, name: String) = getByIndex2(userFlake.idLong, name)
+    suspend fun getPlaylistsOfUser(userFlake: UserSnowflake): List<PlaylistData> {
         return getByIndex1(userFlake.idLong).sortedBy { it.created }
     }
 
-    fun getPlaylistsOfUserWithTrackCount(userFlake: UserSnowflake): Map<PlaylistData, Long> {
+    suspend fun getPlaylistsOfUserWithTrackCount(userFlake: UserSnowflake): Map<PlaylistData, Long> {
         return scopedTransaction {
             // :) https://blog.jdriven.com/2020/02/kotlin-exposed-aggregate-functions/
             // :) https://www.w3schools.com/sql/sql_groupby.asp

@@ -24,7 +24,13 @@ object HttpServer {
     val settings by inject<Settings>()
     private val logger by Log
 
-    private val server: NettyApplicationEngine = embeddedServer(Netty, settings.httpServer.port, configure = {
+    /**
+     * A public http rest api for fetching pod specific info.
+     * 
+     * Offers:
+     * - pod information
+     */
+    private val apiServer: NettyApplicationEngine = embeddedServer(Netty, settings.httpServer.port, configure = {
         this.runningLimit = settings.httpServer.runningLimit
         this.requestQueueLimit = settings.httpServer.requestQueueLimit
     }) {
@@ -39,6 +45,13 @@ object HttpServer {
         }
     }
 
+    /**
+     * A management httpServer.
+     * 
+     * Offers:
+     * - graceful shutdown
+     * - health check
+     */
     private val probeServer: NettyApplicationEngine = embeddedServer(Netty, settings.probeServer.port, configure = {
         this.runningLimit = settings.probeServer.runningLimit
         this.requestQueueLimit = settings.probeServer.requestQueueLimit
@@ -98,11 +111,11 @@ object HttpServer {
 
     private fun stopAll() {
         probeServer.stop(0, 2, TimeUnit.SECONDS)
-        server.stop(0, 2, TimeUnit.SECONDS)
+        apiServer.stop(0, 2, TimeUnit.SECONDS)
     }
 
     fun startHttpServer() {
-        server.start()
+        apiServer.start()
         logger.info { "HttpServer on: http://localhost:${settings.httpServer.port}" }
     }
 

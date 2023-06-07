@@ -33,7 +33,7 @@ class TicTacToeManager(val driverManager: DriverManager) {
     val ticTacToePlayerManager by KoinUtil.inject<TicTacToePlayerManager>()
 
     /** Creates the database game entries **/
-    fun setupGame(
+    suspend fun setupGame(
         guildId: ISnowflake,
         channelId: ISnowflake,
         messageId: ISnowflake,
@@ -58,17 +58,17 @@ class TicTacToeManager(val driverManager: DriverManager) {
         return ticTacToeGameManager.getById(player.gameId)
     }
 
-    fun delete(game: TicTacToeData) {
+    suspend fun delete(game: TicTacToeData) {
         val users = ticTacToePlayerManager.getByIndex1(game.gameId)
         users.forEach { ticTacToePlayerManager.deleteById(it.userId) }
         ticTacToeGameManager.deleteById(game.gameId)
     }
 
-    fun updateGame(game: TicTacToeData) {
+    suspend fun updateGame(game: TicTacToeData) {
         ticTacToeGameManager.store(game)
     }
 
-    fun getOlderGames(lastMoveCutoffMoment: Instant): List<Triple<TicTacToeData, Long, Long?>> {
+    suspend fun getOlderGames(lastMoveCutoffMoment: Instant): List<Triple<TicTacToeData, Long, Long?>> {
         val mutableList = mutableListOf<Triple<TicTacToeData, Long, Long?>>()
         ticTacToeGameManager.scopedTransaction {
             val res = TicTacToe.join(TicTacToePlayer, JoinType.INNER).select {
@@ -98,7 +98,7 @@ class TicTacToeManager(val driverManager: DriverManager) {
         return mutableList
     }
 
-    fun deleteOlderGames(lastMoveCutoffMoment: Instant) {
+    suspend fun deleteOlderGames(lastMoveCutoffMoment: Instant) {
         ticTacToeGameManager.scopedTransaction {
             TicTacToe.deleteWhere { last_played.less(lastMoveCutoffMoment) }
         }

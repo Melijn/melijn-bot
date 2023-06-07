@@ -28,7 +28,7 @@ class AttendanceManager(override val driverManager: DriverManager) : AbstractAtt
         driverManager.executeUpdate(indices)
     }
 
-    fun delete(attendanceId: Long, guildId: Long): Boolean {
+    suspend fun delete(attendanceId: Long, guildId: Long): Boolean {
         return scopedTransaction {
             Attendance.deleteWhere {
                 (Attendance.attendanceId eq attendanceId) and (Attendance.guildId eq guildId)
@@ -36,7 +36,7 @@ class AttendanceManager(override val driverManager: DriverManager) : AbstractAtt
         }
     }
 
-    fun getNextChangingEntry(): AttendanceData? {
+    suspend fun getNextChangingEntry(): AttendanceData? {
         return scopedTransaction {
             Attendance.select {
                 Attendance.state neq AttendanceState.DISABLED
