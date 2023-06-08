@@ -15,9 +15,9 @@ import kotlinx.datetime.Clock
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.BalanceManager
 import me.melijn.bot.database.manager.TicTacToeManager
-import me.melijn.bot.events.TICTACTOE_ACCEPT_BUTTON_ID
-import me.melijn.bot.events.TICTACTOE_ACTION_PREFIX_ID
-import me.melijn.bot.events.TICTACTOE_DENY_BUTTON_ID
+import me.melijn.bot.events.buttons.TICTACTOE_ACCEPT_BUTTON_ID
+import me.melijn.bot.events.buttons.TICTACTOE_ACTION_PREFIX_ID
+import me.melijn.bot.events.buttons.TICTACTOE_DENY_BUTTON_ID
 import me.melijn.bot.utils.KoinUtil
 import me.melijn.bot.utils.KordExUtils.optionalAvailableCurrency
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand

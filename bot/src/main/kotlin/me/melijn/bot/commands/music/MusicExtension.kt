@@ -16,8 +16,8 @@ import kotlinx.coroutines.delay
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.Melijn
 import me.melijn.bot.cache.SearchPlayMenuCache
-import me.melijn.bot.events.buttons.SPlayMenuButtonHandler.Companion.SPLAY_BTN_CANCEL
-import me.melijn.bot.events.buttons.SPlayMenuButtonHandler.Companion.SPLAY_BTN_ID_PREFIX
+import me.melijn.bot.events.buttons.SPlayMenuButtonHandler.SPLAY_BTN_CANCEL
+import me.melijn.bot.events.buttons.SPlayMenuButtonHandler.SPLAY_BTN_ID_PREFIX
 import me.melijn.bot.model.OwnedGuildMessage
 import me.melijn.bot.model.PartialUser
 import me.melijn.bot.model.SearchPlayMenu

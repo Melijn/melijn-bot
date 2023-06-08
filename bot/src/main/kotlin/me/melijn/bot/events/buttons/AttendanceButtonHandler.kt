@@ -2,14 +2,12 @@ package me.melijn.bot.events.buttons
 
 import com.kotlindiscord.kord.extensions.utils.hasRole
 import dev.minn.jda.ktx.coroutines.await
-import dev.minn.jda.ktx.events.listener
 import dev.minn.jda.ktx.messages.InlineEmbed
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import me.melijn.ap.injector.Inject
 import me.melijn.bot.database.manager.AttendanceManager
 import me.melijn.bot.database.manager.AttendeesManager
 import me.melijn.bot.utils.KoinUtil.inject
@@ -26,21 +24,14 @@ import net.dv8tion.jda.api.sharding.ShardManager
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.seconds
 
-@Inject(true)
-class AttendanceButtonHandler {
+object AttendanceButtonHandler {
 
-    val attendanceManager by inject<AttendanceManager>()
-    val attendeesManager by inject<AttendeesManager>()
-    val logger by Log
-
-    init {
-        val kord by inject<ShardManager>()
-        kord.listener<ButtonInteractionEvent> { interaction ->
-            if (!interaction.isFromGuild || !interaction.componentId.startsWith(ATTENDANCE_BTN_PREFIX)) return@listener
-            handle(interaction)
-        }
-    }
-
+    const val ATTENDANCE_BTN_ATTEND = "YES"
+    const val ATTENDANCE_BTN_PREFIX = "ATTENDANCE-"
+    const val ATTENDANCE_BTN_REVOKE = "NO"
+    private val attendanceManager by inject<AttendanceManager>()
+    private val attendeesManager by inject<AttendeesManager>()
+    private val logger by Log
 
     data class MessageUpdateInfo(
         var lastUpdate: Instant,
@@ -52,9 +43,9 @@ class AttendanceButtonHandler {
     )
 
     // AttendanceID -> updateInfo
-    val messageUpdateMap = ConcurrentHashMap<Long, MessageUpdateInfo>()
+    private val messageUpdateMap = ConcurrentHashMap<Long, MessageUpdateInfo>()
 
-    private suspend fun handle(interaction: ButtonInteractionEvent) {
+    suspend fun handle(interaction: ButtonInteractionEvent) {
         val buttonId = interaction.button.id ?: return
         val guild = interaction.guild ?: return
         val member = interaction.member ?: return
@@ -231,17 +222,10 @@ class AttendanceButtonHandler {
                 description = if (messageUpdateInfo.lostAttendees.isNotEmpty()) out.replace(regex, "")
                 else out
             }.build()
-        ).queue({ s ->
+        ).queue({
             logger.info("<< Updated attendance message for ${messageUpdateInfo.prevMessage.idLong}")
         }, {
             logger.error("<< Couldn't update attendance message: ${it.message}", it)
         })
     }
-
-    companion object {
-        const val ATTENDANCE_BTN_ATTEND: String = "yes"
-        const val ATTENDANCE_BTN_PREFIX = "attendance-"
-        const val ATTENDANCE_BTN_REVOKE = "no"
-    }
-
 }

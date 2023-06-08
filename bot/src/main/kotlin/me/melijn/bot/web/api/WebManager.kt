@@ -22,6 +22,7 @@ import java.net.Proxy
 class WebManager {
 
     val settings by getKoin().inject<Settings>()
+    private val logger = logger()
 
     val commonClientConfig: HttpClientConfig<OkHttpConfig>.() -> Unit = {
         expectSuccess = false
@@ -33,7 +34,7 @@ class WebManager {
             })
         }
         install(UserAgent) {
-            agent = "Melijn / 3.0.0 Discord bot"
+            agent = "Melijn#0111 / 3.0.0 Discord bot"
         }
         install(Logging) {
             level = LogLevel.ALL
@@ -52,17 +53,17 @@ class WebManager {
         }
     }
 
-    val logger = logger()
+    val okHttpClient = OkHttpClient.Builder().apply {
+        addInterceptor(
+            HttpLoggingInterceptor { logger.debug(it) }.apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
+        )
+    }.build()
 
     val aniListApolloClient: ApolloClient = ApolloClient.Builder()
         .serverUrl("https://graphql.anilist.co")
-        .okHttpClient(OkHttpClient.Builder().apply {
-            addInterceptor(
-                HttpLoggingInterceptor { logger.debug(it) }.apply {
-                    level = HttpLoggingInterceptor.Level.BODY
-                }
-            )
-        }.build())
+        .okHttpClient(okHttpClient)
         .build()
 
     var spotifyApi: MySpotifyApi? = null

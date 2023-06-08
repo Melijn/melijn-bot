@@ -14,6 +14,7 @@ import java.util.*
 import kotlin.time.Duration
 import kotlin.time.toKotlinDuration
 
+/** Time sucks */
 object TimeUtil {
     @OptIn(InternalAPI::class)
     fun SimpleDateFormat.parseOrNull(given: String) = try {  parse(given)?.toLocalDateTime() } catch (t: Exception) { null }

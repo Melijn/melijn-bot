@@ -28,11 +28,9 @@ import net.dv8tion.jda.api.utils.messages.MessageEditData
 import java.time.ZoneId
 import kotlin.time.Duration
 
-class UnHandleableAttendanceException : Throwable() {
+class UnHandleableAttendanceException : Throwable()
 
-}
-
-@Inject
+@Inject(true, 1)
 class AttendanceService {
 
     private val attendanceManager by inject<AttendanceManager>()
@@ -45,40 +43,42 @@ class AttendanceService {
     var waitingJob = TaskScope.launch { }
 
     init {
-        TaskScope.launch {
-            while (true) {
-                val attendanceEntry = attendanceManager.getNextChangingEntry()
-                if (attendanceEntry == null) {
-                    waitingJob = launch { delay(Duration.INFINITE) }
-                    waitingJob.join()
-                    continue
-                }
+        pollingLoop()
+    }
 
-                val now = Clock.System.now()
-
-                if (attendanceEntry.nextStateChangeMoment <= now) {
-                    try {
-                        doUpdates(attendanceEntry)
-                        attendanceManager.store(attendanceEntry)
-                    } catch (t: UnHandleableAttendanceException) {
-                        attendanceEntry.apply {
-                            this.state = AttendanceState.DISABLED
-                        }
-                        attendanceManager.store(attendanceEntry)
-                    } catch (t: Exception) {
-                        logger.error(t) { "error while processing attendanceId: ${attendanceEntry.attendanceId}" }
-                    }
-                }
-
-                waitingJob = launch {
-                    if (attendanceEntry.nextStateChangeMoment > now) {
-                        val duration = attendanceEntry.nextStateChangeMoment - now
-                        logger.info { "Next attendance state change in: $duration" }
-                        delay(duration)
-                    }
-                }
+    private fun pollingLoop() = TaskScope.launch {
+        while (true) {
+            val attendanceEntry = attendanceManager.getNextChangingEntry()
+            if (attendanceEntry == null) {
+                waitingJob = launch { delay(Duration.INFINITE) }
                 waitingJob.join()
+                continue
             }
+
+            val now = Clock.System.now()
+
+            if (attendanceEntry.nextStateChangeMoment <= now) {
+                try {
+                    doUpdates(attendanceEntry)
+                    attendanceManager.store(attendanceEntry)
+                } catch (t: UnHandleableAttendanceException) {
+                    attendanceEntry.apply {
+                        this.state = AttendanceState.DISABLED
+                    }
+                    attendanceManager.store(attendanceEntry)
+                } catch (t: Exception) {
+                    logger.error(t) { "error while processing attendanceId: ${attendanceEntry.attendanceId}" }
+                }
+            }
+
+            waitingJob = launch {
+                if (attendanceEntry.nextStateChangeMoment > now) {
+                    val duration = attendanceEntry.nextStateChangeMoment - now
+                    logger.info { "Next attendance state change in: $duration" }
+                    delay(duration)
+                }
+            }
+            waitingJob.join()
         }
     }
 
@@ -112,7 +112,6 @@ class AttendanceService {
         val messageEditor = InlineMessage<MessageEditData>(builder)
         val messageEmbed = message.embeds.first()
         val embedEditor = InlineEmbed(messageEmbed)
-
 
         while (nextAvailableState != null) {
             val nextState = nextAvailableState
@@ -224,7 +223,6 @@ class AttendanceService {
                     ?.queue()
                 entry.notifyMessageId = null
             }
-
         }
 
         // deregister all attendees

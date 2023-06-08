@@ -10,7 +10,7 @@ import com.kotlindiscord.kord.extensions.extensions.chatCommand
 import dev.minn.jda.ktx.interactions.components.danger
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.cache.ButtonCache
-import me.melijn.bot.events.LATEX_DESTROY_BUTTON_ID
+import me.melijn.bot.events.buttons.LATEX_DESTROY_BUTTON_ID
 import me.melijn.bot.model.AbstractOwnedMessage
 import me.melijn.bot.utils.image.ImageUtil
 import me.melijn.bot.utils.image.ImageUtil.toInputStream

@@ -4,6 +4,7 @@ import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import kotlinx.serialization.Serializable
 import me.melijn.bot.commands.AnimalSource
 import me.melijn.bot.commands.AnimalType
 import me.melijn.bot.utils.KtorUtils.parametersOf
@@ -52,7 +53,7 @@ class AnimalImageApi(private val httpClient: HttpClient) : KordExKoinComponent {
 
     private suspend fun getRandomSomeRandomApiUrl(tag: String): String? {
         return try {
-            httpClient.get("https://some-random-api.ml/img/$tag").body<SomeRandomApiRandomImage>().link
+            httpClient.get("https://some-random-api.com/img/$tag").body<SomeRandomApiRandomImage>().link
         } catch (t: Throwable) {
             logger.warn(t) { "SomeRandomApi failed to respond properly" }
             null
@@ -89,39 +90,39 @@ class AnimalImageApi(private val httpClient: HttpClient) : KordExKoinComponent {
     }
 }
 
-@kotlinx.serialization.Serializable
+@Serializable
 data class Duncte123RandomImage(
     val data: Data
 ) {
 
-    @kotlinx.serialization.Serializable
+    @Serializable
     data class Data(
         val file: String
     )
 }
 
-@kotlinx.serialization.Serializable
+@Serializable
 data class RandomDukRandomImage(
     val url: String
 )
 
-@kotlinx.serialization.Serializable
+@Serializable
 data class TheCatApiRandomImages(
     val images: List<TheCatApiRandomImage>
 ) {
 
-    @kotlinx.serialization.Serializable
+    @Serializable
     data class TheCatApiRandomImage(
         val url: String
     )
 }
 
-@kotlinx.serialization.Serializable
+@Serializable
 data class SomeRandomApiRandomImage(
     val link: String
 )
 
-@kotlinx.serialization.Serializable
+@Serializable
 data class ImgHoardRandomImage(
     val url: String
 )

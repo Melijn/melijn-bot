@@ -4,7 +4,7 @@ import me.melijn.bot.music.TrackType
 
 enum class TrackSource(val trackType: TrackType) {
     YOUTUBE(TrackType.FETCHED),
-    SOUNC_CLOUD(TrackType.FETCHED),
+    SOUND_CLOUD(TrackType.FETCHED),
     TWITCH(TrackType.FETCHED),
     SPOTIFY(TrackType.SPOTIFY),
     HTTP(TrackType.FETCHED),

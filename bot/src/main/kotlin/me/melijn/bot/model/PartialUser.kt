@@ -9,11 +9,8 @@ data class PartialUser(
     val discriminator: String,
     val avatarUrl: String?
 ) {
-    val idULong = idLong.toULong()
     val tag
         get() = "${username}#${discriminator}"
-    val effectiveAvatarUrl
-        get() = avatarUrl ?: "https://cdn.discordapp.com/embed/avatars/${discriminator.toInt() % 5}.png"
 
     companion object {
         fun fromKordUser(user: User) = user.run {

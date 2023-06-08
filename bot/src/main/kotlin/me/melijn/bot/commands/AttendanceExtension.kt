@@ -63,9 +63,9 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.ZERO
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import me.melijn.bot.events.buttons.AttendanceButtonHandler.Companion.ATTENDANCE_BTN_ATTEND as BTN_ATTEND_SUFFIX
-import me.melijn.bot.events.buttons.AttendanceButtonHandler.Companion.ATTENDANCE_BTN_PREFIX as BTN_PREFIX
-import me.melijn.bot.events.buttons.AttendanceButtonHandler.Companion.ATTENDANCE_BTN_REVOKE as BTN_REVOKE_SUFFIX
+import me.melijn.bot.events.buttons.AttendanceButtonHandler.ATTENDANCE_BTN_ATTEND as BTN_ATTEND_SUFFIX
+import me.melijn.bot.events.buttons.AttendanceButtonHandler.ATTENDANCE_BTN_PREFIX as BTN_PREFIX
+import me.melijn.bot.events.buttons.AttendanceButtonHandler.ATTENDANCE_BTN_REVOKE as BTN_REVOKE_SUFFIX
 
 @KordExtension
 class AttendanceExtension : Extension() {

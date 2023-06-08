@@ -10,7 +10,8 @@ import dev.minn.jda.ktx.jdabuilder.injectKTX
 import dev.schlaubi.lavakord.LavaKord
 import dev.schlaubi.lavakord.jda.LavaKordShardManager
 import dev.schlaubi.lavakord.jda.applyLavakord
-import io.sentry.Sentry
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.debug.DebugProbes
 import me.melijn.ap.injector.InjectorInterface
 import me.melijn.apkordex.command.ExtensionInterface
 import me.melijn.apredgres.createtable.CreateTableInterface
@@ -18,7 +19,6 @@ import me.melijn.bot.database.manager.PrefixManager
 import me.melijn.bot.model.Environment
 import me.melijn.bot.model.PodInfo
 import me.melijn.bot.model.kordex.MelijnCooldownHandler
-import me.melijn.bot.utils.EnumUtil.lcc
 import me.melijn.bot.utils.loadLavaLink
 import me.melijn.bot.web.server.HttpServer
 import me.melijn.gen.Settings
@@ -34,7 +34,13 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import java.net.InetAddress
+import javax.imageio.ImageIO
 import kotlin.system.exitProcess
+
+/** Application entry point */
+suspend fun main() {
+    Melijn.susInit()
+}
 
 object Melijn {
 
@@ -44,13 +50,7 @@ object Melijn {
     suspend fun susInit() {
         logger.info("Starting Melijn..")
         val settings = Settings
-        val podCount = settings.process.podCount
-        val shardCount = settings.process.shardCount
-        val podId = fetchPodIdFromHostname(
-            podCount,
-            settings.process.environment == Environment.PRODUCTION
-        )
-        PodInfo.init(podCount, shardCount, podId)
+        initGlobalSettings(settings)
 
         ExtensibleBot(settings.api.discord.token) {
             val lShardManager = LavaKordShardManager()
@@ -102,6 +102,31 @@ object Melijn {
             i18n {
                 interactionUserLocaleResolver()
             }
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun initGlobalSettings(settings: Settings) {
+        val podCount = settings.process.podCount
+        val shardCount = settings.process.shardCount
+        val podId = fetchPodIdFromHostname(
+            podCount,
+            settings.process.environment == Environment.PRODUCTION
+        )
+        PodInfo.init(podCount, shardCount, podId)
+
+        ImageIO.setUseCache(false)
+
+        if (settings.process.environment == Environment.TESTING) {
+            // Enable coroutine names, they are visible when dumping the coroutines
+            System.setProperty("kotlinx.coroutines.debug", "on")
+
+            // Enable coroutines stacktrace recovery
+            System.setProperty("kotlinx.coroutines.stacktrace.recovery", "true")
+
+            // It is recommended to set this to false to avoid performance hits with the DebugProbes option!
+            DebugProbes.enableCreationStackTraces = false
+            DebugProbes.install()
         }
     }
 
@@ -206,21 +231,4 @@ object Melijn {
             }
         }
     }
-
-    private fun initSentry(settings: Settings) {
-        Sentry.init { options ->
-            options.dsn = settings.sentry.url
-            options.environment = settings.process.environment.lcc()
-            options.release = settings.bot.version
-            // Set traces_sample_rate to 1.0 to capture 100% of transactions for performance monitoring.
-            // We recommend adjusting this value in production.
-            options.tracesSampleRate = 0.1
-            // When first trying Sentry it's good to see what the SDK is doing:
-            // options.debug = true
-        }
-    }
-}
-
-suspend fun main() {
-    Melijn.susInit()
 }

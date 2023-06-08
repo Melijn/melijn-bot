@@ -64,7 +64,7 @@ class BotRestartTrackEntryManager(driverManager: DriverManager) : AbstractBotRes
     suspend fun deleteAll(shardId: Int) {
         scopedTransaction {
             BotRestartTrackEntry.deleteWhere {
-                ShardCheckOp(BotRestartTrackEntry.guildId, shardId)
+                ShardCheckOp(guildId, shardId)
             }
         }
     }
@@ -86,7 +86,7 @@ class BotRestartTrackQueueManager(driverManager: DriverManager) : AbstractBotRes
     suspend fun deleteAll(shardId: Int) {
         scopedTransaction {
             BotRestartTrackQueue.deleteWhere {
-                ShardCheckOp(BotRestartTrackQueue.guildId, shardId)
+                ShardCheckOp(guildId, shardId)
             }
         }
     }

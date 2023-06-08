@@ -12,8 +12,8 @@ data class PremiumIntLimit(
     val freeAmount: Int?,
 
     /**
-     *  higher premium tiers can inherit from the lower tiers amount when the [IntLimit.type] is [IntLimit.Type.INHERIT]
-     *  The other types should be self explaining
+     * higher premium tiers can inherit from the lower tiers amount when the [IntLimit.type] is [IntLimit.Type.INHERIT]
+     * The other types should be self explaining
      **/
     val premiumAmountLimit: (PremiumTier) -> IntLimit
 )

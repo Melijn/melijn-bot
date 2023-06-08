@@ -7,7 +7,7 @@ import dev.schlaubi.lavakord.jda.LavaKordShardManager
 import dev.schlaubi.lavakord.jda.lavakord
 import kotlinx.coroutines.delay
 import me.melijn.bot.Melijn
-import me.melijn.bot.music.MusicManager
+import me.melijn.bot.music.MusicManager.registerReconnectHandler
 import me.melijn.gen.Settings
 import net.dv8tion.jda.api.sharding.ShardManager
 import java.util.concurrent.atomic.AtomicInteger
@@ -30,7 +30,7 @@ suspend fun loadLavaLink(lShardManager: LavaKordShardManager) {
         Melijn.lavalink.addNode(nodeUrls[i], nodePasswords[i], "node$i")
     }
     for (node in Melijn.lavalink.nodes) {
-        MusicManager.setupReconnects(node)
+        node.registerReconnectHandler()
     }
 }
 
