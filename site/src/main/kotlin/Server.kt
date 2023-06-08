@@ -1,3 +1,5 @@
+@file:Suppress("ExtractKtorModule")
+
 import io.jsonwebtoken.SignatureAlgorithm
 import io.jsonwebtoken.security.Keys
 import io.ktor.http.*

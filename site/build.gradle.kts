@@ -20,7 +20,7 @@ repositories {
 val ktorVersion = "2.2.4"
 val logbackVersion = "1.4.6"
 
-val kordKommons = "0.0.1-SNAPSHOT"
+val kordKommons = "0.0.9-SNAPSHOT"
 
 dependencies {
     implementation(kotlin("stdlib"))

@@ -75,7 +75,7 @@ class Login : AbstractPage("/callback", ContentType.Text.Html) {
         return response
     }
 
-    private fun linkCookieToOwner(tokenOwner: TokenOwner, cookie: String) {
+    private suspend fun linkCookieToOwner(tokenOwner: TokenOwner, cookie: String) {
         tokenOwner.oauthToken.run {
             userCookieManager.store(
                 UserCookieData(

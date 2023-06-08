@@ -2,6 +2,8 @@ package snippet
 
 import me.melijn.siteannotationprocessors.snippet.Snippet
 import org.intellij.lang.annotations.Language
+import java.time.ZonedDateTime
+import java.util.*
 
 @Snippet
 class FooterSnippet : AbstractSnippet<Any>() {
@@ -10,7 +12,7 @@ class FooterSnippet : AbstractSnippet<Any>() {
     override val src = """
      <div class='footer'>
          <div>
-             © 2022, ToxicMushroom#0001. All rights reserved.
+             © ${ZonedDateTime.now().year}, ToxicMushroom#2068. All rights reserved.
          </div>
          <div>
              <a href='https://github.com/ToxicMushroom' target='_blank'>
