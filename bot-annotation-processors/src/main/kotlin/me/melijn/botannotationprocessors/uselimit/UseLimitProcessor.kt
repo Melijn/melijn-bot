@@ -330,7 +330,6 @@ ${indexFields.joinToString("\n") { " ".repeat(12) + "this[$simpleName.$it] = $it
             useLimitTypeFuncsMap[funcId] = (useLimitTypeFuncsMap[funcId] ?: "") + limitHitUsageHistoryFuncs
         }
 
-        override fun visitFunctionDeclaration(function: KSFunctionDeclaration, data: Unit) {}
     }
 
     inner class UsageTableVisitor : KSVisitorVoid() {
