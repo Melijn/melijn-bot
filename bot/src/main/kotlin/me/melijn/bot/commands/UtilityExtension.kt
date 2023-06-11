@@ -339,7 +339,7 @@ class UtilityExtension : Extension() {
                 val timeStamp1 = System.currentTimeMillis()
                 val msg = respond {
                     embed {
-                        title = tr("ping.title")
+                        title = "Pong!"
                         description = tr("ping.gatewayPing", shardManager.averageGatewayPing)
                     }
                 }
@@ -347,7 +347,7 @@ class UtilityExtension : Extension() {
                 val sendMessagePing = timeStamp2 - timeStamp1
                 val edited = msg.editMessage(MessageEdit {
                     embed {
-                        title = tr("ping.title")
+                        title = "Pong!"
                         description = msg.embeds.first().description + "\n" +
                                 tr("ping.sendMessagePing", sendMessagePing)
                     }
@@ -356,7 +356,7 @@ class UtilityExtension : Extension() {
                 val editMessagePing = timeStamp3 - timeStamp2
                 msg.editMessage(MessageEdit {
                     embed {
-                        title = tr("ping.title")
+                        title = "Pong!"
                         description = edited.embeds.first().description + "\n" +
                                 tr("ping.editMessagePing", editMessagePing)
                     }
