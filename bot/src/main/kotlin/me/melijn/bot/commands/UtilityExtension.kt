@@ -100,8 +100,8 @@ class UtilityExtension : Extension() {
         publicUserCommand {
             name = "avatar"
             action {
-                val avatarUrl = this.member?.effectiveAvatarUrl ?: this.target.effectiveAvatarUrl
-                val name = this.member?.effectiveName ?: this.target.effectiveName
+                val avatarUrl = this.event.targetMember?.effectiveAvatarUrl ?: this.target.effectiveAvatarUrl
+                val name = this.event.targetMember?.effectiveName ?: this.target.effectiveName
                 respond {
                     avatarEmbed(translationsProvider, resolvedLocale.await(), name, avatarUrl)
                 }
