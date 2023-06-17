@@ -89,18 +89,21 @@ class UtilityExtension : Extension() {
             name = "avatar"
             description = "Shows avatar"
             action {
-                val target = (arguments.target.parsed ?: this.user)
+                val avatarUrl = (arguments.targetAvatar ?: this.user.effectiveAvatarUrl)
+                val name = (arguments.targetName ?: this.user.effectiveName)
+
                 respond {
-                    avatarEmbed(translationsProvider, resolvedLocale.await(), target)
+                    avatarEmbed(translationsProvider, resolvedLocale.await(), name, avatarUrl)
                 }
             }
         }
         publicUserCommand {
             name = "avatar"
             action {
-                val target = this.target
+                val avatarUrl = this.member?.effectiveAvatarUrl ?: this.target.effectiveAvatarUrl
+                val name = this.member?.effectiveName ?: this.target.effectiveName
                 respond {
-                    avatarEmbed(translationsProvider, resolvedLocale.await(), target)
+                    avatarEmbed(translationsProvider, resolvedLocale.await(), name, avatarUrl)
                 }
             }
         }
@@ -181,12 +184,14 @@ class UtilityExtension : Extension() {
 
                 respond {
                     embed {
-                        description = tr("userInfo.userInfoSection", user.name, user.discriminator,
+                        description = tr(
+                            "userInfo.userInfoSection", user.name, user.discriminator,
                             user.id, user.isBot, isSupporter, user.effectiveAvatarUrl,
                             profile.banner != null, profile.bannerUrl,
                             TimeFormat.DATE_TIME_SHORT.format(user),
                             user.flags.joinToString(separator = " ") { getBadge(it) },
-                            user.globalName)
+                            user.globalName
+                        )
 
                         if (member != null) {
                             val roleString = member.roles.toList()
@@ -392,16 +397,20 @@ class UtilityExtension : Extension() {
                 val properName = StringsUtil.getNormalizedUsername(target)
                 if (properName == currentName) {
                     respond {
-                        content = tr("namenormalization.fail.noSanitize")
+                        content = tr("nameNormalization.fail.noSanitize")
                     }
                 } else {
                     if (!guild.selfMember.canInteract(target))
-                        bail(tr("namenormalization.fail.noPermission"))
+                        bail(tr("nameNormalization.fail.noPermission"))
 
                     UserNameListener.fixName(target, properName)
 
                     respond {
-                        content = tr("namenormalization.success", MarkdownUtil.monospace(currentName), MarkdownUtil.monospace(properName))
+                        content = tr(
+                            "nameNormalization.success",
+                            MarkdownUtil.monospace(currentName),
+                            MarkdownUtil.monospace(properName)
+                        )
                     }
                 }
             }
@@ -425,36 +434,44 @@ class UtilityExtension : Extension() {
     private fun InlineMessage<MessageCreateData>.avatarEmbed(
         translationsProvider: TranslationsProvider,
         locale: Locale,
-        target: User
+        targetName: String,
+        targetAvatarUrl: String
     ) {
         embed {
-            title = translationsProvider.tr("avatar.title", locale, target.asTag)
+            title = translationsProvider.tr("avatar.title", locale, targetName)
             description = translationsProvider.tr(
                 "avatar.description", locale, " **" +
-                        "[direct](${target.effectiveAvatarUrl}) • " +
-                        "[x64](${target.effectiveAvatarUrl}?size=64) • " +
-                        "[x128](${target.effectiveAvatarUrl}?size=128) • " +
-                        "[x256](${target.effectiveAvatarUrl}?size=256) • " +
-                        "[x512](${target.effectiveAvatarUrl}?size=512) • " +
-                        "[x1024](${target.effectiveAvatarUrl}?size=1024) • " +
-                        "[x2048](${target.effectiveAvatarUrl}?size=2048)**"
+                        "[direct](${targetAvatarUrl}) • " +
+                        "[x64](${targetAvatarUrl}?size=64) • " +
+                        "[x128](${targetAvatarUrl}?size=128) • " +
+                        "[x256](${targetAvatarUrl}?size=256) • " +
+                        "[x512](${targetAvatarUrl}?size=512) • " +
+                        "[x1024](${targetAvatarUrl}?size=1024) • " +
+                        "[x2048](${targetAvatarUrl}?size=2048)**"
             )
-            image = target.effectiveAvatarUrl + "?size=2048"
+            image = "$targetAvatarUrl?size=2048"
         }
     }
 
     inner class AvatarArgs : Arguments() {
 
-        val target = optionalUser {
+        val target by optionalUser {
             name = "user"
             description = "Gives the avatar of the user"
         }
+        val memberTarget by optionalMember {
+            name = "member"
+            description = "Gives the avatar of the member"
+        }
+
+        val targetAvatar by lazy { memberTarget?.effectiveAvatarUrl ?: target?.effectiveAvatarUrl }
+        val targetName by lazy { memberTarget?.effectiveName ?: target?.effectiveName }
     }
 
     inner class ServerInfoArgs : Arguments() {
 
         val serverId = optionalSnowflake {
-            name = "serverid"
+            name = "server-id"
             description = "Id of the server"
             validate {
                 val betterValue = value ?: return@validate

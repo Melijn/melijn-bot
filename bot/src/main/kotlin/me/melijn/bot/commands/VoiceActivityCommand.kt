@@ -47,7 +47,7 @@ class VoiceActivityCommand : Extension() {
 
                     respond {
                         embedWithColor {
-                            description = tr("voiceactivity.personal.timespent", duration.formatElapsedVerbose())
+                            description = tr("voiceActivity.personal.timeSpent", duration.formatElapsedVerbose())
                         }
                     }
                 }
@@ -69,7 +69,7 @@ class VoiceActivityCommand : Extension() {
                     respond {
                         embedWithColor {
                             description = if (duration.isEmpty())
-                                tr("voiceactivity.leaderboard.timespent.none")
+                                tr("voiceActivity.leaderboard.timeSpent.none")
                             else {
                                 val table = TableBuilder()
                                     .setColumns("User", "Total time", "Longest time")
@@ -98,7 +98,7 @@ class VoiceActivityCommand : Extension() {
     private suspend fun CheckContextWithCache<SlashCommandInteractionEvent>.failIfNoVoiceTracking() =
         failIf(
             !guildSettingsManager.get(this.event.guild!!).allowVoiceTracking,
-            tr("voiceactivity.disabled")
+            tr("voiceActivity.disabled")
         )
 
 }

@@ -38,12 +38,12 @@ class BulkManagementExtension : Extension() {
 
                 if (members.isEmpty()) {
                     respond {
-                        content = tr("namenormalization.admin.nomembers")
+                        content = tr("nameNormalization.admin.noMembers")
                     }
                     return@action
                 }
 
-                val header = tr("namenormalization.admin.header", members.size)
+                val header = tr("nameNormalization.admin.header", members.size)
                 val hook = respond {
                     content = header
                 }
@@ -52,14 +52,14 @@ class BulkManagementExtension : Extension() {
                 members.forEachIndexed { index, member ->
                     val count = index + 1
                     if (count % 100 == 0 || (Clock.System.now() - lastUpdate > 5.minutes)) {
-                        hook.editMessage("$header\n\n${tr("namenormalization.admin.progress", count)}")
+                        hook.editMessage("$header\n\n${tr("nameNormalization.admin.progress", count)}")
                             .await()
                         lastUpdate = Clock.System.now()
                     }
                     UserNameListener.fixName(member)
                 }
 
-                hook.editMessage("$header\n\n${tr("namenormalization.admin.done")}")
+                hook.editMessage("$header\n\n${tr("nameNormalization.admin.done")}")
                     .await()
             }
         }
