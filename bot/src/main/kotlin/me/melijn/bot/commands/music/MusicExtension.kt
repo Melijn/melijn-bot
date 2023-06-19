@@ -352,7 +352,7 @@ class MusicExtension : Extension() {
                     )
                 }
 
-                description += tr("queue.fakefooter",
+                description += tr("queue.fakeFooter",
                     (totalDuration - player.positionDuration).formatElapsed(),
                     queue.size + (playing?.let { 1 } ?: 0)
                 )
