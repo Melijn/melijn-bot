@@ -1,10 +1,11 @@
 package me.melijn.bot.music
 
+import kotlinx.serialization.Serializable
 import me.melijn.bot.model.TrackSource
 import me.melijn.kordkommons.utils.TimeUtil
 import kotlin.time.Duration
 
-@kotlinx.serialization.Serializable
+@Serializable
 abstract class Track {
 
     abstract val title: String
@@ -15,7 +16,7 @@ abstract class Track {
 
     abstract val data: TrackData?
 
-    @kotlinx.serialization.Serializable(with = TimeUtil.DurationSerializer::class)
+    @Serializable(with = TimeUtil.DurationSerializer::class)
     abstract val length: Duration
 
     abstract val sourceType: TrackSource

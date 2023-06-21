@@ -1,10 +1,11 @@
 package me.melijn.bot.music
 
+import kotlinx.serialization.Serializable
 import me.melijn.bot.model.TrackSource
 import me.melijn.kordkommons.utils.TimeUtil
 import kotlin.time.Duration
 
-@kotlinx.serialization.Serializable
+@Serializable
 class FetchedTrack(
     override val track: String,
     override var title: String,
@@ -15,7 +16,7 @@ class FetchedTrack(
     override var isStream: Boolean,
 
     override var data: TrackData,
-    @kotlinx.serialization.Serializable(with = TimeUtil.DurationSerializer::class)
+    @Serializable(with = TimeUtil.DurationSerializer::class)
     override var length: Duration,
 
     override var sourceType: TrackSource,

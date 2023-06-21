@@ -142,6 +142,9 @@ dependencies {
 
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+    implementation("com.fasterxml.jackson.core:jackson-core:$jackson")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jackson")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$jackson")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 
     // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio

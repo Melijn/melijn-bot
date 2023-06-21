@@ -1,5 +1,7 @@
 package me.melijn.bot.database.manager
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.melijn.ap.injector.Inject
@@ -11,6 +13,8 @@ import java.util.concurrent.TimeUnit
 
 @Inject
 class SongCacheManager(private val driverManager: DriverManager) {
+
+    val objectMapper = ObjectMapper()
 
     fun storeFetched(input: String, fetchedTracks: List<FetchedTrack>) {
         val time = if (fetchedTracks.isEmpty()) 1 else 5
@@ -39,7 +43,7 @@ class SongCacheManager(private val driverManager: DriverManager) {
         val time = if (tracks.isEmpty()) 1 else 5
         driverManager.setCacheEntry(
             "melijn:songcache:spotify:${input}",
-            Json.encodeToString(tracks),
+            objectMapper.writeValueAsString(tracks),
             time,
             compress = true
         )
@@ -50,7 +54,7 @@ class SongCacheManager(private val driverManager: DriverManager) {
      */
     suspend fun getSpotify(input: String): List<Track> {
         return driverManager.getCacheEntry("melijn:songcache:spotify:${input}", 10, compress = true)?.run {
-            Json.decodeFromString<List<Track>>(this)
+            objectMapper.readValue<List<Track>>(this)
         } ?: emptyList()
     }
 
@@ -58,7 +62,7 @@ class SongCacheManager(private val driverManager: DriverManager) {
         val time = if (tracks.isEmpty()) 1 else 5
         driverManager.setCacheEntry(
             "melijn:songcache:spotifysimplified:${input}",
-            Json.encodeToString(tracks),
+            objectMapper.writeValueAsString(tracks),
             time,
             compress = true
         )
@@ -69,7 +73,7 @@ class SongCacheManager(private val driverManager: DriverManager) {
      */
     suspend fun getSpotifySimplified(input: String): List<TrackSimplified> {
         return driverManager.getCacheEntry("melijn:songcache:spotifysimplified:${input}", 10, compress = true)?.run {
-            Json.decodeFromString<List<TrackSimplified>>(this)
+            objectMapper.readValue<List<TrackSimplified>>(this)
         } ?: emptyList()
     }
 }
