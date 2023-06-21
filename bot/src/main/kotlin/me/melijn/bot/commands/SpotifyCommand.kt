@@ -57,7 +57,9 @@ class SpotifyCommand : Extension() {
                     ?.await()?.firstOrNull()
 
                 // get spotify presences
-                val spotifyActivity = targetMember?.activities?.firstOrNull()?.asRichPresence() ?: run {
+                val spotifyActivity = targetMember?.activities?.firstNotNullOfOrNull {
+                    it.asRichPresence()
+                } ?: run {
                     respond {
                         embed { title = "No spotify status found." }
                     }
