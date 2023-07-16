@@ -41,9 +41,9 @@ repositories {
 
 val jackson = "2.14.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
 
-val ktor = "2.2.4"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
+val ktor = "2.3.2"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 val apollo = "3.8.2" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
-val kotlinX = "1.6.4" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
+val kotlinX = "1.7.2" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
 val kotlin = "1.8.20"
 val scrimage = "4.0.34"
 
@@ -138,7 +138,7 @@ dependencies {
     implementation("se.michaelthelin.spotify:spotify-web-api-java:8.0.0")
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-    implementation("ch.qos.logback:logback-classic:1.4.7")
+    implementation("ch.qos.logback:logback-classic:1.4.8")
 
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
