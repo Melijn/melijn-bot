@@ -33,7 +33,7 @@ repositories {
     maven("https://reposilite.melijn.com/snapshots")
     maven("https://reposilite.melijn.com/shitpack")
 
-    maven("https://duncte123.jfrog.io/artifactory/maven")
+    maven("https://m2.duncte123.dev/releases")
 
     // pooppack mirror
     maven("https://nexus.melijn.com/repository/jitpack/")
@@ -132,7 +132,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:$kotlinX")
 
     // https://duncte123.jfrog.io/ui/packages/gav:%2F%2Fme.duncte123:weebJava
-    implementation("me.duncte123:weebJava:3.0.1_4")
+    implementation("me.duncte123:weebJava:3.0.1_7")
 
     // https://mvnrepository.com/artifact/se.michaelthelin.spotify/spotify-web-api-java
     implementation("se.michaelthelin.spotify:spotify-web-api-java:8.0.0")
