@@ -9,6 +9,8 @@ import com.kotlindiscord.kord.extensions.commands.chat.ChatCommandContext
 import me.melijn.bot.commands.EvalCommand
 import kotlin.script.experimental.api.*
 import kotlin.script.experimental.host.StringScriptSource
+import kotlin.script.experimental.jvm.dependenciesFromCurrentContext
+import kotlin.script.experimental.jvm.jvm
 import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
 import kotlin.script.experimental.jvmhost.createJvmCompilationConfigurationFromTemplate
 
@@ -23,7 +25,12 @@ import kotlin.script.experimental.jvmhost.createJvmCompilationConfigurationFromT
  */
 fun evalCode(script: String, implicitReceivers: ChatCommandContext<out EvalCommand.EvalArgs>, props: Map<String, Any?>): ResultWithDiagnostics<EvaluationResult> {
 
-    val compilationConfiguration = createJvmCompilationConfigurationFromTemplate<ScriptWithMavenDeps>()
+    val compilationConfiguration = createJvmCompilationConfigurationFromTemplate<ScriptWithMavenDeps> {
+        jvm {
+            dependenciesFromCurrentContext(wholeClasspath = true)
+        }
+        compilerOptions.append("-Xadd-modules=ALL-MODULE-PATH")
+    }
     println("|\n$script\n|")
     return BasicJvmScriptingHost().eval(StringScriptSource(script), compilationConfiguration, ScriptEvaluationConfiguration {
         this.providedProperties("test" to implicitReceivers)

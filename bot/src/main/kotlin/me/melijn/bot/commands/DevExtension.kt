@@ -18,6 +18,7 @@ import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.StringsUtil
+import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.utils.StringUtils
 import net.dv8tion.jda.api.entities.Activity
 import net.dv8tion.jda.api.entities.Message
@@ -25,6 +26,7 @@ import net.dv8tion.jda.api.entities.RichPresence
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
+import org.koin.core.component.inject
 import org.springframework.boot.ansi.AnsiColor
 
 @KordExtension
@@ -50,6 +52,8 @@ class DevExtension : Extension() {
             description = "test"
 
             action {
+                val webManager by inject<WebManager>()
+
                 respond {
                     content = "blub"
                 }
