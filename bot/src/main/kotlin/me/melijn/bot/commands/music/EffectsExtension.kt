@@ -59,7 +59,7 @@ class EffectsExtension : Extension() {
 
                     action {
                         val guild = guild!!
-                        val final = if (arguments.reset.parsed == true) 1.0f else arguments.percent.parsed?.div(100.0f)
+                        val final = if (arguments.reset.parsed == true) 1.0 else arguments.percent.parsed?.div(100.0)
                         val trackManager = guild.getTrackManager()
 
                         if (final == null) { // show current value
@@ -336,8 +336,8 @@ class EffectsExtension : Extension() {
                         return@action
                     }
 
-                    val currentRotation: suspend Player.() -> Float = {
-                        filters.rotation?.run { rotationHz } ?: 1f
+                    val currentRotation: suspend Player.() -> Double = {
+                        filters.rotation?.run { rotationHz } ?: 1.0
                     }
 
                     if (arguments.args.isEmpty()) {
@@ -350,7 +350,7 @@ class EffectsExtension : Extension() {
 
                     trackManager.player.applyFilters {
                         rotation {
-                            rotationHz = arguments.hertz.parsed?.toFloat()?.div(1000) ?: 0.2f
+                            rotationHz = arguments.hertz.parsed?.toDouble()?.div(1000) ?: 0.2
                         }
                     }
                     val new = currentRotation(trackManager.player)
@@ -721,8 +721,8 @@ class EffectsExtension : Extension() {
     }
 }
 
-enum class TimeScaleType(val set: Filters.Timescale.(Float) -> Unit, val get: (Filters.Timescale?) -> Float) {
-    PITCH({ this.pitch = it }, { it?.pitch ?: 1.0f }),
-    SPEED({ this.speed = it }, { it?.speed ?: 1.0f }),
-    RATE({ this.rate = it }, { it?.rate ?: 1.0f })
+enum class TimeScaleType(val set: Filters.Timescale.(Double) -> Unit, val get: (Filters.Timescale?) -> Double) {
+    PITCH({ this.pitch = it }, { it?.pitch ?: 1.0 }),
+    SPEED({ this.speed = it }, { it?.speed ?: 1.0 }),
+    RATE({ this.rate = it }, { it?.rate ?: 1.0 })
 }

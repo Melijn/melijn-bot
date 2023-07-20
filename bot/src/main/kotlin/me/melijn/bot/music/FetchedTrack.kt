@@ -1,9 +1,13 @@
 package me.melijn.bot.music
 
+import dev.arbjerg.lavalink.protocol.v4.TrackInfo
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import me.melijn.bot.model.TrackSource
 import me.melijn.kordkommons.utils.TimeUtil
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import dev.arbjerg.lavalink.protocol.v4.Track as LTrack
 
 @Serializable
 class FetchedTrack(
@@ -20,13 +24,25 @@ class FetchedTrack(
     override var length: Duration,
 
     override var sourceType: TrackSource,
-    override var trackInfoVersion: Byte = 2
+    override var trackInfoVersion: Byte = 4
 ) : Track() {
 
-    override suspend fun getLavakordTrack(): dev.schlaubi.lavakord.audio.player.Track {
-        return dev.schlaubi.lavakord.audio.player.Track(
-            trackInfoVersion, track, title, author ?: "", length, identifier ?: "", isStream, !isStream,
-            url, sourceType.toString().lowercase(), Duration.ZERO
+    override suspend fun getLavakordTrack(): LTrack {
+        return LTrack(
+            track,
+            TrackInfo(
+                identifier ?: "",
+                !isStream,
+                author ?: "",
+                length.inWholeMilliseconds,
+                isStream,
+                0,
+                title,
+                url,
+                sourceType.toString().lowercase(),
+                null,
+                null
+            ), Json.decodeFromString("{}")
         )
     }
 
@@ -35,11 +51,14 @@ class FetchedTrack(
     }
 
     companion object {
-        fun fromLavakordTrackWithData(newTrack: dev.schlaubi.lavakord.audio.player.Track, trackData: TrackData): FetchedTrack {
-            newTrack.run {
+        fun fromLavakordTrackWithData(
+            newTrack: LTrack,
+            trackData: TrackData
+        ): FetchedTrack {
+            newTrack.info.run {
                 return FetchedTrack(
-                    track, title, author, uri ?: "", identifier, isStream, trackData,
-                    length, TrackSource.bestMatch(source), version
+                    newTrack.encoded, title, author, uri ?: "", identifier, isStream, trackData,
+                    length.milliseconds, TrackSource.bestMatch(this.sourceName), 4
                 )
             }
         }

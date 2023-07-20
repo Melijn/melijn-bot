@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import me.melijn.bot.model.TrackSource
 import me.melijn.kordkommons.utils.TimeUtil
 import kotlin.time.Duration
+import dev.arbjerg.lavalink.protocol.v4.Track as LTrack
 
 @Serializable
 abstract class Track {
@@ -24,6 +25,6 @@ abstract class Track {
 
     abstract val trackInfoVersion: Byte // default 2
 
-    abstract suspend fun getLavakordTrack(): dev.schlaubi.lavakord.audio.player.Track?
+    abstract suspend fun getLavakordTrack(): LTrack?
     abstract fun getSearchValue(): String
 }

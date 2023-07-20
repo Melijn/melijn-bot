@@ -676,7 +676,7 @@ class MusicExtension : Extension() {
                 respond {
                     content = tr(
                         "musicPlayer.playerInfo",
-                        trackManager.player.playingTrack?.title ?: "",
+                        trackManager.player.playingTrack?.info?.title ?: "",
                         trackManager.queue.size,
                         trackManager.looped, trackManager.loopedQueue, trackManager.player.paused
                     )

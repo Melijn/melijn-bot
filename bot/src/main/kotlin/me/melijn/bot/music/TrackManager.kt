@@ -14,6 +14,7 @@ import me.melijn.kordkommons.async.SafeList
 import me.melijn.kordkommons.logger.logger
 import net.dv8tion.jda.api.entities.Member
 import kotlin.random.Random
+import dev.arbjerg.lavalink.protocol.v4.Track as LTrack
 
 class TrackManager(val link: Link) {
 
@@ -43,10 +44,10 @@ class TrackManager(val link: Link) {
 
     private suspend fun onTrackEnd(event: TrackEndEvent) {
         if (event.reason.mayStartNext)
-            nextTrack(event.getTrack())
+            nextTrack(event.track)
     }
 
-    private suspend fun nextTrack(previousTrack: dev.schlaubi.lavakord.audio.player.Track?) {
+    private suspend fun nextTrack(previousTrack: LTrack?) {
         val lastData = playingTrack?.data
         if (queue.isEmpty()) {
             if (loopedQueue || looped) {

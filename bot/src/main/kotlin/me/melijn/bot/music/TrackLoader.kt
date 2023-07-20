@@ -1,10 +1,10 @@
 package me.melijn.bot.music
 
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
+import dev.arbjerg.lavalink.protocol.v4.LoadResult
 import dev.minn.jda.ktx.coroutines.await
 import dev.schlaubi.lavakord.audio.RestNode
 import dev.schlaubi.lavakord.rest.loadItem
-import dev.schlaubi.lavakord.rest.models.TrackResponse
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.Melijn
 import me.melijn.bot.commands.DevExtension
@@ -104,27 +104,23 @@ class TrackLoader : KordExKoinComponent {
     }
 
     private suspend fun handleTrackResponse(
-        item: TrackResponse,
+        item: LoadResult,
         requester: PartialUser,
         input: String
     ): List<FetchedTrack> {
-        val tracks = when (item.loadType) {
-            TrackResponse.LoadType.SEARCH_RESULT,
-            TrackResponse.LoadType.TRACK_LOADED,
-            TrackResponse.LoadType.PLAYLIST_LOADED -> {
-                item.tracks.map {
-                    val fullTrack = it.toTrack()
-                    val trackData = TrackData.fromNow(requester, fullTrack.identifier)
-                    FetchedTrack.fromLavakordTrackWithData(fullTrack, trackData)
-                }
-            }
-
-            TrackResponse.LoadType.NO_MATCHES, TrackResponse.LoadType.LOAD_FAILED -> {
-                emptyList()
-            }
+        val lTracks = when (item) {
+            is LoadResult.SearchResult -> item.data.tracks
+            is LoadResult.TrackLoaded -> listOf(item.data)
+            is LoadResult.PlaylistLoaded -> item.data.tracks
+            else -> emptyList()
         }
-        if (tracks.isNotEmpty()) foundTracks(input, tracks)
-        return tracks
+        val fetchedTracks = lTracks.map { lTrack ->
+            val trackInfo = lTrack.info
+            val trackData = TrackData.fromNow(requester, trackInfo.identifier)
+            FetchedTrack.fromLavakordTrackWithData(lTrack, trackData)
+        }
+        if (lTracks.isNotEmpty()) foundTracks(input, fetchedTracks)
+        return fetchedTracks
     }
 
     private fun foundTracks(input: String, tracks: List<FetchedTrack>) {

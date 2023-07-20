@@ -7,6 +7,7 @@ import me.melijn.kordkommons.utils.TimeUtil
 import me.melijn.kordkommons.utils.remove
 import java.lang.StrictMath.abs
 import kotlin.time.Duration
+import dev.arbjerg.lavalink.protocol.v4.Track as LTrack
 
 @kotlinx.serialization.Serializable
 class SpotifyTrack(
@@ -33,7 +34,7 @@ class SpotifyTrack(
         return "\"$title ${author.remove(",")}\"".replace("-", "")
     }
 
-    override suspend fun getLavakordTrack(): dev.schlaubi.lavakord.audio.player.Track? {
+    override suspend fun getLavakordTrack(): LTrack? {
         val tracks = trackLoader.searchYT(Melijn.lavalink.nodes.first(), getSearchValue(), data.requester)
         val fetched = tracks.withIndex().minByOrNull {
             (it.index * 5_000) + abs(it.value.length.inWholeMilliseconds - length.inWholeMilliseconds)

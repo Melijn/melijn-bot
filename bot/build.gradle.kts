@@ -47,7 +47,7 @@ val kotlinX = "1.7.2" // https://mvnrepository.com/artifact/org.jetbrains.kotlin
 val kotlin = "1.8.20"
 val scrimage = "4.0.34"
 
-val jda = "5.0.0-beta.10"
+val jda = "5.0.0-beta.12"
 val kordEx = "1.6.0-SNAPSHOT"
 val kordKommons = "0.0.9-SNAPSHOT"
 
@@ -59,7 +59,7 @@ dependencies {
     // https://mvnrepository.com/artifact/org.scilab.forge/jlatexmath
     implementation("org.scilab.forge:jlatexmath:1.0.7")
 
-    implementation("dev.schlaubi.lavakord", "jda", "4.1.0")
+    implementation("dev.schlaubi.lavakord", "jda", "5.0.2")
 
     implementation("me.melijn.kommons:kommons:$kordKommons")
     implementation("me.melijn.kommons:kord-kommons:$kordKommons")
