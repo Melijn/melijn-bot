@@ -18,6 +18,7 @@ object GuildSettings : IdTable<Long>("guild_settings") {
     var allowVoiceTracking = bool("allow_voice_tracking").default(false)
     var allowInviteTracking = bool("allow_invite_tracking").default(false)
     var enableNameNormalization = bool("name_normalization").default(false)
+    var enableLeveling = bool("enable_leveling").default(false)
 
     override val primaryKey: PrimaryKey = PrimaryKey(id)
 }
@@ -27,5 +28,6 @@ enum class GuildFeature(val correspondent: KMutableProperty1<GSD, Boolean>) : In
     NSFW(GSD::allowNsfw),
     VOICE_TRACKING(GSD::allowVoiceTracking),
     INVITE_TRACKING(GSD::allowInviteTracking),
-    NAME_NORMALIZATION(GSD::enableNameNormalization)
+    NAME_NORMALIZATION(GSD::enableNameNormalization),
+    LEVELING(GSD::enableLeveling)
 }
