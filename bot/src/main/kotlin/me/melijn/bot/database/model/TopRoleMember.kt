@@ -7,9 +7,11 @@ import org.jetbrains.exposed.sql.Table
 @CreateTable
 @TableModel(true)
 object TopRoleMember : Table("top_role_member") {
+
     var guildId = long("guild_id")
     var userId = long("user_id")
     var roleId = long("role_id")
+    var left = bool("left")
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId, roleId)
 

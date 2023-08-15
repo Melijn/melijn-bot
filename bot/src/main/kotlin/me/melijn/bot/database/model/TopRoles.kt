@@ -11,7 +11,7 @@ object TopRoles : Table("top_roles"){
     var guildId = long("guild_id")
     var memberAmount = integer("member_amount")
     var roleId = long("role_id")
-    var minLevelTop = integer("min_level")
+    var minLevelTop = long("min_level")
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, roleId)
 

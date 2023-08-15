@@ -11,11 +11,12 @@ object GuildXP : Table("guild_xp") {
     var guildId = long("guild_id")
     var userId = long("user_id")
     var xp = long("xp")
+    var missing = bool("missing")
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId)
 
     init {
         index(true, guildId, userId)
-        index(false, guildId, xp)
+        index(false, guildId, xp, missing)
     }
 }

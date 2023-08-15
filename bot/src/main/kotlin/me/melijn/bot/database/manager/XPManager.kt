@@ -5,22 +5,26 @@ import me.melijn.ap.injector.Inject
 import me.melijn.bot.database.model.GlobalXP
 import me.melijn.bot.database.model.GuildXP
 import me.melijn.bot.database.model.LevelRoles
+import me.melijn.bot.database.model.TopRoles
 import me.melijn.bot.events.leveling.GuildXPChangeEvent
 import me.melijn.bot.utils.KoinUtil
 import me.melijn.gen.GlobalXPData
 import me.melijn.gen.GuildXPData
 import me.melijn.gen.LevelRolesData
+import me.melijn.gen.TopRolesData
 import me.melijn.gen.database.manager.*
 import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.database.insertOrUpdate
-import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.ISnowflake
-import net.dv8tion.jda.api.entities.User
+import net.dv8tion.jda.api.entities.Member
+import org.intellij.lang.annotations.Language
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 import kotlin.time.Duration
 
 @Inject
@@ -52,6 +56,33 @@ class GuildXPManager(driverManager: DriverManager) : AbstractGuildXPManager(driv
             })
         }
     }
+
+    suspend fun getPosition(guildId: Long, userId: Long): Pair<GuildXPData, Long>? = suspendCoroutine { continuation ->
+            @Language("postgresql")
+            val query1 =
+                """SELECT subq.guild_id, subq.user_id, subq.xp, subq.missing, position
+                  |FROM (
+                  |    SELECT guild_xp.guild_id, guild_xp.user_id, guild_xp.xp, guild_xp.missing, ROW_NUMBER() over (order by guild_xp.xp desc) as position 
+                  |    FROM guild_xp 
+                  |    WHERE (guild_xp.guild_id = ?) AND (guild_xp.missing = FALSE)
+                  |    ORDER BY guild_xp.xp DESC) subq 
+                  |WHERE subq.user_id = ?
+                  |""".trimMargin()
+            driverManager.executeQuery(query1, { rs ->
+                if (rs.next()) {
+                    println(rs)
+
+                    val entry = GuildXPData(
+                        rs.getLong(1),
+                        rs.getLong(2),
+                        rs.getLong(3),
+                        rs.getBoolean(4)
+                    )
+                    val rowNumber = rs.getLong(5)
+                    continuation.resume(entry to rowNumber)
+                } else continuation.resume(null)
+            }, guildId, userId)
+    }
 }
 
 @Inject
@@ -67,14 +98,26 @@ class LevelRolesManager(driverManager: DriverManager) : AbstractLevelRolesManage
             }
         }
     }
+}
+
+@Inject
+class TopRolesManager(driverManager: DriverManager) : AbstractTopRolesManager(driverManager) {
+    suspend fun getTopRoles(guildId: Long, maxLevel: Long): List<TopRolesData> {
+        return scopedTransaction {
+            TopRoles.select {
+                TopRoles.guildId.eq(guildId).and(TopRoles.minLevelTop.lessEq(maxLevel))
+            }.orderBy(TopRoles.minLevelTop, SortOrder.DESC).map {
+                TopRolesData.fromResRow(it)
+            }
+        }
+    }
 
 }
 
 @Inject
-class TopRolesManager(driverManager: DriverManager) : AbstractTopRolesManager(driverManager)
+class TopRoleMemberManager(driverManager: DriverManager) : AbstractTopRoleMemberManager(driverManager) {
 
-@Inject
-class TopRoleMemberManager(driverManager: DriverManager) : AbstractTopRoleMemberManager(driverManager)
+}
 
 @Inject
 class XPManager(
@@ -96,22 +139,27 @@ class XPManager(
 
     suspend fun setGlobalXP(userSnowflake: ISnowflake, xp: Long) {
         globalXPManager.store(GlobalXPData(userSnowflake.idLong, xp))
-
     }
 
     suspend fun setGuildXP(guildId: ISnowflake, userSnowflake: ISnowflake, xp: Long) {
-        guildXPManager.store(GuildXPData(guildId.idLong, userSnowflake.idLong, xp))
+        guildXPManager.store(GuildXPData(guildId.idLong, userSnowflake.idLong, xp, false))
     }
 
-    suspend fun increaseAllXP(guild: Guild, user: User, amount: Long) {
+    suspend fun increaseAllXP(member: Member, amount: Long) {
+        val guild = member.guild
+        val user = member.user
         val oldGuildXP = guildXPManager.getById(guild.idLong, user.idLong)?.xp ?: 0
         val oldGlobalXP = globalXPManager.getById(user.idLong)?.xp ?: 0
         setGlobalXP(user, oldGlobalXP + amount)
         setGuildXP(guild, user, oldGuildXP + amount)
         val newGuildXP = oldGuildXP + amount
         val botManager by KoinUtil.inject<ExtensibleBot>()
-        val event = GuildXPChangeEvent(guild.jda, oldGuildXP, newGuildXP, user, guild)
+        val event = GuildXPChangeEvent(oldGuildXP, newGuildXP, member)
         botManager.send(event)
+    }
+
+    suspend fun getTopRoles(guildId: Long, minLevel: Long): List<TopRolesData> {
+        return topRolesManager.getTopRoles(guildId, minLevel)
     }
 
     suspend fun getMsgXPCooldown(userSnowflake: ISnowflake): Long {
@@ -124,5 +172,9 @@ class XPManager(
             (System.currentTimeMillis() + cooldown.inWholeMilliseconds).toString(),
             cooldown.inWholeMinutes.toInt() + 1, TimeUnit.MINUTES
         )
+    }
+
+    suspend fun getGuildPosition(guildId: Long, userId: Long): Pair<GuildXPData, Long>? {
+        return guildXPManager.getPosition(guildId, userId)
     }
 }

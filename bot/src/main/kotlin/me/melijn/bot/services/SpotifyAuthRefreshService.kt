@@ -14,6 +14,6 @@ class SpotifyAuthRefreshService : Service("spotify", 0.minutes, 25.minutes) {
         val spotifyApi = webManager.spotifyApi ?: return@RunnableTask
         spotifyApi.updateSpotifyCredentials()
         val token = spotifyApi.getToken()
-        logger.info { "Updated spotify credentials. new token: $token" }
+        logger.info { "Updated spotify credentials." }
     }
 }

@@ -1,14 +1,13 @@
 package me.melijn.bot.events.leveling
 
-import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.entities.Guild
-import net.dv8tion.jda.api.entities.User
+import net.dv8tion.jda.api.entities.Member
 
 data class GuildXPChangeEvent(
-    val api: JDA,
     override val oldXP: Long,
     override val newXP: Long,
-    override val user: User,
-    val guild: Guild
-) : XPChangeEvent(api, oldXP, newXP, user) {
+    val member: Member
+) : XPChangeEvent(oldXP, newXP, member.user) {
+    val guild: Guild = member.guild
+    val jda = getJDA()
 }
