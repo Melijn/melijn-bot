@@ -57,14 +57,13 @@ enum class AnimalSource {
     ImgHoard,
     RandomDuk,
     Duncte123,
-    SomeRandomApi,
-    TheCatApi
+    SomeRandomApi
 }
 
 enum class AnimalType(
     vararg val pairs: Pair<AnimalSource, String>
 ) : InferredChoiceEnum {
-    CAT(AnimalSource.TheCatApi to "", AnimalSource.ImgHoard to "cat"),
+    CAT(AnimalSource.ImgHoard to "cat"),
     DOG(AnimalSource.ImgHoard to "dog"),
     BIRD(AnimalSource.SomeRandomApi to "bird"),
     FISH(AnimalSource.ImgHoard to "fish"),

@@ -33,11 +33,16 @@ class WebManager {
                 coerceInputValues = true
             })
         }
+        install(HttpTimeout) {
+            this.socketTimeoutMillis = 30_000
+            this.requestTimeoutMillis = 30_000
+            this.connectTimeoutMillis = 30_000
+        }
         install(UserAgent) {
             agent = "Melijn#0111 / 3.0.0 Discord bot"
         }
         install(Logging) {
-            level = LogLevel.ALL
+            level = LogLevel.INFO
         }
     }
 
