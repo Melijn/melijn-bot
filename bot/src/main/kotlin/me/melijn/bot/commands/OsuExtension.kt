@@ -478,6 +478,7 @@ class OsuExtension : Extension() {
             val barr = drawRankHistoryWithSplines(points.data.toMutableList())
             val bais = ByteArrayInputStream(barr)
             files.plusAssign(AttachedFile.fromData(bais, "image.png"))
+            image = "attachment://image.png"
 
             footer {
                 name = tr("osu.user.joined", Date.from(user.join_date?.toJavaInstant()))
