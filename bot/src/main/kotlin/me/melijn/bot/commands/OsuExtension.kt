@@ -445,14 +445,12 @@ class OsuExtension : Extension() {
         user.profile_colour?.let { color = Color.decode(it).rgb }
 
         user.statistics?.let {
-            field(tr("osu.user.gamesPlayed"), inline = true) { tr("osu.user.gamesPlayed.format", it.play_count) }
-            field(tr("osu.user.accuracy"), inline = true) { tr("osu.user.accuracy.format", it.hit_accuracy) }
-            field(tr("osu.user.level"), inline = true) {
-                tr("osu.user.level.progress", it.level.current, it.level.progress)
-            }
+            field(tr("osu.user.gamesPlayed"), tr("osu.user.gamesPlayed.format", it.play_count), true)
+            field(tr("osu.user.accuracy"), tr("osu.user.accuracy.format", it.hit_accuracy), true)
+            field(tr("osu.user.level"), tr("osu.user.level.progress", it.level.current, it.level.progress), true)
             field(tr("osu.user.scores"), inline = true) {
                 val gc = it.grade_counts
-                """
+                value = """
                     <:GradeSSSilver:744300240370139226>: ${gc.ssh}
                     <:GradeSS:744300239946514433>: ${gc.ss}
                     <:GradeSSilver:744300240269475861>: ${gc.sh}
@@ -464,14 +462,14 @@ class OsuExtension : Extension() {
                 val d = it.play_time.seconds.toJavaDuration()
                 val days = d.toDays()
 
-                StringBuilder().apply {
+                value = StringBuilder().apply {
                     if (days != 0L) append("${days}d ")
                     append("${d.toHoursPart()}:${d.toMinutesPart()}:${d.toSecondsPart()}")
                 }.toString()
             }
             if (it.rank.global != null || it.rank.country != null) {
                 field(tr("osu.user.rank"), inline = true) {
-                    tr("osu.user.rank.list", it.global_rank, user.country_code.lowercase(), it.rank.country)
+                    value = tr("osu.user.rank.list", it.global_rank, user.country_code.lowercase(), it.rank.country)
                 }
             }
         }
