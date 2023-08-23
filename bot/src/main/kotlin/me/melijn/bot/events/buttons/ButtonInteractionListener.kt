@@ -29,7 +29,7 @@ class ButtonInteractionListener {
             val ownedMsg = AbstractOwnedMessage.from(interaction)
             if (interaction.componentId == LATEX_DESTROY_BUTTON_ID && buttonCache.latexButtonOwners[ownedMsg] == true) {
                 interaction.message.delete()
-                    .reason("(latex destroy button) ${interaction.user.asTag}")
+                    .reason("(latex destroy button) ${interaction.user.effectiveName}")
                     .queue()
 
             } else if (

@@ -8,7 +8,6 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.minn.jda.ktx.coroutines.await
 import me.melijn.apkordex.command.KordExtension
-import me.melijn.bot.utils.JDAUtil.asTag
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import net.dv8tion.jda.api.Permission
@@ -33,9 +32,9 @@ class RoleExtension : Extension() {
                     val role = arguments.role
                     val target = arguments.member
 
-                    guild?.addRoleToMember(target, role)?.reason( "(role give) ${user.asTag}")?.await()
+                    guild?.addRoleToMember(target, role)?.reason( "(role give) ${user.effectiveName}")?.await()
                     respond {
-                        content = tr("role.give.gaveRole", role.asMention, target.asTag)
+                        content = tr("role.give.gaveRole", role.asMention, target.effectiveName)
                     }
                 }
             }
@@ -50,9 +49,9 @@ class RoleExtension : Extension() {
                     val role = arguments.role
                     val target = arguments.member
 
-                    guild?.removeRoleFromMember(target, role)?.reason( "(role take) ${user.asTag}")?.await()
+                    guild?.removeRoleFromMember(target, role)?.reason( "(role take) ${user.effectiveName}")?.await()
                     respond {
-                        content = tr("role.take.tookRole", role.asMention, target.asTag)
+                        content = tr("role.take.tookRole", role.asMention, target.effectiveName)
                     }
                 }
             }

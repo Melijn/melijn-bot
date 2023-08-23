@@ -1,6 +1,5 @@
 package me.melijn.bot.utils
 
-import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.requests.RestAction
 import java.awt.Color
 import kotlin.coroutines.resume
@@ -12,9 +11,6 @@ object JDAUtil {
         if (this == null) return "null"
         return "#" + this.rgb.toString(16).uppercase()
     }
-
-    val Member.asTag: String
-        get() = user.asTag
 
     suspend fun <T> RestAction<T>.awaitOrNull() = suspendCoroutine<T?> {
         queue(

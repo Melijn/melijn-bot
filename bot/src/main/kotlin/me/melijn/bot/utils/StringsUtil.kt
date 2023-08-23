@@ -10,15 +10,19 @@ import java.text.Normalizer
 import kotlin.random.Random
 
 object StringsUtil {
-    private val htmlConverter: CopyDown = OptionsBuilder.anOptions().run {
-        withCodeBlockStyle(CodeBlockStyle.FENCED)
-        withBulletListMaker("• ")
-    }.let { CopyDown(it.build()) }
 
     fun ansiFormat(color: AnsiColor) = me.melijn.kordkommons.utils.ansiFormat(color.toString())
 
-    fun htmlToMarkdown(html: String): String = htmlConverter.convert(html)
+    fun htmlToMarkdown(html: String): String {
+        val htmlConverter: CopyDown = OptionsBuilder.anOptions().run {
+            withCodeBlockStyle(CodeBlockStyle.FENCED)
+            withBulletListMaker("• ")
+        }.let { CopyDown(it.build()) }
 
+        return htmlConverter.convert(html)
+    }
+
+    /** Prepends [this] with '0' until [this.size] >= [targetLength] **/
     fun String.prependZeros(targetLength: Int): String {
         val zeros = kotlin.math.max(targetLength - this.length, 0)
         val extraZeros = "0".repeat(zeros)
@@ -47,6 +51,10 @@ object StringsUtil {
 
     private fun normalize(s: String): String = Normalizer.normalize(s, Normalizer.Form.NFKC)
 
+    /**
+     * Gets the best possible normalized name for [member].
+     * @return nick > displayName > username or falls back to: Nr$x \in 0..guild.memberCount$
+     */
     fun getNormalizedUsername(member: Member): String {
         if (filterGarbage(member.effectiveName) == member.effectiveName) return member.effectiveName
 

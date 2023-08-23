@@ -46,11 +46,8 @@ object CodeEvalUtil {
 //        return evalScript(code, functionName, props)
 //    }
 
-    suspend fun evalScript(code: String, receiver: ChatCommandContext<out EvalCommand.EvalArgs>, klass: KClass<*>, vararg props: Pair<String, Any?>): String {
+    fun evalScript(code: String, receiver: ChatCommandContext<out EvalCommand.EvalArgs>, klass: KClass<*>, vararg props: Pair<String, Any?>): String {
         return try {
-//            val se = engine as KotlinJsr223JvmLocalScriptEngine
-//            se.compile(code).eval()
-//            engine.eval(code)
             val results = evalCode(code, receiver, props.toMap())
             return results.also {
                 println(it.reports.joinToString("\n") {
@@ -64,11 +61,6 @@ object CodeEvalUtil {
                     
                 }}```"
             }.returnValue.toString()
-
-//            val resp = se.invokeFunction(functionName, params) as Deferred<Pair<Any?, String>>
-//
-//            val (result, error) = resp.await()
-//            result?.toString() ?: "ERROR:\n```${error}```"
         } catch (t: Throwable) {
             t.printStackTrace()
             "ERROR:\n```${t.message}```"

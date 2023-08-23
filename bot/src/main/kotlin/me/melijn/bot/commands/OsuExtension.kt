@@ -598,7 +598,7 @@ class OsuExtension : Extension() {
         return baos.toByteArray()
     }
 
-//    Old lagrange method, had very ban edge interpolation
+//    Old lagrange method, had very bad edge interpolation
 //    fun drawRankHistoryWithLagrange(points: List<Long>): ByteArray {
 //        val yMax = 300
 //        val xOff = 20

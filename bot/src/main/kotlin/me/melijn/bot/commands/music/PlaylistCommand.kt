@@ -180,7 +180,7 @@ class PlaylistCommand : Extension() {
                         val parts = StringUtils.splitMessageWithCodeBlocks(description)
                         for (part in parts) {
                             page {
-                                this.title = tr("playlist.list.all.listTitle", user.asTag)
+                                this.title = tr("playlist.list.all.listTitle", user.effectiveName)
                                 this.description = part
                             }
                         }
@@ -217,7 +217,7 @@ class PlaylistCommand : Extension() {
                         val parts = StringUtils.splitMessage(description)
                         for (part in parts) {
                             page {
-                                this.title = tr("playlist.list.listTitle", user.asTag)
+                                this.title = tr("playlist.list.listTitle", user.effectiveName)
                                 this.description = part
                             }
                         }

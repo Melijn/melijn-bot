@@ -41,7 +41,7 @@ object SPlayMenuButtonHandler {
 
                 trackManager.queue(selected, searchPlayMenu.queuePosition)
 
-                title = translationsProvider.tr("play.title", locale, event.interaction.user.asTag)
+                title = translationsProvider.tr("play.title", locale, event.interaction.user.effectiveName)
                 description = translationsProvider.tr(
                     "play.addedOne",
                     locale,
