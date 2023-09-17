@@ -9,7 +9,7 @@ import org.jetbrains.exposed.sql.Table
 object TopRoles : Table("top_roles"){
 
     var guildId = long("guild_id")
-    var memberAmount = integer("member_amount")
+    var memberCount = integer("member_count")
     var roleId = long("role_id")
     var minLevelTop = long("min_level")
 

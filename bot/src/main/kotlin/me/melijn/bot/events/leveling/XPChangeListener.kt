@@ -37,10 +37,10 @@ class XPChangeListener {
             var min = 0
             val possibleTopRole = topRoles
                 .firstOrNull {
-                    if (pos in 0..it.memberAmount) {
+                    if (pos in 0..it.memberCount) {
                         true
                     } else {
-                        min += it.memberAmount
+                        min += it.memberCount
                         false
                     }
                 }

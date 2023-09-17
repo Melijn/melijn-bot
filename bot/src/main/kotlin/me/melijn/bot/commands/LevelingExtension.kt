@@ -14,6 +14,7 @@ import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.image.ImageUtil.download
 import me.melijn.gen.LevelRolesData
+import me.melijn.gen.TopRolesData
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.utils.AttachedFile
@@ -86,9 +87,78 @@ class LevelingExtension : Extension() {
                 }
             }
         }
-        publicGuildSlashCommand() {
+        publicGuildSlashCommand {
+            name = "toproles"
+            description = "You can choose a role to be put on a number of highest ranking users"
+
+            publicGuildSubCommand(::TopRolesRemoveArgs) {
+                name = "remove"
+                description = "Removes a top role"
+
+                action {
+
+                    xpManager.topRolesManager.deleteByIndex1(
+                        guild!!.idLong,
+                        arguments.role.idLong
+                    )
+                    respond {
+                        content = "Removed topRole: ${arguments.role.asMention}"
+                    }
+                }
+            }
+            publicGuildSubCommand(::TopRolesAddArgs) {
+                name = "set"
+                description = "Sets a top role"
+                check {
+                    requireBotPermissions(Permission.MANAGE_ROLES)
+                    requirePermission(Permission.MANAGE_ROLES)
+                }
+                action {
+                    val topRole = arguments.role
+                    val level = arguments.level
+                    val memberCount = arguments.memberCount
+
+                    xpManager.topRolesManager.store(
+                        TopRolesData(
+                            guild!!.idLong,
+                            memberCount,
+                            topRole.idLong,
+                            level
+                        )
+                    )
+
+                    respond {
+                        content = "Set ${topRole.asMention} as topRole for the highest **${memberCount}** members above level `$level`"
+                    }
+                }
+            }
+            publicGuildSubCommand {
+                name = "list"
+                description = "Call upon all the topRoles you have set"
+
+                check {
+                    requirePermission(Permission.MANAGE_ROLES)
+                    requireBotPermissions(Permission.MANAGE_ROLES)
+                }
+                action {
+                    val guild = guild!!
+                    val topRoles = xpManager.topRolesManager.getByIndex0(guild.idLong)
+                    respond {
+                        content = if (topRoles.isEmpty()) {
+                            "You don't have any topRoles set"
+                        } else {
+                            topRoles.joinToString("\n", prefix = "**Role - MinLevel - Number** \n") {
+                                "<@&${it.roleId}> - ${it.minLevelTop} - ${it.memberCount}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        publicGuildSlashCommand {
             name = "levelroles"
-            description = "You can set a role to a certain role"
+            description = "You can set a role to a certain level"
 
             publicGuildSubCommand(::LevelRolesRemoveArgs) {
                 name = "remove"
@@ -295,6 +365,28 @@ class LevelingExtension : Extension() {
         val stay by boolean {
             name = "stay"
             description = "Role stays when you get the next level role"
+        }
+    }
+
+    inner class TopRolesAddArgs : Arguments() {
+        val level by long {
+            name = "level"
+            description = "The level requirement at which you want to give a role"
+        }
+        val role by role {
+            name = "role"
+            description = "The role you want to give when you achieve a certain level"
+        }
+        val memberCount by int {
+            name = "member-count"
+            description = "Number of highest members that can receive this role"
+        }
+    }
+
+    inner class TopRolesRemoveArgs : Arguments() {
+        val role by role {
+            name = "role"
+            description = "The role that you have set in the levelRole you want to remove"
         }
     }
 }
