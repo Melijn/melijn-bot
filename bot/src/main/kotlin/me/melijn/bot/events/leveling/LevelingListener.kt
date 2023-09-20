@@ -13,7 +13,7 @@ import net.dv8tion.jda.api.sharding.ShardManager
 import kotlin.time.Duration.Companion.seconds
 
 @Inject(true)
-class LevelingListener : Service("leveling", 10.seconds, 10.seconds, true) {
+class LevelingListener : Service("leveling", 60.seconds, 60.seconds, true) {
 
     private val xpManager by inject<XPManager>()
     private val xpReceivers = SafeList<Pair<Long, Long>>()
