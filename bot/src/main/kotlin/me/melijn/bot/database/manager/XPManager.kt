@@ -58,9 +58,9 @@ class GuildXPManager(driverManager: DriverManager) : AbstractGuildXPManager(driv
     }
 
     suspend fun getPosition(guildId: Long, userId: Long): Pair<GuildXPData, Long>? = suspendCoroutine { continuation ->
-            @Language("postgresql")
-            val query1 =
-                """SELECT subq.guild_id, subq.user_id, subq.xp, subq.missing, position
+        @Language("postgresql")
+        val query1 =
+            """SELECT subq.guild_id, subq.user_id, subq.xp, subq.missing, position
                   |FROM (
                   |    SELECT guild_xp.guild_id, guild_xp.user_id, guild_xp.xp, guild_xp.missing, ROW_NUMBER() over (order by guild_xp.xp desc) as position 
                   |    FROM guild_xp 
@@ -68,20 +68,38 @@ class GuildXPManager(driverManager: DriverManager) : AbstractGuildXPManager(driv
                   |    ORDER BY guild_xp.xp DESC) subq 
                   |WHERE subq.user_id = ?
                   |""".trimMargin()
-            driverManager.executeQuery(query1, { rs ->
-                if (rs.next()) {
-                    println(rs)
+        driverManager.executeQuery(query1, { rs ->
+            if (rs.next()) {
+                println(rs)
 
-                    val entry = GuildXPData(
-                        rs.getLong(1),
-                        rs.getLong(2),
-                        rs.getLong(3),
-                        rs.getBoolean(4)
-                    )
-                    val rowNumber = rs.getLong(5)
-                    continuation.resume(entry to rowNumber)
-                } else continuation.resume(null)
-            }, guildId, userId)
+                val entry = GuildXPData(
+                    rs.getLong(1),
+                    rs.getLong(2),
+                    rs.getLong(3),
+                    rs.getBoolean(4)
+                )
+                val rowNumber = rs.getLong(5)
+                continuation.resume(entry to rowNumber)
+            } else continuation.resume(null)
+        }, guildId, userId)
+    }
+
+    suspend fun getAtPosition(guildId: Long, position: Int): GuildXPData? {
+        return getTop(guildId, 1, position).firstOrNull()
+    }
+
+    suspend fun getTop(guildId: Long, count: Int, offset: Int): List<GuildXPData> {
+        return scopedTransaction {
+            GuildXP.select {
+                GuildXP.guildId.eq(guildId)
+            }.orderBy(GuildXP.xp, SortOrder.DESC)
+                .limit(count, offset.toLong())
+                .map { GuildXPData.fromResRow(it) }
+        }
+    }
+
+    suspend fun rowCount(guildId: Long): Long = scopedTransaction {
+        GuildXP.select { GuildXP.guildId.eq(guildId) }.count()
     }
 }
 
@@ -148,13 +166,17 @@ class XPManager(
     suspend fun increaseAllXP(member: Member, amount: Long) {
         val guild = member.guild
         val user = member.user
-        val oldGuildXP = guildXPManager.getById(guild.idLong, user.idLong)?.xp ?: 0
+        val oldGuildXPData = guildXPManager.getById(guild.idLong, user.idLong)
+            ?: GuildXPData(guild.idLong, user.idLong, amount, false)
         val oldGlobalXP = globalXPManager.getById(user.idLong)?.xp ?: 0
         setGlobalXP(user, oldGlobalXP + amount)
-        setGuildXP(guild, user, oldGuildXP + amount)
-        val newGuildXP = oldGuildXP + amount
+        val newGuildXPData = oldGuildXPData.apply {
+            missing = false
+            xp += amount
+        }
+        guildXPManager.store(newGuildXPData)
         val botManager by KoinUtil.inject<ExtensibleBot>()
-        val event = GuildXPChangeEvent(oldGuildXP, newGuildXP, member)
+        val event = GuildXPChangeEvent(oldGuildXPData.xp, newGuildXPData.xp, member)
         botManager.send(event)
     }
 
@@ -176,5 +198,15 @@ class XPManager(
 
     suspend fun getGuildPosition(guildId: Long, userId: Long): Pair<GuildXPData, Long>? {
         return guildXPManager.getPosition(guildId, userId)
+    }
+
+    suspend fun getMemberAtPos(guildId: Long, position: Int): GuildXPData? {
+        return guildXPManager.getAtPosition(guildId, position)
+    }
+
+    suspend fun markMemberMissing(data: GuildXPData) {
+        guildXPManager.store(data.apply {
+            this.missing = true
+        })
     }
 }
