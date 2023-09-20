@@ -200,13 +200,10 @@ class TopRolesManager(driverManager: DriverManager) : AbstractTopRolesManager(dr
             }
         }
     }
-
 }
 
 @Inject
-class TopRoleMemberManager(driverManager: DriverManager) : AbstractTopRoleMemberManager(driverManager) {
-
-}
+class TopRoleMemberManager(driverManager: DriverManager) : AbstractTopRoleMemberManager(driverManager)
 
 @Inject
 class XPManager(

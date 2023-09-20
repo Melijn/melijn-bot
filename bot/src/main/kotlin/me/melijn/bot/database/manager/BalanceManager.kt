@@ -44,8 +44,6 @@ class BalanceManager(driverManager: DriverManager) : AbstractUserBalanceManager(
         driverManager.removeCacheEntry("$classKeyPrefix:${flake.id}") // drop cache due to possible race conditions
     }
 
-
-
     suspend fun getTop(count: Int, offset: Long): List<AugmentedBalanceData> {
         return scopedTransaction {
             UserBalance.join(DeletedUsers, JoinType.LEFT) {

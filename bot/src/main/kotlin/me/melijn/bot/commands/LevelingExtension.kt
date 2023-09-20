@@ -395,7 +395,6 @@ class LevelingExtension : Extension() {
                             "You don't have any levelRoles set"
                         } else {
                             levelRoles.joinToString("\n", prefix = "**Role - Level - Stay** \n") {
-
                                 "<@&${it.roleId}> - ${it.level} - ${it.stay}"
                             }
                         }

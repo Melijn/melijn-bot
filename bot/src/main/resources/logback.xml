@@ -10,7 +10,7 @@
     </appender>
 
     <!-- this block normally goes under the file block -->
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="STDOUT"/>
     </root>
 
