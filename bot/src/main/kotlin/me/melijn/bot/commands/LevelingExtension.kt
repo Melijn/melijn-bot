@@ -2,6 +2,7 @@ package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
+import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.enumChoice
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
@@ -9,10 +10,20 @@ import com.kotlindiscord.kord.extensions.types.respond
 import com.sksamuel.scrimage.ImmutableImage
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.XPManager
+import me.melijn.bot.model.Cell
+import me.melijn.bot.model.enums.Alignment
+import me.melijn.bot.utils.InferredChoiceEnum
+import me.melijn.bot.utils.JDAUtil.awaitOrNull
+import me.melijn.bot.utils.KordExUtils.atLeast
+import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
+import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
+import me.melijn.bot.utils.TableBuilder
+import me.melijn.bot.utils.embedWithColor
 import me.melijn.bot.utils.image.ImageUtil.download
+import me.melijn.gen.GuildXPData
 import me.melijn.gen.LevelRolesData
 import me.melijn.gen.TopRolesData
 import net.dv8tion.jda.api.Permission
@@ -25,13 +36,14 @@ import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.text.NumberFormat
+import java.util.*
 import javax.imageio.ImageIO
-import kotlin.math.floor
-import kotlin.math.log
-import kotlin.math.pow
-import kotlin.math.roundToInt
+import javax.swing.text.NumberFormatter
+import kotlin.math.*
 
 const val LEVEL_LOG_BASE = 1.2
+val bigNumberFormatter = NumberFormatter(NumberFormat.getInstance(Locale.UK))
 
 @KordExtension
 class LevelingExtension : Extension() {
@@ -69,6 +81,96 @@ class LevelingExtension : Extension() {
                 }
             }
         }
+        publicSlashCommand(::LeaderboardArgs) {
+            name = "leaderboard"
+            description = "Shows a leaderboard"
+            action {
+                val pageSize = 3
+                val offset = ((arguments.page-1) * pageSize)
+                val member = member
+                respond {
+                    embedWithColor {
+
+                        title = "Leaderboard"
+                        when (arguments.options) {
+                            LeaderboardOpt.GuildXP -> {
+                                if (member == null) bail(tr("leaderboard.guildOnly"))
+                                val guild = member.guild
+
+                                val manager = xpManager.guildXPManager
+                                val guildId = guild.idLong
+                                val highestMemberLevelDatas = manager.getTop(guildId, pageSize, offset)
+                                val rowCount = manager.rowCount(guildId)
+
+                                val tableBuilder = TableBuilder().apply {
+                                    this.setColumns(
+                                        Cell("#"),
+                                        Cell("Lvl", Alignment.RIGHT),
+                                        Cell("XP", Alignment.RIGHT),
+                                        Cell("User")
+                                    )
+                                    this.seperatorOverrides[0] = " "
+                                }
+
+                                val addRow: suspend (Long, GuildXPData, String) -> Unit = { position, entry, name ->
+                                    tableBuilder.addRow(
+                                        Cell("${position}."),
+                                        Cell(
+                                            bigNumberFormatter.valueToString(getLevel(entry.xp, LEVEL_LOG_BASE)),
+                                            Alignment.RIGHT
+                                        ),
+                                        Cell(bigNumberFormatter.valueToString(entry.xp), Alignment.RIGHT),
+                                        Cell(name.replace("_", "+")),
+                                    )
+                                }
+                                val addRequestedRows: suspend () -> Unit = {
+                                    for ((i, entry) in highestMemberLevelDatas.withIndex()) {
+                                        val name = if (entry.missing) "missing" else {
+                                            val entryMember = guild.retrieveMemberById(entry.userId).awaitOrNull()
+                                            if (entryMember == null) {
+                                                xpManager.markMemberMissing(entry)
+                                                "missing"
+                                            } else entryMember.effectiveName
+                                        }
+                                        addRow(i + offset + 1L, entry, name)
+                                    }
+                                }
+                                if (!highestMemberLevelDatas.any { it.userId == user.idLong }) {
+                                    val (invokerEntry, invokerPos) = manager.getPosition(guildId, user.idLong)
+                                        ?: (GuildXPData(guildId, user.idLong, 0, false) to rowCount)
+                                    if (invokerPos < offset) {
+                                        addRow(invokerPos, invokerEntry, member.effectiveName)
+                                        tableBuilder.addSplit()
+                                        addRequestedRows()
+                                    } else {
+                                        addRequestedRows()
+                                        tableBuilder.addSplit()
+                                        addRow(invokerPos, invokerEntry, member.effectiveName)
+                                    }
+                                } else {
+                                    addRequestedRows()
+                                }
+
+                                val msgs = tableBuilder.build(true).first()
+                                description = msgs
+
+                                val totalPageCount = ceil(rowCount / pageSize.toFloat()).toLong()
+                                footer("Page ${arguments.page}/$totalPageCount")
+                            }
+
+                            LeaderboardOpt.GlobalXP -> {
+//                                val highestUserLevelDatas = xpManager.globalXPManager.getTop(10, offset)
+                            }
+
+                            LeaderboardOpt.Currency -> {
+//                                val richestUserDatas = balanceManager.getTop(10, offset)
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
         publicSlashCommand(::SetXPArgs) {
             name = "setxp"
             description = "gives xp"
@@ -96,23 +198,29 @@ class LevelingExtension : Extension() {
                 description = "Removes a top role"
 
                 action {
-
-                    xpManager.topRolesManager.deleteByIndex1(
+                    val idToDelete = arguments.roleId?.id ?: arguments.role?.idLong ?: bail(tr("deleted.nothing"))
+                    val deleted = xpManager.topRolesManager.deleteByIndex1(
                         guild!!.idLong,
-                        arguments.role.idLong
+                        idToDelete
                     )
-                    respond {
-                        content = "Removed topRole: ${arguments.role.asMention}"
+                    if (deleted > 0) {
+                        respond {
+                            content = "Removed topRole: <@&${idToDelete}> (`${idToDelete}`)"
+                        }
+                    } else {
+                        respond {
+                            content = tr("deleted.nothing")
+                        }
                     }
                 }
             }
             publicGuildSubCommand(::TopRolesAddArgs) {
                 name = "set"
                 description = "Sets a top role"
-                check {
-                    requireBotPermissions(Permission.MANAGE_ROLES)
-                    requirePermission(Permission.MANAGE_ROLES)
-                }
+
+                requireBotPermissions(Permission.MANAGE_ROLES)
+                requirePermission(Permission.MANAGE_ROLES)
+
                 action {
                     val topRole = arguments.role
                     val level = arguments.level
@@ -128,7 +236,8 @@ class LevelingExtension : Extension() {
                     )
 
                     respond {
-                        content = "Set ${topRole.asMention} as topRole for the highest **${memberCount}** members above level `$level`"
+                        content =
+                            "Set ${topRole.asMention} as topRole for the highest **${memberCount}** members above level `$level`"
                     }
                 }
             }
@@ -136,10 +245,9 @@ class LevelingExtension : Extension() {
                 name = "list"
                 description = "Call upon all the topRoles you have set"
 
-                check {
-                    requirePermission(Permission.MANAGE_ROLES)
-                    requireBotPermissions(Permission.MANAGE_ROLES)
-                }
+                requirePermission(Permission.MANAGE_ROLES)
+                requireBotPermissions(Permission.MANAGE_ROLES)
+
                 action {
                     val guild = guild!!
                     val topRoles = xpManager.topRolesManager.getByIndex0(guild.idLong)
@@ -148,7 +256,7 @@ class LevelingExtension : Extension() {
                             "You don't have any topRoles set"
                         } else {
                             topRoles.joinToString("\n", prefix = "**Role - MinLevel - Number** \n") {
-                                "<@&${it.roleId}> - ${it.minLevelTop} - ${it.memberCount}"
+                                "<@&${it.roleId}> (`${it.roleId}`) - ${it.minLevelTop} - ${it.memberCount}"
                             }
                         }
                     }
@@ -181,10 +289,10 @@ class LevelingExtension : Extension() {
             publicGuildSubCommand(::LevelRolesAddArgs) {
                 name = "set"
                 description = "Sets a level role"
-                check {
-                    requireBotPermissions(Permission.MANAGE_ROLES)
-                    requirePermission(Permission.MANAGE_ROLES)
-                }
+
+                requireBotPermissions(Permission.MANAGE_ROLES)
+                requirePermission(Permission.MANAGE_ROLES)
+
                 action {
                     val levelRole = arguments.role
                     val stay = arguments.stay
@@ -204,21 +312,21 @@ class LevelingExtension : Extension() {
                     }
                 }
             }
-            publicGuildSubCommand() {
+            publicGuildSubCommand {
                 name = "list"
                 description = "Call upon all the levelRoles you have set"
-                check {
-                    requirePermission(Permission.MANAGE_ROLES)
-                    requireBotPermissions(Permission.MANAGE_ROLES)
-                }
+
+                requirePermission(Permission.MANAGE_ROLES)
+                requireBotPermissions(Permission.MANAGE_ROLES)
+
                 action {
                     val guild = guild!!
                     val levelRoles = xpManager.levelRolesManager.getByIndex0(guild.idLong)
                     respond {
-                        if (levelRoles.isEmpty()) {
-                            content = "You don't have any levelRoles set"
+                        content = if (levelRoles.isEmpty()) {
+                            "You don't have any levelRoles set"
                         } else {
-                            content = levelRoles.joinToString("\n", prefix = "**Role - Level - Stay** \n") {
+                            levelRoles.joinToString("\n", prefix = "**Role - Level - Stay** \n") {
 
                                 "<@&${it.roleId}> - ${it.level} - ${it.stay}"
                             }
@@ -320,6 +428,27 @@ class LevelingExtension : Extension() {
         return bars
     }
 
+    enum class LeaderboardOpt : InferredChoiceEnum {
+        GuildXP, GlobalXP, Currency
+    }
+
+    inner class LeaderboardArgs : Arguments() {
+        val options by enumChoice<LeaderboardOpt> {
+            name = "option"
+            description = "5"
+            typeName = "5"
+        }
+
+        val page by defaultingInt {
+            name = "page"
+            description = "The leaderboard page you want to view"
+            defaultValue = 1
+            validate {
+                atLeast(name, 1)
+            }
+        }
+    }
+
     inner class SetXPArgs : Arguments() {
         val user = user {
             name = "user"
@@ -384,9 +513,13 @@ class LevelingExtension : Extension() {
     }
 
     inner class TopRolesRemoveArgs : Arguments() {
-        val role by role {
+        val role by optionalRole {
             name = "role"
             description = "The role that you have set in the levelRole you want to remove"
+        }
+        val roleId by optionalSnowflake {
+            name = "role-id"
+            description = "Use this incase the role is deleted"
         }
     }
 }
