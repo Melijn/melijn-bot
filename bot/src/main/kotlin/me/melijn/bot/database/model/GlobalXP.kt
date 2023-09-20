@@ -12,8 +12,4 @@ object GlobalXP : Table("global_xp") {
     var xp = long("xp")
 
     override val primaryKey: PrimaryKey = PrimaryKey(userId)
-
-    init {
-        index(true, userId)
-    }
 }

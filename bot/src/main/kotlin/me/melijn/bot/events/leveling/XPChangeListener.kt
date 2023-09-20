@@ -7,6 +7,7 @@ import me.melijn.bot.commands.LEVEL_LOG_BASE
 import me.melijn.bot.commands.LevelingExtension
 import me.melijn.bot.database.manager.GuildSettingsManager
 import me.melijn.bot.database.manager.LevelRolesManager
+import me.melijn.bot.database.manager.MissingUserManager
 import me.melijn.bot.database.manager.XPManager
 import me.melijn.bot.utils.JDAUtil.awaitOrNull
 import me.melijn.bot.utils.KoinUtil
@@ -18,6 +19,7 @@ class XPChangeListener {
     init {
         val shardManager by KoinUtil.inject<ExtensibleBot>()
         val xpManager by KoinUtil.inject<XPManager>()
+        val missingUserManager by KoinUtil.inject<MissingUserManager>()
         val levelRoleManager by KoinUtil.inject<LevelRolesManager>()
         val settingsManager by KoinUtil.inject<GuildSettingsManager>()
 
@@ -30,7 +32,7 @@ class XPChangeListener {
             val oldLevel = LevelingExtension.getLevel(oldXP, LEVEL_LOG_BASE)
             val newLevel = LevelingExtension.getLevel(newXP, LEVEL_LOG_BASE)
 
-            handleTopRole(xpManager, newLevel)
+            handleTopRole(xpManager, missingUserManager, newLevel)
 
             if (newLevel > oldLevel) {
 
@@ -52,6 +54,7 @@ class XPChangeListener {
 
     private suspend fun GuildXPChangeEvent.handleTopRole(
         xpManager: XPManager,
+        missingUserManager: MissingUserManager,
         newLevel: Long
     ) {
         val topRoles = xpManager.getTopRoles(guild.idLong, newLevel)
@@ -73,12 +76,12 @@ class XPChangeListener {
             val role = guild.getRoleById(possibleTopRole.roleId) ?: return
             if (!member.roles.contains(role)) {
                 guild.addRoleToMember(user, role).reason("Toprole").queue()
-                val toExitTopRole = xpManager.getMemberAtPos(guild.idLong, possibleTopRole.memberCount)
+                val toExitTopRole = xpManager.getMemberAtPos(guild.idLong, possibleTopRole.memberCount.toLong())
                     ?.takeIf { !it.missing } ?: return
-                val exitedMember = guild.retrieveMemberById(toExitTopRole.userId).awaitOrNull()
+                val exitedMember = guild.retrieveMemberById(toExitTopRole.guildXPData.userId).awaitOrNull()
                 if (exitedMember == null) {
                     // Unmarking missing members is done when they gain xp via XPManager
-                    xpManager.markMemberMissing(toExitTopRole)
+                    missingUserManager.markMemberMissing(guild.idLong, toExitTopRole.guildXPData.userId)
                 } else {
                     if (exitedMember.roles.contains(role)) {
                         guild.removeRoleFromMember(exitedMember, role).reason("Lost topRole requirement").await()

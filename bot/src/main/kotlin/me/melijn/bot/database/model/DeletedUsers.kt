@@ -6,16 +6,19 @@ import org.jetbrains.exposed.sql.Table
 
 @CreateTable
 @TableModel(true)
-object GuildXP : Table("guild_xp") {
+object DeletedUsers : Table("deleted_users") {
+
+    var userId = long("user_id")
+
+    override val primaryKey: PrimaryKey = PrimaryKey(userId)
+}
+
+@CreateTable
+@TableModel(true)
+object MissingMembers : Table("missing_members") {
 
     var guildId = long("guild_id")
     var userId = long("user_id")
-    var xp = long("xp")
 
     override val primaryKey: PrimaryKey = PrimaryKey(guildId, userId)
-
-    init {
-        index(true, guildId, userId)
-        index(false, guildId, xp)
-    }
 }
