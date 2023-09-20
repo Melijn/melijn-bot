@@ -9,9 +9,7 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import com.sksamuel.scrimage.ImmutableImage
 import me.melijn.apkordex.command.KordExtension
-import me.melijn.bot.database.manager.AugmentedGuildXPData
-import me.melijn.bot.database.manager.MissingUserManager
-import me.melijn.bot.database.manager.XPManager
+import me.melijn.bot.database.manager.*
 import me.melijn.bot.utils.*
 import me.melijn.bot.utils.JDAUtil.awaitOrNull
 import me.melijn.bot.utils.KordExUtils.atLeast
@@ -21,9 +19,7 @@ import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.image.ImageUtil.download
-import me.melijn.gen.GuildXPData
-import me.melijn.gen.LevelRolesData
-import me.melijn.gen.TopRolesData
+import me.melijn.gen.*
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.utils.AttachedFile
@@ -48,6 +44,7 @@ class LevelingExtension : Extension() {
 
     override val name: String = "leveling"
     val xpManager by inject<XPManager>()
+    val balanceManager by inject<BalanceManager>()
     val missingUserManager by inject<MissingUserManager>()
 
     companion object {
@@ -84,10 +81,10 @@ class LevelingExtension : Extension() {
             name = "leaderboard"
             description = "Shows a leaderboard"
             action {
-                val pageSize = 3
+                val pageSize = 10
                 val offset = ((arguments.page - 1L) * pageSize)
                 val member = member
-                val tableBuilder = tableBuilder {
+                var tableBuilder = tableBuilder {
                     header {
                         leftCell("#"); rightCell("Lvl"); rightCell("XP"); leftCell("user")
                     }
@@ -107,8 +104,9 @@ class LevelingExtension : Extension() {
                     embedWithColor {
 
                         title = "Leaderboard"
-                        when (arguments.options) {
+                        val totalPageCount = when (arguments.options) {
                             LeaderboardOpt.GuildXP -> {
+                                title = "${tr("leaderboard.guildXP")} $title"
                                 if (member == null) bail(tr("leaderboard.guildOnly"))
                                 val guild = member.guild
 
@@ -135,7 +133,7 @@ class LevelingExtension : Extension() {
                                     }
                                 }
                                 if (!highestMemberLevelDatas.any { it.guildXPData.userId == user.idLong }) {
-                                    val (invokerEntry, invokerPos, _) = manager.getPosition(guildId, user.idLong)
+                                    val (invokerEntry, invokerPos) = manager.getPosition(guildId, user.idLong)
                                         ?: (AugmentedGuildXPData(GuildXPData(guildId, user.idLong, 0), rowCount, false))
                                     if (invokerPos < offset) {
                                         addRow(invokerPos, xpAndLevel(invokerEntry), member.effectiveName)
@@ -153,60 +151,106 @@ class LevelingExtension : Extension() {
                                 val msgs = tableBuilder.build(true).first()
                                 description = msgs
 
-                                val totalPageCount = ceil(rowCount / pageSize.toFloat()).toLong()
-                                footer("Page ${arguments.page}/$totalPageCount")
+                                ceil(rowCount / pageSize.toFloat()).toLong()
                             }
 
                             LeaderboardOpt.GlobalXP -> {
-//                                val manager = xpManager.globalXPManager
-//                                val highestUserLevelDatas = manager.getTop(pageSize, offset)
-//                                val rowCount = manager.rowCount()
-//
-//                                fun xpAndLevel(entry: GlobalXPData) = listOf(getLevel(entry.xp, LEVEL_LOG_BASE), entry.xp)
-//                                val addRequestedRows: suspend () -> Unit = {
-//                                    for ((i, entry) in highestUserLevelDatas.withIndex()) {
-//                                        val name = if (entry.missing) {
-//                                            "missing"
-//                                        } else {
-//                                            val entryUser = shardManager.retrieveUserById(entry.userId).awaitOrNull()
-//                                            if (entryUser == null) {
-//                                                xpManager.markUserMissing(entry)
-//                                                "missing"
-//                                            } else {
-//                                                entryUser.effectiveName
-//                                            }
-//                                        }
-//                                        addRow(i + offset + 1L, xpAndLevel(entry), name)
-//                                    }
-//                                }
-//                                if (!highestUserLevelDatas.any { it.userId == user.idLong }) {
-//                                    val (invokerEntry, invokerPos) = manager.getPosition(user.idLong)
-//                                        ?: (GlobalXPData(user.idLong, 0, false) to rowCount)
-//                                    if (invokerPos < offset) {
-//                                        addRow(invokerPos, xpAndLevel(invokerEntry), user.effectiveName)
-//                                        tableBuilder.addSplit()
-//                                        addRequestedRows()
-//                                    } else {
-//                                        addRequestedRows()
-//                                        tableBuilder.addSplit()
-//                                        addRow(invokerPos, xpAndLevel(invokerEntry), user.effectiveName)
-//                                    }
-//                                } else {
-//                                    addRequestedRows()
-//                                }
-//
-//                                val msgs = tableBuilder.build(true).first()
-//                                description = msgs
-//
-//                                val totalPageCount = ceil(rowCount / pageSize.toFloat()).toLong()
-//                                footer("Page ${arguments.page}/$totalPageCount")
+                                title = "${tr("leaderboard.globalXP")} $title"
+                                val manager = xpManager.globalXPManager
+                                val highestUserLevelDatas = manager.getTop(pageSize, offset)
+                                val rowCount = manager.rowCount()
+
+                                fun xpAndLevel(entry: GlobalXPData) = listOf(getLevel(entry.xp, LEVEL_LOG_BASE), entry.xp)
+                                val addRequestedRows: suspend () -> Unit = {
+                                    for ((i, entry) in highestUserLevelDatas.withIndex()) {
+                                        val name = if (entry.missing) {
+                                            "missing"
+                                        } else {
+                                            val entryUser = shardManager.retrieveUserById(entry.globalXPData.userId).awaitOrNull()
+                                            if (entryUser == null) {
+                                                missingUserManager.markUserDeleted(entry.globalXPData.userId)
+                                                "missing"
+                                            } else {
+                                                entryUser.effectiveName
+                                            }
+                                        }
+                                        addRow(i + offset + 1L, xpAndLevel(entry.globalXPData), name)
+                                    }
+                                }
+                                if (!highestUserLevelDatas.any { it.globalXPData.userId == user.idLong }) {
+                                    val (invokerEntry, invokerPos) = manager.getPosition(user.idLong)
+                                        ?: (AugmentedGlobalXPData(GlobalXPData(user.idLong, 0), rowCount, false))
+                                    if (invokerPos < offset) {
+                                        addRow(invokerPos, xpAndLevel(invokerEntry), user.effectiveName)
+                                        tableBuilder.addSplit()
+                                        addRequestedRows()
+                                    } else {
+                                        addRequestedRows()
+                                        tableBuilder.addSplit()
+                                        addRow(invokerPos, xpAndLevel(invokerEntry), user.effectiveName)
+                                    }
+                                } else {
+                                    addRequestedRows()
+                                }
+
+                                val msgs = tableBuilder.build(true).first()
+                                description = msgs
+
+                                ceil(rowCount / pageSize.toFloat()).toLong()
                             }
 
                             LeaderboardOpt.Currency -> {
-//                                val richestUserDatas = balanceManager.getTop(10, offset)
+                                val currency = tr("currency")
+                                title = "$currency $title"
+                                tableBuilder = tableBuilder {
+                                    header {
+                                        leftCell("#"); rightCell(currency); leftCell("user")
+                                    }
+                                    seperator(0, " ")
+                                }
+                                val manager = balanceManager
+                                val highestUserLevelDatas = manager.getTop(pageSize, offset)
+                                val rowCount = manager.rowCount()
 
+                                val addRequestedRows: suspend () -> Unit = {
+                                    for ((i, entry) in highestUserLevelDatas.withIndex()) {
+                                        val name = if (entry.missing) {
+                                            "missing"
+                                        } else {
+                                            val entryUser = shardManager.retrieveUserById(entry.balanceData.userId).awaitOrNull()
+                                            if (entryUser == null) {
+                                                missingUserManager.markUserDeleted(entry.balanceData.userId)
+                                                "missing"
+                                            } else {
+                                                entryUser.effectiveName
+                                            }
+                                        }
+                                        addRow(i + offset + 1L, listOf(entry.balanceData.balance), name)
+                                    }
+                                }
+                                if (!highestUserLevelDatas.any { it.balanceData.userId == user.idLong }) {
+                                    val (invokerEntry, invokerPos) = manager.getPosition(user.idLong)
+                                        ?: (AugmentedBalanceData(UserBalanceData(user.idLong, 0), rowCount, false))
+                                    if (invokerPos < offset) {
+                                        addRow(invokerPos, listOf(invokerEntry.balance), user.effectiveName)
+                                        tableBuilder.addSplit()
+                                        addRequestedRows()
+                                    } else {
+                                        addRequestedRows()
+                                        tableBuilder.addSplit()
+                                        addRow(invokerPos, listOf(invokerEntry.balance), user.effectiveName)
+                                    }
+                                } else {
+                                    addRequestedRows()
+                                }
+
+                                val msgs = tableBuilder.build(true).first()
+                                description = msgs
+
+                                ceil(rowCount / pageSize.toFloat()).toLong()
                             }
                         }
+                        footer("Page ${arguments.page}/$totalPageCount")
                     }
                 }
             }

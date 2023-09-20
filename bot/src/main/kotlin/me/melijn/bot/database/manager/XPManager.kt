@@ -15,11 +15,8 @@ import me.melijn.kordkommons.database.insertOrUpdate
 import net.dv8tion.jda.api.entities.ISnowflake
 import net.dv8tion.jda.api.entities.Member
 import org.intellij.lang.annotations.Language
-import org.jetbrains.exposed.sql.JoinType
-import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.select
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -38,7 +35,64 @@ class GlobalXPManager(driverManager: DriverManager) : AbstractGlobalXPManager(dr
             })
         }
     }
+
+    suspend fun getTop(count: Int, offset: Long): List<AugmentedGlobalXPData> {
+        return scopedTransaction {
+            GlobalXP.join(DeletedUsers, JoinType.LEFT) {
+                GlobalXP.userId.eq(DeletedUsers.userId)
+            }.selectAll()
+                .orderBy(GlobalXP.xp, SortOrder.DESC)
+                .limit(count, offset)
+                .mapIndexed { index, rr ->
+                    AugmentedGlobalXPData(
+                        GlobalXPData.fromResRow(rr),
+                        offset + index,
+                        rr.getOrNull(MissingMembers.userId) != null
+                    )
+                }
+        }
+    }
+
+    suspend fun rowCount(): Long = scopedTransaction {
+        GlobalXP.selectAll().count()
+    }
+
+    suspend fun getPosition(userId: Long): AugmentedGlobalXPData? = suspendCoroutine { continuation ->
+        @Language("postgresql")
+        val query1 =
+            """SELECT subq.user_id, subq.xp, position, subq.muser_id
+                  |FROM (
+                  |    SELECT global_xp.user_id, global_xp.xp, ROW_NUMBER() over (order by global_xp.xp desc) as position, 
+                  |        deleted_users.user_id as muser_id
+                  |    FROM global_xp LEFT JOIN deleted_users ON global_xp.user_id = deleted_users.user_id
+                  |    ORDER BY global_xp.xp DESC) subq 
+                  |WHERE subq.user_id = ?
+                  |""".trimMargin()
+        driverManager.executeQuery(query1, { rs ->
+            if (rs.next()) {
+                println(rs)
+
+                val entry = GlobalXPData(
+                    rs.getLong(1),
+                    rs.getLong(2)
+                )
+                val rowNumber = rs.getLong(3)
+
+                // https://stackoverflow.com/questions/2920364/checking-for-a-null-int-value-from-a-java-resultset
+                // Makes rs work on missing_users.user_id and consider it's nullability below
+                rs.getLong(4)
+                val augmentedGuildXPData = AugmentedGlobalXPData(entry, rowNumber, !rs.wasNull())
+                continuation.resume(augmentedGuildXPData)
+            } else continuation.resume(null)
+        }, userId)
+    }
 }
+
+data class AugmentedGlobalXPData(
+    val globalXPData: GlobalXPData,
+    val position: Long,
+    val missing: Boolean
+)
 
 data class AugmentedGuildXPData(
     val guildXPData: GuildXPData,
