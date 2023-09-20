@@ -1,7 +1,6 @@
 package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
-import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.enumChoice
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
@@ -115,13 +114,16 @@ class LevelingExtension : Extension() {
                                 val highestMemberLevelDatas = manager.getTop(guildId, pageSize, offset)
                                 val rowCount = manager.rowCount(guildId)
 
-                                fun xpAndLevel(entry: GuildXPData) = listOf(getLevel(entry.xp, LEVEL_LOG_BASE), entry.xp)
+                                fun xpAndLevel(entry: GuildXPData) =
+                                    listOf(getLevel(entry.xp, LEVEL_LOG_BASE), entry.xp)
+
                                 val addRequestedRows: suspend () -> Unit = {
                                     for ((i, entry) in highestMemberLevelDatas.withIndex()) {
                                         val name = if (entry.missing) {
                                             "missing"
                                         } else {
-                                            val entryMember = guild.retrieveMemberById(entry.guildXPData.userId).awaitOrNull()
+                                            val entryMember =
+                                                guild.retrieveMemberById(entry.guildXPData.userId).awaitOrNull()
                                             if (entryMember == null) {
                                                 missingUserManager.markMemberMissing(guildId, entry.guildXPData.userId)
                                                 "missing"
@@ -160,20 +162,12 @@ class LevelingExtension : Extension() {
                                 val highestUserLevelDatas = manager.getTop(pageSize, offset)
                                 val rowCount = manager.rowCount()
 
-                                fun xpAndLevel(entry: GlobalXPData) = listOf(getLevel(entry.xp, LEVEL_LOG_BASE), entry.xp)
+                                fun xpAndLevel(entry: GlobalXPData) =
+                                    listOf(getLevel(entry.xp, LEVEL_LOG_BASE), entry.xp)
+
                                 val addRequestedRows: suspend () -> Unit = {
                                     for ((i, entry) in highestUserLevelDatas.withIndex()) {
-                                        val name = if (entry.missing) {
-                                            "missing"
-                                        } else {
-                                            val entryUser = shardManager.retrieveUserById(entry.globalXPData.userId).awaitOrNull()
-                                            if (entryUser == null) {
-                                                missingUserManager.markUserDeleted(entry.globalXPData.userId)
-                                                "missing"
-                                            } else {
-                                                entryUser.effectiveName
-                                            }
-                                        }
+                                        val name = getUserNameFor(entry.globalXPData.userId, entry.missing)
                                         addRow(i + offset + 1L, xpAndLevel(entry.globalXPData), name)
                                     }
                                 }
@@ -214,17 +208,7 @@ class LevelingExtension : Extension() {
 
                                 val addRequestedRows: suspend () -> Unit = {
                                     for ((i, entry) in highestUserLevelDatas.withIndex()) {
-                                        val name = if (entry.missing) {
-                                            "missing"
-                                        } else {
-                                            val entryUser = shardManager.retrieveUserById(entry.balanceData.userId).awaitOrNull()
-                                            if (entryUser == null) {
-                                                missingUserManager.markUserDeleted(entry.balanceData.userId)
-                                                "missing"
-                                            } else {
-                                                entryUser.effectiveName
-                                            }
-                                        }
+                                        val name = getUserNameFor(entry.balanceData.userId, entry.missing)
                                         addRow(i + offset + 1L, listOf(entry.balanceData.balance), name)
                                     }
                                 }
@@ -421,7 +405,19 @@ class LevelingExtension : Extension() {
         }
     }
 
-    private suspend fun PublicSlashCommandContext<XPArgs>.drawXpCard(
+    private suspend fun getUserNameFor(userId: Long, missing: Boolean): String = if (missing) {
+        "missing"
+    } else {
+        val entryUser = shardManager.retrieveUserById(userId).awaitOrNull()
+        if (entryUser == null) {
+            missingUserManager.markUserDeleted(userId)
+            "missing"
+        } else {
+            entryUser.effectiveName
+        }
+    }
+
+    private suspend fun drawXpCard(
         bufferedImage: BufferedImage,
         xp: Long,
         guildXp: Long?,
