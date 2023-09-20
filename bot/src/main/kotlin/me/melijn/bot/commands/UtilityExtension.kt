@@ -21,7 +21,6 @@ import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.InvitesManager
 import me.melijn.bot.database.manager.MemberJoinTrackingManager
 import me.melijn.bot.events.UserNameListener
-import me.melijn.bot.utils.JDAUtil.asTag
 import me.melijn.bot.utils.JDAUtil.toHex
 import me.melijn.bot.utils.KoinUtil
 import me.melijn.bot.utils.KordExUtils.bail
@@ -221,7 +220,7 @@ class UtilityExtension : Extension() {
                             description += tr(
                                 "userInfo.inviteInfoSection",
                                 inviteInfoString,
-                                inviteData?.userId?.let { shardManager.getUserById(it)?.asTag?.let { "$it " } } + "(`${inviteData?.userId}`)",
+                                inviteData?.userId?.let { shardManager.getUserById(it)?.effectiveName?.let { "$it " } } + "(`${inviteData?.userId}`)",
                                 TimeFormat.DATE_TIME_LONG.format(inviteInfo.firstJoinTime),
                                 inviteInfo.joins
                             )
@@ -254,7 +253,7 @@ class UtilityExtension : Extension() {
                         thumbnail = iconUrl.toString()
                         description = tr(
                             "serverInfo.responseDescription", guild.name, guild.id,
-                            guild.owner?.asTag,
+                            guild.owner?.effectiveName,
                             TimeFormat.DATE_TIME_SHORT.format(guild),
                             tr("serverVerificationLevel", guild.verificationLevel),
                             tr("serverMFATier", guild.requiredMFALevel),

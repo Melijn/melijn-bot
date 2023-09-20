@@ -403,7 +403,7 @@ class MusicExtension : Extension() {
                 }
                 respond {
                     embed {
-                        title = tr("skip.title", user.asTag)
+                        title = tr("skip.title", user.effectiveName)
                         description = """
                             $skippedPart
                             $nextPart
@@ -525,7 +525,7 @@ class MusicExtension : Extension() {
                             trackManager.queue(track, queuePosition)
 
                             embed {
-                                title = tr("play.title", user.asTag)
+                                title = tr("play.title", user.effectiveName)
                                 description = tr(
                                     "play.addedOne",
                                     trackManager.queue.size,
@@ -538,7 +538,7 @@ class MusicExtension : Extension() {
 
                         tracks.size > 1 -> {
                             embed {
-                                title = tr("splay.menuTitle", user.asTag)
+                                title = tr("splay.menuTitle", user.effectiveName)
                                 description = entries
                             }
                             actionRow(
@@ -592,7 +592,7 @@ class MusicExtension : Extension() {
                             val track = tracks.first()
 
                             embed {
-                                title = tr("play.title", user.asTag)
+                                title = tr("play.title", user.effectiveName)
                                 description = tr(
                                     "play.addedOne",
                                     trackManager.queue.size,
@@ -605,7 +605,7 @@ class MusicExtension : Extension() {
 
                         tracks.size > 1 -> {
                             embed {
-                                title = tr("play.manyAddedTitle", user.asTag)
+                                title = tr("play.manyAddedTitle", user.effectiveName)
                                 description = tr(
                                     "play.manyAddedDescription",
                                     tracks.size,

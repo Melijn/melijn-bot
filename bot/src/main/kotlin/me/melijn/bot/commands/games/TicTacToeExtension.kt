@@ -300,9 +300,9 @@ class TicTacToeExtension : Extension() {
                 val msgId = respond {
                     embedWithColor {
                         if (opponent == null) {
-                            addGameMessage(user.asTag)
+                            addGameMessage(user.effectiveName)
                         } else {
-                            addGameInviteMessage(user.asTag, opponent.asTag)
+                            addGameInviteMessage(user.effectiveName, opponent.effectiveName)
                         }
                     }
                 }

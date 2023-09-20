@@ -7,7 +7,6 @@ import io.ktor.client.request.*
 import kotlinx.serialization.Serializable
 import me.melijn.bot.commands.AnimalSource
 import me.melijn.bot.commands.AnimalType
-import me.melijn.bot.utils.KtorUtils.parametersOf
 import me.melijn.bot.utils.Log
 import me.melijn.gen.Settings
 import org.koin.core.component.inject
@@ -31,23 +30,6 @@ class AnimalImageApi(private val httpClient: HttpClient) : KordExKoinComponent {
             AnimalSource.RandomDuk -> getRandomRandomDukUrl()
             AnimalSource.Duncte123 -> getRandomDuncte123Url(extra)
             AnimalSource.SomeRandomApi -> getRandomSomeRandomApiUrl(extra)
-            AnimalSource.TheCatApi -> getRandomTheCatApiUrl()
-        }
-    }
-
-    private suspend fun getRandomTheCatApiUrl(): String? {
-        return try {
-            httpClient.get("https://api.thecatapi.com/v1/images/search") {
-                header("x-api-key", settings.api.theCatApi.apiKey)
-                parametersOf(
-                    "limit" to "1",
-                    "format" to "json",
-                    "order" to "RANDOM"
-                )
-            }.body<List<TheCatApiRandomImages.TheCatApiRandomImage>>().first().url
-        } catch (t: Throwable) {
-            logger.warn(t) { "TheCatApi failed to respond properly" }
-            null
         }
     }
 
@@ -107,15 +89,9 @@ data class RandomDukRandomImage(
 )
 
 @Serializable
-data class TheCatApiRandomImages(
-    val images: List<TheCatApiRandomImage>
-) {
-
-    @Serializable
-    data class TheCatApiRandomImage(
-        val url: String
-    )
-}
+data class TheCatApiRandomImage(
+    val url: String
+)
 
 @Serializable
 data class SomeRandomApiRandomImage(
