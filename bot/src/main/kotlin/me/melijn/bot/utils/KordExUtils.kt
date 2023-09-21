@@ -349,15 +349,20 @@ object KordExUtils {
         }
     }
 
-    private suspend fun ValidationContext<Long?>.validateBalanceAmount(
+    suspend fun ValidationContext<Long?>.validateBalanceAmount(
         negativeOrZeroAmount: String,
         valueVal: Long,
-        tooLittleBalance: String
+        tooLittleBalance: String,
+        multiplier: Int = 1
     ) {
         val balance = balanceManager.get(context.user).balance
 
         failIf(tr(negativeOrZeroAmount)) { valueVal <= 0 }
-        failIf(tr(tooLittleBalance, valueVal, balance)) { valueVal > balance }
+        try {
+            failIf(tr(tooLittleBalance, multiplier * valueVal, balance)) { multiplier * valueVal > balance }
+        }catch (e: ArithmeticException){
+            fail(tr("flip.timesTooMuch"))
+        }
     }
 
     context(ConverterBuilder<*>)
