@@ -1,14 +1,18 @@
 package me.melijn.bot.commands
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
+import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.enumChoice
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
+import com.kotlindiscord.kord.extensions.extensions.chatCommand
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import com.sksamuel.scrimage.ImmutableImage
 import me.melijn.apkordex.command.KordExtension
-import me.melijn.bot.database.manager.*
+import me.melijn.bot.database.manager.BalanceManager
+import me.melijn.bot.database.manager.MissingUserManager
+import me.melijn.bot.database.manager.XPManager
 import me.melijn.bot.utils.*
 import me.melijn.bot.utils.JDAUtil.awaitOrNull
 import me.melijn.bot.utils.KordExUtils.atLeast
@@ -18,8 +22,10 @@ import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.image.ImageUtil.download
-import me.melijn.gen.*
+import me.melijn.gen.LevelRolesData
+import me.melijn.gen.TopRolesData
 import net.dv8tion.jda.api.Permission
+import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.utils.AttachedFile
 import org.koin.core.component.inject
@@ -56,7 +62,7 @@ class LevelingExtension : Extension() {
     override suspend fun setup() {
         publicGuildSlashCommand(::XPArgs) {
             name = "xp"
-            description = "xp"
+            description = "Shows info about XP and Level"
 
             action {
                 val target = arguments.member ?: member!!
@@ -79,16 +85,24 @@ class LevelingExtension : Extension() {
         publicSlashCommand(::LeaderboardArgs) {
             name = "leaderboard"
             description = "Shows a leaderboard"
+
             action {
                 val pageSize = 10
                 val offset = ((arguments.page - 1L) * pageSize)
+                val invokerId = user.idLong
                 val member = member
+
                 var tableBuilder = tableBuilder {
                     header {
                         leftCell("#"); rightCell("Lvl"); rightCell("XP"); leftCell("user")
                     }
                     seperator(0, " ")
                 }
+
+                val userNameFetcher: suspend (LeaderboardData) -> String = { lbData ->
+                    getUserNameFor(lbData.userId, lbData.missing)
+                }
+
                 val addRow: suspend (Long, List<Long>, String) -> Unit = { position, bigNumbers, name ->
                     tableBuilder.row {
                         leftCell("${position}.")
@@ -99,11 +113,44 @@ class LevelingExtension : Extension() {
                     }
                 }
 
+                val addRequestedRows: suspend (List<LeaderboardData>, suspend (LeaderboardData) -> String) -> Unit =
+                    { lbData, nameFetcher ->
+                        for ((i, entry) in lbData.withIndex()) {
+                            val name = nameFetcher(entry)
+                            addRow(i + offset + 1L, entry.dataList, name)
+                        }
+                    }
+
+                suspend fun PublicSlashCommandContext<LeaderboardArgs>.addRequestedRowsWithSelf(
+                    lbDatas: List<LeaderboardData>,
+                    bigNumbersColumnCount: Int,
+                    rowCount: Long,
+                    invokerEntryFetcher: suspend () -> LeaderboardData?,
+                    nameFetcher: suspend (LeaderboardData) -> String
+                ) {
+                    if (lbDatas.none { it.userId == invokerId }) {
+                        val invokerLbData = invokerEntryFetcher()
+                        val invokerPos = invokerLbData?.position ?: rowCount
+                        val dataList = invokerLbData?.dataList ?: List(bigNumbersColumnCount) { 0L }
+                        if (invokerPos < offset) {
+                            addRow(invokerPos, dataList, user.effectiveName)
+                            tableBuilder.addSplit()
+                            addRequestedRows(lbDatas, nameFetcher)
+                        } else {
+                            addRequestedRows(lbDatas, nameFetcher)
+                            tableBuilder.addSplit()
+                            addRow(invokerPos, dataList, user.effectiveName)
+                        }
+                    } else {
+                        addRequestedRows(lbDatas, nameFetcher)
+                    }
+                }
+
                 respond {
                     embedWithColor {
-
                         title = "Leaderboard"
-                        val totalPageCount = when (arguments.options) {
+
+                        val rowCount = when (arguments.options) {
                             LeaderboardOpt.GuildXP -> {
                                 title = "${tr("leaderboard.guildXP")} $title"
                                 if (member == null) bail(tr("leaderboard.guildOnly"))
@@ -114,46 +161,18 @@ class LevelingExtension : Extension() {
                                 val highestMemberLevelDatas = manager.getTop(guildId, pageSize, offset)
                                 val rowCount = manager.rowCount(guildId)
 
-                                fun xpAndLevel(entry: GuildXPData) =
-                                    listOf(getLevel(entry.xp, LEVEL_LOG_BASE), entry.xp)
-
-                                val addRequestedRows: suspend () -> Unit = {
-                                    for ((i, entry) in highestMemberLevelDatas.withIndex()) {
-                                        val name = if (entry.missing) {
-                                            "missing"
-                                        } else {
-                                            val entryMember =
-                                                guild.retrieveMemberById(entry.guildXPData.userId).awaitOrNull()
-                                            if (entryMember == null) {
-                                                missingUserManager.markMemberMissing(guildId, entry.guildXPData.userId)
-                                                "missing"
-                                            } else {
-                                                entryMember.effectiveName
-                                            }
-                                        }
-                                        addRow(i + offset + 1L, xpAndLevel(entry.guildXPData), name)
-                                    }
-                                }
-                                if (!highestMemberLevelDatas.any { it.guildXPData.userId == user.idLong }) {
-                                    val (invokerEntry, invokerPos) = manager.getPosition(guildId, user.idLong)
-                                        ?: (AugmentedGuildXPData(GuildXPData(guildId, user.idLong, 0), rowCount, false))
-                                    if (invokerPos < offset) {
-                                        addRow(invokerPos, xpAndLevel(invokerEntry), member.effectiveName)
-                                        tableBuilder.addSplit()
-                                        addRequestedRows()
-                                    } else {
-                                        addRequestedRows()
-                                        tableBuilder.addSplit()
-                                        addRow(invokerPos, xpAndLevel(invokerEntry), member.effectiveName)
-                                    }
-                                } else {
-                                    addRequestedRows()
+                                val memberNameFetcher: suspend (LeaderboardData) -> String = { lbData ->
+                                    guild.getUserNameFor(lbData.userId, lbData.missing)
                                 }
 
-                                val msgs = tableBuilder.build(true).first()
-                                description = msgs
+                                val invokerEntryFetcher: suspend () -> LeaderboardData? =
+                                    { manager.getPosition(guildId, invokerId) }
+                                addRequestedRowsWithSelf(
+                                    highestMemberLevelDatas, 2, rowCount, invokerEntryFetcher,
+                                    memberNameFetcher
+                                )
 
-                                ceil(rowCount / pageSize.toFloat()).toLong()
+                                rowCount
                             }
 
                             LeaderboardOpt.GlobalXP -> {
@@ -161,36 +180,14 @@ class LevelingExtension : Extension() {
                                 val manager = xpManager.globalXPManager
                                 val highestUserLevelDatas = manager.getTop(pageSize, offset)
                                 val rowCount = manager.rowCount()
+                                val invokerEntryFetcher: suspend () -> LeaderboardData? =
+                                    { manager.getPosition(invokerId) }
+                                addRequestedRowsWithSelf(
+                                    highestUserLevelDatas, 2, rowCount, invokerEntryFetcher,
+                                    userNameFetcher
+                                )
 
-                                fun xpAndLevel(entry: GlobalXPData) =
-                                    listOf(getLevel(entry.xp, LEVEL_LOG_BASE), entry.xp)
-
-                                val addRequestedRows: suspend () -> Unit = {
-                                    for ((i, entry) in highestUserLevelDatas.withIndex()) {
-                                        val name = getUserNameFor(entry.globalXPData.userId, entry.missing)
-                                        addRow(i + offset + 1L, xpAndLevel(entry.globalXPData), name)
-                                    }
-                                }
-                                if (!highestUserLevelDatas.any { it.globalXPData.userId == user.idLong }) {
-                                    val (invokerEntry, invokerPos) = manager.getPosition(user.idLong)
-                                        ?: (AugmentedGlobalXPData(GlobalXPData(user.idLong, 0), rowCount, false))
-                                    if (invokerPos < offset) {
-                                        addRow(invokerPos, xpAndLevel(invokerEntry), user.effectiveName)
-                                        tableBuilder.addSplit()
-                                        addRequestedRows()
-                                    } else {
-                                        addRequestedRows()
-                                        tableBuilder.addSplit()
-                                        addRow(invokerPos, xpAndLevel(invokerEntry), user.effectiveName)
-                                    }
-                                } else {
-                                    addRequestedRows()
-                                }
-
-                                val msgs = tableBuilder.build(true).first()
-                                description = msgs
-
-                                ceil(rowCount / pageSize.toFloat()).toLong()
+                                rowCount
                             }
 
                             LeaderboardOpt.Currency -> {
@@ -205,61 +202,30 @@ class LevelingExtension : Extension() {
                                 val manager = balanceManager
                                 val highestUserLevelDatas = manager.getTop(pageSize, offset)
                                 val rowCount = manager.rowCount()
+                                val invokerEntryFetcher: suspend () -> LeaderboardData? =
+                                    { manager.getPosition(invokerId) }
 
-                                val addRequestedRows: suspend () -> Unit = {
-                                    for ((i, entry) in highestUserLevelDatas.withIndex()) {
-                                        val name = getUserNameFor(entry.balanceData.userId, entry.missing)
-                                        addRow(i + offset + 1L, listOf(entry.balanceData.balance), name)
-                                    }
-                                }
-                                if (!highestUserLevelDatas.any { it.balanceData.userId == user.idLong }) {
-                                    val (invokerEntry, invokerPos) = manager.getPosition(user.idLong)
-                                        ?: (AugmentedBalanceData(UserBalanceData(user.idLong, 0), rowCount, false))
-                                    if (invokerPos < offset) {
-                                        addRow(invokerPos, listOf(invokerEntry.balance), user.effectiveName)
-                                        tableBuilder.addSplit()
-                                        addRequestedRows()
-                                    } else {
-                                        addRequestedRows()
-                                        tableBuilder.addSplit()
-                                        addRow(invokerPos, listOf(invokerEntry.balance), user.effectiveName)
-                                    }
-                                } else {
-                                    addRequestedRows()
-                                }
+                                addRequestedRowsWithSelf(
+                                    highestUserLevelDatas, 1, rowCount, invokerEntryFetcher,
+                                    userNameFetcher
+                                )
 
-                                val msgs = tableBuilder.build(true).first()
-                                description = msgs
-
-                                ceil(rowCount / pageSize.toFloat()).toLong()
+                                rowCount
                             }
                         }
+
+                        val msgs = tableBuilder.build(true).first()
+                        description = msgs
+                        val totalPageCount = ceil(rowCount / pageSize.toFloat()).toLong()
                         footer("Page ${arguments.page}/$totalPageCount")
                     }
                 }
             }
         }
-        publicSlashCommand(::SetXPArgs) {
-            name = "setxp"
-            description = "gives xp"
-            check {
-                userIsOwner()
-            }
-            action {
-                val xp = arguments.xp.parsed
-                val user = arguments.user.parsed
 
-                xpManager.setGlobalXP(user, xp)
-                guild?.let { xpManager.setGuildXP(it, user, xp) }
-
-                respond {
-                    content = "${user.effectiveName} xp: $xp"
-                }
-            }
-        }
         publicGuildSlashCommand {
             name = "toproles"
-            description = "You can choose a role to be put on a number of highest ranking users"
+            description = "Manages roles which are put on a number of highest server-level users"
 
             publicGuildSubCommand(::TopRolesRemoveArgs) {
                 name = "remove"
@@ -331,26 +297,48 @@ class LevelingExtension : Extension() {
                 }
             }
         }
+        chatCommand(::SetXPArgs) {
+            name = "setxp"
+            description = "gives xp"
+            check {
+                userIsOwner()
+            }
+            action {
+                val newXP = arguments.xp
+                val user = arguments.user
 
+                val xp = if (newXP != null) {
+                    xpManager.setGlobalXP(user, newXP)
+                    guild?.let { xpManager.setGuildXP(it, user, newXP) }
+                    newXP
+                } else xpManager.getGlobalXP(user)
+
+                channel.createMessage {
+                    val stateText = "was changed to".takeIf { newXP != null } ?: "is"
+                    content = "${user.effectiveName} their xp $stateText: `$xp`"
+                }
+            }
+        }
         publicGuildSlashCommand {
             name = "levelroles"
-            description = "You can set a role to a certain level"
+            description = "Manages roles which are obtained by reaching a server-level threshold"
 
             publicGuildSubCommand(::LevelRolesRemoveArgs) {
                 name = "remove"
                 description = "Removes a level role"
 
                 action {
-                    xpManager.levelRolesManager.delete(
-                        LevelRolesData(
-                            guild!!.idLong,
-                            arguments.level,
-                            arguments.role.idLong,
-                            arguments.stay
-                        )
-                    )
+                    val levelRoleData = xpManager.levelRolesManager.getByIndex1(guild!!.idLong, arguments.level)
+                    xpManager.levelRolesManager.deleteByIndex1(guild!!.idLong, arguments.level)
+
+                    if (levelRoleData == null) {
+                        respond { content = tr("deleted.nothing") }
+                        return@action
+                    }
+
                     respond {
-                        content = "Removed levelRole: ${arguments.role.asMention} with the level ${arguments.level}"
+                        content =
+                            "Removed levelRole: <@&${levelRoleData.roleId}> with level requirement: ${arguments.level}"
                     }
                 }
             }
@@ -404,16 +392,16 @@ class LevelingExtension : Extension() {
         }
     }
 
-    private suspend fun getUserNameFor(userId: Long, missing: Boolean): String = if (missing) {
-        "missing"
-    } else {
-        val entryUser = shardManager.retrieveUserById(userId).awaitOrNull()
-        if (entryUser == null) {
-            missingUserManager.markUserDeleted(userId)
-            "missing"
-        } else {
-            entryUser.effectiveName
-        }
+    private suspend fun Guild.getUserNameFor(userId: Long, missing: Boolean): String {
+        val entryUser = this.takeUnless { missing }?.retrieveMemberById(userId)?.awaitOrNull()
+        if (entryUser == null) missingUserManager.markMemberMissing(this.idLong, userId)
+        return entryUser?.effectiveName ?: "missing"
+    }
+
+    private suspend fun getUserNameFor(userId: Long, missing: Boolean): String {
+        val entryUser = shardManager.takeUnless { missing }?.retrieveUserById(userId)?.awaitOrNull()
+        if (entryUser == null) missingUserManager.markUserDeleted(userId)
+        return entryUser?.effectiveName ?: "missing"
     }
 
     private suspend fun drawXpCard(
@@ -514,13 +502,13 @@ class LevelingExtension : Extension() {
     inner class LeaderboardArgs : Arguments() {
         val options by enumChoice<LeaderboardOpt> {
             name = "option"
-            description = "5"
+            description = "The leaderboard type"
             typeName = "5"
         }
 
         val page by defaultingInt {
             name = "page"
-            description = "The leaderboard page you want to view"
+            description = "The leaderboard page"
             defaultValue = 1
             validate {
                 atLeast(name, 1)
@@ -529,13 +517,13 @@ class LevelingExtension : Extension() {
     }
 
     inner class SetXPArgs : Arguments() {
-        val user = user {
+        val user by user {
             name = "user"
             description = "user"
         }
-        val xp = long {
+        val xp by optionalLong {
             name = "xp"
-            description = "Sets xp lol"
+            description = "xp amount to set [omit this arg to view the raw xp amount instead]"
         }
     }
 
@@ -549,15 +537,15 @@ class LevelingExtension : Extension() {
     inner class LevelRolesAddArgs : Arguments() {
         val level by long {
             name = "level"
-            description = "The level requirement at which you want to give a role"
+            description = "The level threshold at which to give the role [You cannot have multiple roles per level]"
         }
         val role by role {
             name = "role"
-            description = "The role you want to give when you achieve a certain level"
+            description = "The obtainable role"
         }
         val stay by boolean {
             name = "stay"
-            description = "Role stays when you get the next level role"
+            description = "Whether the roles is kept when a user obtains the next level role"
         }
     }
 
@@ -565,14 +553,6 @@ class LevelingExtension : Extension() {
         val level by long {
             name = "level"
             description = "The level of the levelRole you want to remove"
-        }
-        val role by role {
-            name = "role"
-            description = "The role that you have set in the levelRole you want to remove"
-        }
-        val stay by boolean {
-            name = "stay"
-            description = "Role stays when you get the next level role"
         }
     }
 
@@ -601,4 +581,11 @@ class LevelingExtension : Extension() {
             description = "Use this incase the role is deleted"
         }
     }
+}
+
+interface LeaderboardData {
+    val userId: Long
+    val position: Long
+    val missing: Boolean
+    val dataList: List<Long>
 }

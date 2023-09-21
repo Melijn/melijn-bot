@@ -1,6 +1,7 @@
 package me.melijn.bot.database.manager
 
 import me.melijn.ap.injector.Inject
+import me.melijn.bot.commands.LeaderboardData
 import me.melijn.bot.database.model.DeletedUsers
 import me.melijn.bot.database.model.MissingMembers
 import me.melijn.bot.database.model.UserBalance
@@ -98,6 +99,10 @@ class BalanceManager(driverManager: DriverManager) : AbstractUserBalanceManager(
 
 data class AugmentedBalanceData(
     val balanceData: UserBalanceData,
-    val position: Long,
-    val missing: Boolean
-)
+    override val position: Long,
+    override val missing: Boolean
+) : LeaderboardData {
+    override val userId = balanceData.userId
+    override val dataList: List<Long> = listOf(balanceData.balance)
+}
+

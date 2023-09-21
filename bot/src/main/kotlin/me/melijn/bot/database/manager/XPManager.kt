@@ -2,6 +2,9 @@ package me.melijn.bot.database.manager
 
 import com.kotlindiscord.kord.extensions.ExtensibleBot
 import me.melijn.ap.injector.Inject
+import me.melijn.bot.commands.LEVEL_LOG_BASE
+import me.melijn.bot.commands.LeaderboardData
+import me.melijn.bot.commands.LevelingExtension.Companion.getLevel
 import me.melijn.bot.database.model.*
 import me.melijn.bot.events.leveling.GuildXPChangeEvent
 import me.melijn.bot.utils.KoinUtil
@@ -90,15 +93,21 @@ class GlobalXPManager(driverManager: DriverManager) : AbstractGlobalXPManager(dr
 
 data class AugmentedGlobalXPData(
     val globalXPData: GlobalXPData,
-    val position: Long,
-    val missing: Boolean
-)
+    override val position: Long,
+    override val missing: Boolean
+) : LeaderboardData {
+    override val userId = globalXPData.userId
+    override val dataList: List<Long> = listOf(getLevel(globalXPData.xp, LEVEL_LOG_BASE), globalXPData.xp)
+}
 
 data class AugmentedGuildXPData(
     val guildXPData: GuildXPData,
-    val position: Long,
-    val missing: Boolean
-)
+    override val position: Long,
+    override val missing: Boolean
+) : LeaderboardData {
+    override val userId = guildXPData.userId
+    override val dataList: List<Long> = listOf(getLevel(guildXPData.xp, LEVEL_LOG_BASE), guildXPData.xp)
+}
 
 @Inject
 class GuildXPManager(driverManager: DriverManager) : AbstractGuildXPManager(driverManager) {
