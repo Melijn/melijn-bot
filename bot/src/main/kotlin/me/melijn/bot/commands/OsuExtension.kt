@@ -36,6 +36,7 @@ import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.TableBuilder
 import me.melijn.bot.utils.TimeUtil.format
+import me.melijn.bot.utils.image.ImageUtil
 import me.melijn.bot.web.api.WebManager
 import me.melijn.gen.OsuLinkData
 import me.melijn.gen.Settings
@@ -50,7 +51,6 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.net.URI
 import java.util.*
-import javax.imageio.ImageIO
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -594,7 +594,7 @@ class OsuExtension : Extension() {
         }
 
         val baos = ByteArrayOutputStream()
-        ImageIO.write(canvas.awt(), "png", baos)
+        ImageUtil.writeSafe(canvas.awt(), "png", baos)
         return baos.toByteArray()
     }
 
@@ -640,7 +640,7 @@ class OsuExtension : Extension() {
 //        }
 //
 //        val baos = ByteArrayOutputStream()
-//        ImageIO.write(canvas.awt(), "png", baos)
+//        ImageUtil.writeSafe(canvas.awt(), "png", baos)
 //        return baos.toByteArray()
 //    }
 

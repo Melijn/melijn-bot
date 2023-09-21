@@ -21,6 +21,7 @@ import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
+import me.melijn.bot.utils.image.ImageUtil
 import me.melijn.bot.utils.image.ImageUtil.download
 import me.melijn.gen.LevelRolesData
 import me.melijn.gen.TopRolesData
@@ -75,7 +76,7 @@ class LevelingExtension : Extension() {
                     val bars = drawXpCard(bufferedImage, xp, guildXp, target)
 
                     val baos = ByteArrayOutputStream()
-                    ImageIO.write(bars, "png", baos)
+                    ImageUtil.writeSafe(bars, "png", baos)
                     val bais = ByteArrayInputStream(baos.toByteArray())
 
                     files += AttachedFile.fromData(bais, "file.png")
