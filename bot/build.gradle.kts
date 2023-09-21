@@ -41,7 +41,7 @@ repositories {
 
 val jackson = "2.14.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
 
-val ktor = "2.3.2"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
+val ktor = "2.3.3"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 val apollo = "3.8.2" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
 val kotlinX = "1.7.2" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
 val kotlin = "1.8.20"
