@@ -232,6 +232,9 @@ class LevelingExtension : Extension() {
                 name = "remove"
                 description = "Removes a top role"
 
+                requireBotPermissions(Permission.MANAGE_ROLES)
+                requirePermission(Permission.MANAGE_ROLES)
+
                 action {
                     val idToDelete = arguments.roleId?.id ?: arguments.role?.idLong ?: bail(tr("deleted.nothing"))
                     val deleted = xpManager.topRolesManager.deleteByIndex1(
@@ -328,6 +331,9 @@ class LevelingExtension : Extension() {
                 name = "remove"
                 description = "Removes a level role"
 
+                requireBotPermissions(Permission.MANAGE_ROLES)
+                requirePermission(Permission.MANAGE_ROLES)
+
                 action {
                     val levelRoleData = xpManager.levelRolesManager.getByIndex1(guild!!.idLong, arguments.level)
                     xpManager.levelRolesManager.deleteByIndex1(guild!!.idLong, arguments.level)
@@ -347,8 +353,8 @@ class LevelingExtension : Extension() {
                 name = "set"
                 description = "Sets a level role"
 
-                requireBotPermissions(Permission.MANAGE_ROLES)
                 requirePermission(Permission.MANAGE_ROLES)
+                requireBotPermissions(Permission.MANAGE_ROLES)
 
                 action {
                     val levelRole = arguments.role
