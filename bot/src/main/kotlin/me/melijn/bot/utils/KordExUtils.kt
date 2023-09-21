@@ -322,6 +322,9 @@ object KordExUtils {
         body()
     }
 
+    /**
+     * @throws DiscordRelayedException
+     */
     fun bail(reason: String): Nothing = throw DiscordRelayedException(reason)
 
     private val balanceManager by inject<BalanceManager>()

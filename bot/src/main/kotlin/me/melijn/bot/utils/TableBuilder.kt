@@ -32,23 +32,29 @@ class TableBuilder {
     }
 
     fun setColumns(vararg headerValues: String): TableBuilder {
-        val cells = headerValues.map { Cell(it) }.toTypedArray()
+        val cells = headerValues.map { Cell(it) }.toList()
 
         headerRow.addAll(cells)
-        findWidest(*cells)
+        findWidest(cells)
         return this
     }
 
-    fun setColumns(vararg headerCells: Cell): TableBuilder {
+    fun setColumns(headerCells: List<Cell>): TableBuilder {
         headerRow.addAll(headerCells)
-        findWidest(*headerCells)
+        findWidest(headerCells)
         return this
     }
+    fun setColumns(vararg headerCells: Cell): TableBuilder = setColumns(headerCells.toList())
 
     fun addRow(vararg rowElements: String): TableBuilder {
         val cellList = rowElements.map { Cell(it) }
         valueRows[valueRows.size] = cellList
-        findWidest(*cellList.toTypedArray())
+        findWidest(cellList.toList())
+        return this
+    }
+    fun addRow(rowCells: List<Cell>): TableBuilder {
+        valueRows[valueRows.size] = rowCells.toList()
+        findWidest(rowCells)
         return this
     }
 
@@ -59,10 +65,10 @@ class TableBuilder {
     }
 
     fun setFooterRow(vararg footerElements: String): TableBuilder {
-        val cells = footerElements.map { Cell(it) }.toTypedArray()
+        val cells = footerElements.map { Cell(it) }.toList()
 
         footerRow.addAll(cells)
-        findWidest(*cells)
+        findWidest(cells)
         return this
     }
 
@@ -73,6 +79,10 @@ class TableBuilder {
     }
 
     private fun findWidest(vararg rowElements: Cell) {
+        findWidest(rowElements.toList())
+    }
+
+    private fun findWidest(rowElements: List<Cell>) {
         for ((temp, c) in rowElements.withIndex()) {
             val s = toDisplayString(c.value)
 
@@ -159,11 +169,13 @@ class TableBuilder {
                         sb.append(getSpaces(i, cell.value))
                     }
                 }
+
                 Alignment.RIGHT -> {
                     sb
                         .append(getSpaces(i, cell.value))
                         .append(cell.value)
                 }
+
                 Alignment.CENTER -> {
                     sb
                         .append(getLeftSpaces(i, cell.value))
@@ -230,4 +242,43 @@ class TableBuilder {
             " ".repeat(min(50, ceil(it / 2.0).toInt()))
         } ?: ""
     }
+}
+
+class RowBuilder(val cells: MutableList<Cell>)
+
+fun RowBuilder.cell(value: String, position: Alignment = Alignment.RIGHT) {
+    cells.add(Cell(value, position))
+}
+fun RowBuilder.leftCell(value: String) = cell(value, Alignment.LEFT)
+fun RowBuilder.centerCell(value: String) = cell(value, Alignment.CENTER)
+fun RowBuilder.rightCell(value: String) = cell(value, Alignment.RIGHT)
+
+fun TableBuilder.row(rowBuilderFunc: RowBuilder.() -> Unit) {
+    val rowBuilder = RowBuilder(mutableListOf())
+    rowBuilder.apply(rowBuilderFunc)
+    this.addRow(rowBuilder.cells)
+}
+
+fun TableBuilder.header(headerBuilderFunc: RowBuilder.() -> Unit) {
+    val rowBuilder = RowBuilder(mutableListOf())
+    rowBuilder.apply(headerBuilderFunc)
+    this.setColumns(rowBuilder.cells)
+}
+
+/** Sets the [index]'th symbol between columns to [seperator].
+ *
+ * ```
+ * E.g. seperator(1, "-")
+ * Makes rows look like:  x | y - z | u
+ * Instead of the normal: x | y | z | u
+ * ```
+ */
+fun TableBuilder.seperator(index: Int, seperator: String) {
+    this.seperatorOverrides[index] = seperator
+}
+
+fun tableBuilder(applied: TableBuilder.() -> Unit): TableBuilder {
+    val tableBuilder = TableBuilder()
+    applied.invoke(tableBuilder)
+    return tableBuilder
 }

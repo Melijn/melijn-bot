@@ -1,10 +1,13 @@
 package me.melijn.bot.utils.image
 
+import com.kotlindiscord.kord.extensions.DiscordRelayedException
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import me.melijn.bot.utils.KoinUtil
+import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.web.api.WebManager
+import me.melijn.kordkommons.utils.toUpperWordCase
 import java.awt.Color
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
@@ -24,7 +27,7 @@ object ImageUtil {
 
     fun BufferedImage.toInputStream(format: String = "png"): InputStream {
         val baos = ByteArrayOutputStream()
-        ImageIO.write(this, format, baos)
+        writeSafe(this, format, baos)
         return ByteArrayInputStream(baos.toByteArray())
     }
 
@@ -41,5 +44,13 @@ object ImageUtil {
         val bytes = call.body<ByteArray>()
 
         return bytes
+    }
+
+    /**
+     * @Throws DiscordRelayedException | if there is no image writer for the given [extension]
+     * @Trows IOException | if an error occurs during writing or when not able to create required ImageOutputStream.
+     */
+    fun writeSafe(image: BufferedImage, extension: String, baos: ByteArrayOutputStream) {
+        if (!ImageIO.write(image, extension, baos)) bail("Couldn't get a a ${extension.toUpperWordCase()}Writer")
     }
 }

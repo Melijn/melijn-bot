@@ -25,7 +25,6 @@ import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.*
-import javax.imageio.ImageIO
 import kotlin.math.*
 import kotlin.random.Random
 
@@ -201,7 +200,7 @@ class MathExtension : Extension() {
                     Color.WHITE
                 ) as BufferedImage
                 val baos = ByteArrayOutputStream()
-                kotlin.runCatching { ImageIO.write(img, "jpeg", baos) }
+                kotlin.runCatching { ImageUtil.writeSafe(img, "jpeg", baos) }
                 val bis = ByteArrayInputStream(baos.toByteArray())
 
                 val sent = channel.createMessage {

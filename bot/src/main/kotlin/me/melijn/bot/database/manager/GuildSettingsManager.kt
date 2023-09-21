@@ -17,7 +17,8 @@ class GuildSettingsManager(override val driverManager: DriverManager) :
             allowNsfw = false,
             allowVoiceTracking = false,
             allowInviteTracking = false,
-            enableNameNormalization = false
+            enableNameNormalization = false,
+            enableLeveling = false
         )
     }
 }
