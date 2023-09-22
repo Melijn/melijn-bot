@@ -5,17 +5,22 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashC
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.numberChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.commands.converters.SingleConverter
+import com.kotlindiscord.kord.extensions.commands.converters.impl.int
+import com.kotlindiscord.kord.extensions.commands.converters.impl.long
 import com.kotlindiscord.kord.extensions.commands.converters.impl.user
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.BalanceManager
+import me.melijn.bot.utils.KordExUtils.atLeast
 import me.melijn.bot.utils.KordExUtils.availableCurrency
 import me.melijn.bot.utils.KordExUtils.tr
+import me.melijn.bot.utils.KordExUtils.validateBalanceAmount
 import me.melijn.gen.UserBalanceData
 import me.melijn.gen.uselimits.PersistentUsageLimitType
 import org.koin.core.component.inject
+import kotlin.math.abs
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.hours
 
@@ -115,6 +120,21 @@ class EconomyExtension : Extension() {
                     flipAmount(side, balanceData, amount, balanceManager)
                 }
             }
+
+            publicSubCommand(::FlipTimesAmountArgs) {
+                name = "times"
+                description = "flip multiple times"
+
+                action {
+                    val times = arguments.xtimes
+                    val amount = arguments.amount
+                    val side = arguments.coinSide.parsed
+
+                    val balanceData = balanceManager.get(user)
+                    flipTimesAmount(side, balanceData, times, amount, balanceManager)
+                }
+            }
+
         }
 
         publicSlashCommand {
@@ -131,6 +151,41 @@ class EconomyExtension : Extension() {
                 respond {
                     content = tr("beg.receive", receivedAmount)
                 }
+            }
+        }
+    }
+
+    private suspend fun PublicSlashCommandContext<*>.flipTimesAmount(
+        side: Long,
+        balanceData: UserBalanceData,
+        times: Int,
+        amount: Long,
+        balanceManager: BalanceManager
+    ) {
+        var won = 0
+        for (i in 1..times) {
+            if (Random.nextBoolean()) {
+                won++
+            }
+        }
+        val returnAmount = (2 * won - times) * amount
+        balanceData.balance += returnAmount
+        balanceManager.store(balanceData)
+
+        respond {
+            embed {
+                val result = 1 - side.toInt()
+                val wonOrLost = if (returnAmount > 0) 0 else 1
+                description = tr(
+                    "flip.timesFlipped",
+                    won,
+                    side.toInt(),
+                    times - won,
+                    result,
+                    wonOrLost,
+                    abs(returnAmount),
+                    balanceData.balance
+                )
             }
         }
     }
@@ -184,6 +239,25 @@ class EconomyExtension : Extension() {
         }
         val coinSide = coinSideArg()
     }
+
+    inner class FlipTimesAmountArgs : Arguments() {
+        val xtimes by int {
+            name = "times"
+            description = "times to bet"
+            validate {
+                atLeast(name, 1)
+            }
+        }
+        val amount by long {
+            name = "bet"
+            description = "amount to bet"
+            validate {
+                validateBalanceAmount("triedBettingNothing", value, "triedOverBetting", xtimes)
+            }
+        }
+        val coinSide = coinSideArg()
+    }
+
 
     open inner class FlipAllArgs : Arguments() {
         val coinSide = coinSideArg()
