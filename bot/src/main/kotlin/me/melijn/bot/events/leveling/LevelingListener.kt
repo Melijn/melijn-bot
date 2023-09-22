@@ -21,9 +21,11 @@ class LevelingListener : Service("leveling", 60.seconds, 60.seconds, true) {
     init {
         val kord by inject<ShardManager>()
         kord.listener<MessageReceivedEvent> {
+            if (it.author.isBot) return@listener
             handle(it)
         }
         kord.listener<GuildVoiceUpdateEvent> {
+            if (it.member.user.isBot) return@listener
             val joinedChannelId = it.channelJoined?.idLong
             val oldChannelId = it.channelLeft?.idLong
             val userId = it.member.idLong
@@ -42,7 +44,7 @@ class LevelingListener : Service("leveling", 60.seconds, 60.seconds, true) {
     }
 
     private suspend fun handle(event: MessageReceivedEvent) {
-        val member = event.member?.takeIf { !it.user.isBot } ?: return
+        val member = event.member ?: return
         val user = member.user
 
         val cooldown = xpManager.getMsgXPCooldown(user)

@@ -2,6 +2,7 @@ package me.melijn.bot.events.leveling
 
 import com.kotlindiscord.kord.extensions.ExtensibleBot
 import dev.minn.jda.ktx.coroutines.await
+import io.ktor.util.logging.*
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.commands.LEVEL_LOG_BASE
 import me.melijn.bot.commands.LevelingExtension
@@ -11,10 +12,12 @@ import me.melijn.bot.database.manager.MissingUserManager
 import me.melijn.bot.database.manager.XPManager
 import me.melijn.bot.utils.JDAUtil.awaitOrNull
 import me.melijn.bot.utils.KoinUtil
+import me.melijn.bot.utils.Log
 import net.dv8tion.jda.api.Permission
 
 @Inject(true)
 class XPChangeListener {
+    val logger by Log
 
     init {
         val shardManager by KoinUtil.inject<ExtensibleBot>()
@@ -24,18 +27,19 @@ class XPChangeListener {
         val settingsManager by KoinUtil.inject<GuildSettingsManager>()
 
         shardManager.on<GuildXPChangeEvent> {
-            println(this)
-
             if (!this.guild.selfMember.hasPermission(Permission.MANAGE_ROLES)) return@on
             if (!settingsManager.get(guild).enableLeveling) return@on
 
             val oldLevel = LevelingExtension.getLevel(oldXP, LEVEL_LOG_BASE)
             val newLevel = LevelingExtension.getLevel(newXP, LEVEL_LOG_BASE)
 
-            handleTopRole(xpManager, missingUserManager, newLevel)
+            try {
+                handleTopRole(xpManager, missingUserManager, newLevel)
+            } catch (t: Exception) {
+                logger.error(t)
+            }
 
             if (newLevel > oldLevel) {
-
                 println("User ${user.effectiveName} leveled up $oldLevel -> $newLevel")
                 val levelRolesData = levelRoleManager.getById(guild.idLong, newLevel) ?: return@on
                 val role = guild.getRoleById(levelRolesData.roleId) ?: return@on

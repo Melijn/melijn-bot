@@ -75,7 +75,6 @@ class GlobalXPManager(driverManager: DriverManager) : AbstractGlobalXPManager(dr
                   |""".trimMargin()
         driverManager.executeQuery(query1, { rs ->
             if (rs.next()) {
-                println(rs)
 
                 val entry = GlobalXPData(
                     rs.getLong(1),
