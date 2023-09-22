@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.entities.Member
 import org.springframework.boot.ansi.AnsiColor
 import java.lang.Character.UnicodeBlock
 import java.text.Normalizer
+import javax.swing.text.NumberFormatter
 import kotlin.random.Random
 
 object StringsUtil {
@@ -83,4 +84,6 @@ object StringsUtil {
     }.joinToString(separator = "") {
         if (it.isTitleCase()) it.lowercase() else it.toString()
     }.trim()
+
+    fun Long.format(formatter: NumberFormatter): String = formatter.valueToString(this)
 }

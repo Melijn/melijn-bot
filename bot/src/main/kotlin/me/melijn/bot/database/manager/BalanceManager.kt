@@ -2,9 +2,11 @@ package me.melijn.bot.database.manager
 
 import me.melijn.ap.injector.Inject
 import me.melijn.bot.commands.LeaderboardData
+import me.melijn.bot.commands.bigNumberFormatter
 import me.melijn.bot.database.model.DeletedUsers
 import me.melijn.bot.database.model.MissingMembers
 import me.melijn.bot.database.model.UserBalance
+import me.melijn.bot.utils.StringsUtil.format
 import me.melijn.gen.UserBalanceData
 import me.melijn.gen.database.manager.AbstractUserBalanceManager
 import me.melijn.kordkommons.database.DriverManager
@@ -79,8 +81,6 @@ class BalanceManager(driverManager: DriverManager) : AbstractUserBalanceManager(
                   |""".trimMargin()
         driverManager.executeQuery(query1, { rs ->
             if (rs.next()) {
-                println(rs)
-
                 val entry = UserBalanceData(
                     rs.getLong(1),
                     rs.getLong(2)
@@ -103,6 +103,6 @@ data class AugmentedBalanceData(
     override val missing: Boolean
 ) : LeaderboardData {
     override val userId = balanceData.userId
-    override val dataList: List<Long> = listOf(balanceData.balance)
+    override val dataList: List<String> = listOf(balanceData.balance.format(bigNumberFormatter))
 }
 

@@ -5,9 +5,11 @@ import me.melijn.ap.injector.Inject
 import me.melijn.bot.commands.LEVEL_LOG_BASE
 import me.melijn.bot.commands.LeaderboardData
 import me.melijn.bot.commands.LevelingExtension.Companion.getLevel
+import me.melijn.bot.commands.bigNumberFormatter
 import me.melijn.bot.database.model.*
 import me.melijn.bot.events.leveling.GuildXPChangeEvent
 import me.melijn.bot.utils.KoinUtil
+import me.melijn.bot.utils.StringsUtil.format
 import me.melijn.gen.GlobalXPData
 import me.melijn.gen.GuildXPData
 import me.melijn.gen.LevelRolesData
@@ -97,7 +99,9 @@ data class AugmentedGlobalXPData(
     override val missing: Boolean
 ) : LeaderboardData {
     override val userId = globalXPData.userId
-    override val dataList: List<Long> = listOf(getLevel(globalXPData.xp, LEVEL_LOG_BASE), globalXPData.xp)
+    override val dataList: List<String> = listOf(getLevel(globalXPData.xp, LEVEL_LOG_BASE), globalXPData.xp).map {
+        it.format(bigNumberFormatter)
+    }
 }
 
 data class AugmentedGuildXPData(
@@ -106,7 +110,9 @@ data class AugmentedGuildXPData(
     override val missing: Boolean
 ) : LeaderboardData {
     override val userId = guildXPData.userId
-    override val dataList: List<Long> = listOf(getLevel(guildXPData.xp, LEVEL_LOG_BASE), guildXPData.xp)
+    override val dataList: List<String> = listOf(getLevel(guildXPData.xp, LEVEL_LOG_BASE), guildXPData.xp).map {
+        it.format(bigNumberFormatter)
+    }
 }
 
 @Inject
@@ -138,8 +144,6 @@ class GuildXPManager(driverManager: DriverManager) : AbstractGuildXPManager(driv
                   |""".trimMargin()
         driverManager.executeQuery(query1, { rs ->
             if (rs.next()) {
-                println(rs)
-
                 val entry = GuildXPData(
                     rs.getLong(1),
                     rs.getLong(2),
