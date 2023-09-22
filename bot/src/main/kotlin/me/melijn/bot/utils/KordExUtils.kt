@@ -360,7 +360,7 @@ object KordExUtils {
         failIf(tr(negativeOrZeroAmount)) { valueVal <= 0 }
         try {
             failIf(tr(tooLittleBalance, multiplier * valueVal, balance)) { multiplier * valueVal > balance }
-        }catch (e: ArithmeticException){
+        } catch (e: ArithmeticException) {
             fail(tr("flip.timesTooMuch"))
         }
     }

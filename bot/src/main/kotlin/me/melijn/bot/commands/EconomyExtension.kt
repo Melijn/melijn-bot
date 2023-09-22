@@ -161,29 +161,36 @@ class EconomyExtension : Extension() {
         times: Int,
         amount: Long,
         balanceManager: BalanceManager
-    ){
+    ) {
         var won = 0
-        for(i in 1..times){
+        for (i in 1..times) {
             if (Random.nextBoolean()) {
                 won++
             }
         }
         val returnAmount = (2 * won - times) * amount
         balanceData.balance += returnAmount
-//        balanceData.balance += (-times + won) * amount
-
         balanceManager.store(balanceData)
 
         respond {
             embed {
                 val result = 1 - side.toInt()
                 val wonOrLost = if (returnAmount > 0) 0 else 1
-                description = tr("flip.timesFlipped", won, side.toInt(), times-won, result, wonOrLost, abs(returnAmount), balanceData.balance)
+                description = tr(
+                    "flip.timesFlipped",
+                    won,
+                    side.toInt(),
+                    times - won,
+                    result,
+                    wonOrLost,
+                    abs(returnAmount),
+                    balanceData.balance
+                )
             }
         }
     }
 
-        private suspend fun PublicSlashCommandContext<*>.flipAmount(
+    private suspend fun PublicSlashCommandContext<*>.flipAmount(
         side: Long,
         balanceData: UserBalanceData,
         amount: Long,
