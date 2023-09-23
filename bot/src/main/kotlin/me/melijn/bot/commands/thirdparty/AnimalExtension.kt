@@ -1,4 +1,4 @@
-package me.melijn.bot.commands
+package me.melijn.bot.commands.thirdparty
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.CommandContext

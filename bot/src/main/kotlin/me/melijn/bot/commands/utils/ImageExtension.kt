@@ -1,4 +1,4 @@
-package me.melijn.bot.commands
+package me.melijn.bot.commands.utils
 
 import at.dhyan.open_imaging.GifDecoder
 import com.freya02.emojis.Emojis

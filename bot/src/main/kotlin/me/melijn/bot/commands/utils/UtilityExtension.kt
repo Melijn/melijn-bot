@@ -1,4 +1,4 @@
-package me.melijn.bot.commands
+package me.melijn.bot.commands.utils
 
 import com.freya02.emojis.Emojis
 import com.freya02.emojis.TwemojiType

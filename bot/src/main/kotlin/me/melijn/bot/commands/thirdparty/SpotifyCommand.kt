@@ -1,6 +1,6 @@
 @file:Suppress("EXPERIMENTAL_IS_NOT_ENABLED")
 
-package me.melijn.bot.commands
+package me.melijn.bot.commands.thirdparty
 
 import com.kotlindiscord.kord.extensions.checks.anyGuild
 import com.kotlindiscord.kord.extensions.commands.Arguments

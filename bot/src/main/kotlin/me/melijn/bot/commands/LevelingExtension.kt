@@ -20,6 +20,7 @@ import me.melijn.bot.utils.KordExUtils.atLeast
 import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
 import me.melijn.bot.utils.KordExUtils.publicGuildSubCommand
+import me.melijn.bot.utils.KordExUtils.respond
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.StringsUtil.format
@@ -347,10 +348,8 @@ class LevelingExtension : Extension() {
                     newXP
                 } else xpManager.getGlobalXP(user)
 
-                channel.createMessage {
-                    val stateText = "was changed to".takeIf { newXP != null } ?: "is"
-                    content = "${user.effectiveName} their xp $stateText: `$xp`"
-                }
+                val stateText = "was changed to".takeIf { newXP != null } ?: "is"
+                respond("${user.effectiveName} their xp $stateText: `$xp`")
             }
         }
         publicGuildSlashCommand {

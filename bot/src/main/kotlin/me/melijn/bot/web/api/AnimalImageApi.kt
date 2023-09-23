@@ -5,8 +5,8 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.serialization.Serializable
-import me.melijn.bot.commands.AnimalSource
-import me.melijn.bot.commands.AnimalType
+import me.melijn.bot.commands.thirdparty.AnimalSource
+import me.melijn.bot.commands.thirdparty.AnimalType
 import me.melijn.bot.utils.Log
 import me.melijn.gen.Settings
 import org.koin.core.component.inject

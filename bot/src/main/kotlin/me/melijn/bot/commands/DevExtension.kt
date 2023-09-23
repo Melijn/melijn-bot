@@ -12,20 +12,19 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.InlineEmbed
-import dev.minn.jda.ktx.messages.InlineMessage
-import dev.minn.jda.ktx.messages.MessageCreate
 import me.melijn.apkordex.command.KordExtension
+import me.melijn.bot.utils.JDAUtil.createMessage
 import me.melijn.bot.utils.KordExUtils.bail
+import me.melijn.bot.utils.KordExUtils.guildChatCommand
+import me.melijn.bot.utils.KordExUtils.respond
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.StringsUtil
 import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.utils.StringUtils
 import net.dv8tion.jda.api.entities.Activity
-import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.RichPresence
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
-import net.dv8tion.jda.api.utils.messages.MessageCreateData
 import org.koin.core.component.inject
 import org.springframework.boot.ansi.AnsiColor
 
@@ -44,7 +43,9 @@ class DevExtension : Extension() {
             action {
                 val guild = this.guild!!
                 guild.updateCommands().await()
-                this.channel.sendMessage("Cleared guild commands").await()
+                respond {
+                    content = "Cleared guild commands"
+                }
             }
         }
         publicSlashCommand {
@@ -94,7 +95,7 @@ class DevExtension : Extension() {
 //            }
 //        }
 
-        chatCommand(::PresenceArgs) {
+        guildChatCommand(::PresenceArgs) {
             name = "presence"
             description = "dumps a user's presence"
 
@@ -107,13 +108,13 @@ class DevExtension : Extension() {
                 // get presence lines
                 val possibleMusicActivities = member.activities
                 if (arguments.raw) {
-                    this.channel.createMessage("```$possibleMusicActivities```")
+                    respond("```$possibleMusicActivities```")
                 }
 
                 val split = possibleMusicActivities.chunked(5)
 
                 for (activities in split) {
-                    this.channel.createMessage {
+                    respond {
                         for (activity in activities) {
                             embed {
                                 title = activity.name
@@ -280,16 +281,4 @@ class DevExtension : Extension() {
             messageLink.parsed
         }
     }
-}
-
-suspend inline fun MessageChannel.createMessage(s: String): Message {
-    return sendMessage(s).await()
-}
-
-suspend inline fun MessageChannel.createMessage(builder: InlineMessage<MessageCreateData>.() -> Unit): Message {
-    return sendMessage(MessageCreate { builder() }).await()
-}
-
-suspend inline fun MessageChannel.createEmbed(builder: InlineEmbed.() -> Unit): Message {
-    return sendMessage(MessageCreate { embed { builder() } }).await()
 }
