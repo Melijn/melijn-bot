@@ -85,34 +85,34 @@ object KordExUtils {
     }
 
     /**
-     * Int value validator, adds failIf clauses to the validationContext
+     * Comparable value validator, adds failIf clauses to the validationContext
      *
      * @param name parameter name to be used in response
-     * @param min minimum value for the int
+     * @param min minimum value
      *  **/
-    fun ValidationContext<Int?>.atLeast(name: String, min: Int) {
+    fun <K> ValidationContext<Comparable<K>?>.atLeast(name: String, min: K) {
         val size = this.value ?: return
         failIf(size < min, "$name must be **>= $min** but was `$size`")
     }
 
     /**
-     * Int value validator, adds failIf clauses to the validationContext
+     * Comparable value validator, adds failIf clauses to the validationContext
      *
      * @param name parameter name to be used in response
-     * @param max maximum value for the int
+     * @param max maximum value
      *  **/
-    fun ValidationContext<Int?>.atMost(name: String, max: Int) {
+    fun <K> ValidationContext<Comparable<K>?>.atMost(name: String, max: K) {
         val size = this.value ?: return
         failIf(size > max, "$name must be **<= $max** but was `$size`")
     }
 
     /**
-     * Inclusive min max int range validator, adds failIf clauses to the validationContext
+     * Inclusive min max range validator, adds failIf clauses to the validationContext
      * @param name parameter name to be used in response
-     * @param min minimal value for the int
-     * @param max maximal value for the int
+     * @param min minimal value
+     * @param max maximal value
      *  **/
-    fun ValidationContext<Int?>.inRange(name: String, min: Int, max: Int) {
+    fun <K> ValidationContext<Comparable<K>?>.inRange(name: String, min: K, max: K) {
         atLeast(name, min)
         atMost(name, max)
     }

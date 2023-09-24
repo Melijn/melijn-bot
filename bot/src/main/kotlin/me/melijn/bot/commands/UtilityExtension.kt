@@ -20,6 +20,7 @@ import dev.minn.jda.ktx.messages.MessageEdit
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.InvitesManager
 import me.melijn.bot.database.manager.MemberJoinTrackingManager
+import me.melijn.bot.database.manager.MissingUserManager
 import me.melijn.bot.events.UserNameListener
 import me.melijn.bot.utils.JDAUtil.toHex
 import me.melijn.bot.utils.KoinUtil
@@ -50,6 +51,24 @@ class UtilityExtension : Extension() {
     override val name: String = "utility"
 
     override suspend fun setup() {
+        publicGuildSlashCommand {
+            name = "cleansing"
+            description = "Clears the dm blocks, missing member status, delete user status of you"
+
+            action {
+                val missingUsersManager by inject<MissingUserManager>()
+                val member = member!!
+                val guildId = member.guild.idLong
+                val memberId = member.idLong
+                missingUsersManager.markUserDmsOpen(memberId)
+                missingUsersManager.markUserReinstated(memberId)
+                missingUsersManager.markMemberPresent(guildId, memberId)
+                respond {
+                    content = "Cleansed"
+                }
+            }
+        }
+
         publicGuildSlashCommand(::DevGuildArgs) {
             name = "roles"
             description = "Show server roles"
