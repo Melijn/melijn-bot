@@ -29,9 +29,11 @@ import com.kotlindiscord.kord.extensions.i18n.TranslationsProvider
 import com.kotlindiscord.kord.extensions.modules.annotations.converters.Converter
 import com.kotlindiscord.kord.extensions.modules.annotations.converters.ConverterType
 import com.kotlindiscord.kord.extensions.parser.StringParser
+import dev.minn.jda.ktx.messages.InlineMessage
 import me.melijn.bot.database.manager.BalanceManager
 import me.melijn.bot.database.manager.PlaylistManager
 import me.melijn.bot.utils.EnumUtil.ucc
+import me.melijn.bot.utils.JDAUtil.createMessage
 import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.bot.utils.KordExUtils.tr
 import me.melijn.bot.utils.TimeUtil.normalDate
@@ -40,17 +42,31 @@ import me.melijn.gen.PlaylistData
 import me.melijn.gen.Settings
 import me.melijn.kordkommons.utils.SPACE_PATTERN
 import me.melijn.kordkommons.utils.escapeMarkdown
+import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.interactions.commands.OptionMapping
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
+import net.dv8tion.jda.api.utils.messages.MessageCreateData
 import org.jetbrains.annotations.PropertyKey
 import org.koin.core.component.inject
 import java.text.SimpleDateFormat
 import java.util.*
 
 object KordExUtils {
+
+    suspend fun ChatCommandContext<*>.respond(
+        builder: InlineMessage<MessageCreateData>.() -> Unit,
+    ): Message {
+        return channel.createMessage(builder)
+    }
+
+    suspend fun ChatCommandContext<*>.respond(
+        content: String,
+    ): Message {
+        return channel.createMessage(content)
+    }
 
     suspend fun CheckContext<MessageReceivedEvent>.userIsOwner() {
         val botSettings by inject<Settings>()

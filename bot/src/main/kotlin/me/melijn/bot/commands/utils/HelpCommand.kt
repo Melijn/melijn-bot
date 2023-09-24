@@ -1,4 +1,4 @@
-package me.melijn.bot.commands
+package me.melijn.bot.commands.utils
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.Command
@@ -13,6 +13,8 @@ import dev.minn.jda.ktx.interactions.components.link
 import dev.minn.jda.ktx.interactions.components.primary
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.database.manager.PrefixManager
+import me.melijn.bot.utils.JDAUtil.createEmbed
+import me.melijn.bot.utils.KordExUtils.respond
 import net.dv8tion.jda.api.Permission
 import org.koin.core.component.inject
 
@@ -38,7 +40,7 @@ class HelpCommand : Extension() {
                     val cmd = arguments.command.parsed!!
                     val command = getCommandHelp(argString)
 
-                    channel.createMessage {
+                    respond {
                         embed {
                             title = cmd
                             description = command
@@ -50,7 +52,7 @@ class HelpCommand : Extension() {
 
                 val prefix = prefixManager.getPrefixes(guild!!).minByOrNull { it.prefix.length }?.prefix ?: ">"
 
-                channel.createMessage {
+                respond {
                     embed {
                         title = "Help Menu"
                         description = """

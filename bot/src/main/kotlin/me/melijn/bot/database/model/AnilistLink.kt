@@ -2,7 +2,7 @@ package me.melijn.bot.database.model
 
 import me.melijn.apredgres.createtable.CreateTable
 import me.melijn.apredgres.tablemodel.TableModel
-import me.melijn.bot.commands.AniListLanguagePreference
+import me.melijn.bot.commands.thirdparty.AniListLanguagePreference
 import org.jetbrains.exposed.sql.Table
 
 @CreateTable

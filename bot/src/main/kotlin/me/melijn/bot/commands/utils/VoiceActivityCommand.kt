@@ -1,4 +1,4 @@
-package me.melijn.bot.commands
+package me.melijn.bot.commands.utils
 
 import com.kotlindiscord.kord.extensions.checks.types.CheckContextWithCache
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand

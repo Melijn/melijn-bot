@@ -1,6 +1,13 @@
 package me.melijn.bot.utils
 
+import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.messages.InlineEmbed
+import dev.minn.jda.ktx.messages.InlineMessage
+import dev.minn.jda.ktx.messages.MessageCreate
+import net.dv8tion.jda.api.entities.Message
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
 import net.dv8tion.jda.api.requests.RestAction
+import net.dv8tion.jda.api.utils.messages.MessageCreateData
 import java.awt.Color
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -35,5 +42,18 @@ object JDAUtil {
             { _ -> it.resume(true) },
             { _ -> it.resume(false) }
         )
+    }
+
+
+    suspend inline fun MessageChannel.createMessage(s: String): Message {
+        return sendMessage(s).await()
+    }
+
+    suspend inline fun MessageChannel.createMessage(builder: InlineMessage<MessageCreateData>.() -> Unit): Message {
+        return sendMessage(MessageCreate { builder() }).await()
+    }
+
+    suspend inline fun MessageChannel.createEmbed(builder: InlineEmbed.() -> Unit): Message {
+        return sendMessage(MessageCreate { embed { builder() } }).await()
     }
 }

@@ -18,6 +18,7 @@ import me.melijn.bot.utils.KoinUtil.inject
 import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.guildChatCommand
 import me.melijn.bot.utils.KordExUtils.publicGuildSlashCommand
+import me.melijn.bot.utils.KordExUtils.respond
 import me.melijn.gen.MemData
 import org.koin.core.component.inject
 
@@ -67,7 +68,7 @@ class MemExtension : Extension() {
                     else -> memManager.getRawById(guildId, name) ?: bail("`$name` does not exist.")
                 }
 
-                message.channel.createMessage {
+                respond {
                     content = meme.url
                 }
             }
@@ -87,7 +88,7 @@ class MemExtension : Extension() {
                     val name = arguments.name
                     val memeUrl = arguments.meme ?: message.attachments.firstOrNull()?.url ?: bail("No meme provided")
                     memManager.store(MemData(guildId, name, memeUrl))
-                    message.channel.createMessage("Added meme")
+                    respond("Added meme")
                 }
             }
 
@@ -99,7 +100,7 @@ class MemExtension : Extension() {
                     val guildId = guild!!.idLong
                     val name = arguments.name
                     memManager.deleteById(guildId, name)
-                    message.channel.createMessage("Removed meme")
+                    respond("Removed meme")
                 }
             }
 

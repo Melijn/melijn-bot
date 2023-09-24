@@ -8,6 +8,7 @@ import dev.minn.jda.ktx.coroutines.await
 import dev.minn.jda.ktx.messages.MessageEdit
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.utils.CodeEvalUtil
+import me.melijn.bot.utils.KordExUtils.respond
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 
 @KordExtension
@@ -24,9 +25,7 @@ class EvalCommand : Extension() {
             }
 
             action {
-                val msg = channel.createMessage {
-                    content = "Executing code.."
-                }
+                val msg = respond("Executing code..")
 
                 val result = CodeEvalUtil.evalScript(argString, this, this::class, "bestNumber" to this)
 

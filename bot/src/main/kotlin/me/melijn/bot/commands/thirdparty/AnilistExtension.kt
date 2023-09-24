@@ -1,4 +1,4 @@
-package me.melijn.bot.commands
+package me.melijn.bot.commands.thirdparty
 
 import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.api.Operation
@@ -19,8 +19,8 @@ import dev.minn.jda.ktx.interactions.components.button
 import dev.minn.jda.ktx.messages.InlineEmbed
 import dev.minn.jda.ktx.messages.InlineMessage
 import me.melijn.apkordex.command.KordExtension
-import me.melijn.bot.commands.AnilistExtension.LookupArg.AnilistItemType.CHARACTER
-import me.melijn.bot.commands.AnilistExtension.LookupArg.AnilistItemType.USER
+import me.melijn.bot.commands.thirdparty.AnilistExtension.LookupArg.AnilistItemType.CHARACTER
+import me.melijn.bot.commands.thirdparty.AnilistExtension.LookupArg.AnilistItemType.USER
 import me.melijn.bot.database.manager.AnilistLinkManager
 import me.melijn.bot.utils.EnumUtil.ucc
 import me.melijn.bot.utils.InferredChoiceEnum

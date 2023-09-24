@@ -1,4 +1,4 @@
-package me.melijn.bot.commands
+package me.melijn.bot.commands.utils
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.impl.defaultingBoolean
@@ -12,6 +12,9 @@ import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.cache.ButtonCache
 import me.melijn.bot.events.buttons.LATEX_DESTROY_BUTTON_ID
 import me.melijn.bot.model.AbstractOwnedMessage
+import me.melijn.bot.utils.JDAUtil.createEmbed
+import me.melijn.bot.utils.KordExUtils.atLeast
+import me.melijn.bot.utils.KordExUtils.respond
 import me.melijn.bot.utils.image.ImageUtil
 import me.melijn.bot.utils.image.ImageUtil.toInputStream
 import net.dv8tion.jda.api.utils.AttachedFile
@@ -27,7 +30,6 @@ import java.io.ByteArrayOutputStream
 import java.util.*
 import kotlin.math.*
 import kotlin.random.Random
-
 
 @KordExtension
 class MathExtension : Extension() {
@@ -45,7 +47,7 @@ class MathExtension : Extension() {
                     repeat(arguments.lineCount) { add((rand() to rand()) to (rand() to rand())) }
                 }
 
-                // runthrough with line top to bottom.
+                // run-through with line top to bottom.
                 val sorted = lines.sortedBy { (p1, p2) -> max(p1.second, p2.second) }
                 val pq = PriorityQueue<Pair<Int, EventInfo>> { o1, o2 -> o1.first.compareTo(o2.first) }
                 for (line in lines) {
@@ -73,10 +75,6 @@ class MathExtension : Extension() {
                 val points: List<Point> = buildList {
                     repeat(arguments.pointCount) { add(Random.nextInt(size) to Random.nextInt(size)) }
                 }
-                if (arguments.pointCount < 3) {
-                    channel.createMessage { content = "perhaps think of a bigger number" }
-                    return@action
-                }
                 val canvasImg = ImageUtil.createSquare(size, Color.decode("#ffffff"))
                 val canvas = canvasImg.createGraphics()
 
@@ -87,7 +85,7 @@ class MathExtension : Extension() {
                 canvas.dispose()
 
                 for ((x, y) in points) { canvasImg.setRGB(x, y, Color.RED.rgb) }
-                channel.createMessage {
+                respond {
                     this.files += AttachedFile.fromData(canvasImg.toInputStream(), "grid.png")
                 }
             }
@@ -99,7 +97,7 @@ class MathExtension : Extension() {
             action {
                 val function = ::findSquareNewtonsMethod
                 val findSquareNewtonsMethod = function(1.0, 1e-10, 50_000)
-                channel.createMessage {
+                respond {
                     val canvasImg = ImageUtil.createSquare(401, Color.decode("#ffffff"))
                     var canvas = canvasImg.createGraphics()
                     canvas.paint = Color.BLACK
@@ -145,7 +143,7 @@ class MathExtension : Extension() {
 
             action {
                 val gcd = gcd(arguments.a.parsed, arguments.b.parsed)
-                channel.createMessage("The greatest common denominator is: **${gcd}**")
+                respond("The greatest common denominator is: **${gcd}**")
             }
         }
 
@@ -154,7 +152,7 @@ class MathExtension : Extension() {
 
             action {
                 val scm = scm(arguments.a.parsed, arguments.b.parsed)
-                channel.createMessage("The smallest common multiple is: **${scm}**")
+                respond("The smallest common multiple is: **${scm}**")
             }
         }
 
@@ -203,7 +201,7 @@ class MathExtension : Extension() {
                 kotlin.runCatching { ImageUtil.writeSafe(img, "jpeg", baos) }
                 val bis = ByteArrayInputStream(baos.toByteArray())
 
-                val sent = channel.createMessage {
+                val sent = respond {
                     files += AttachedFile.fromData(bis, "img.png")
 
                     danger(LATEX_DESTROY_BUTTON_ID, "Destroy")
@@ -387,6 +385,9 @@ class MathExtension : Extension() {
         val pointCount by int {
             name = "points"
             description = "amount of points"
+            validate {
+                atLeast(name, 3)
+            }
         }
         val upper by defaultingBoolean {
             name = "upper-half"
