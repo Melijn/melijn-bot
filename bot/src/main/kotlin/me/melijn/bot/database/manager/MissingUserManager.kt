@@ -10,6 +10,7 @@ import me.melijn.gen.database.manager.AbstractDeletedUsersManager
 import me.melijn.gen.database.manager.AbstractMissingMembersManager
 import me.melijn.gen.database.manager.AbstractNoDmsUsersManager
 import me.melijn.kordkommons.database.DriverManager
+import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel
 import net.dv8tion.jda.api.sharding.ShardManager
 
@@ -58,18 +59,23 @@ class MissingUserManager(
 
 }
 
-suspend fun ShardManager.openPrivateChannelSafely(userId: Long): PrivateChannel? {
+suspend fun ShardManager.retrieveUserOrMarkDeleted(userId: Long): User? {
     val missingUserManager: MissingUserManager by inject()
     val isDeleted = missingUserManager.isDeleted(userId)
     if (isDeleted) return null
+    val user = retrieveUserById(userId).awaitOrNull()
+    if (user == null) {
+        missingUserManager.markUserDeleted(userId)
+    }
+    return user
+}
+
+suspend fun ShardManager.openPrivateChannelSafely(userId: Long): PrivateChannel? {
+    val missingUserManager: MissingUserManager by inject()
     val hasDmsClosed = missingUserManager.hasDmsClosed(userId)
     if (hasDmsClosed) return null
 
-    val user = this.retrieveUserById(userId).awaitOrNull()
-    if (user == null) {
-        missingUserManager.markUserDeleted(userId)
-        return null
-    }
+    val user = retrieveUserOrMarkDeleted(userId) ?: return null
     val privateChannel = user.openPrivateChannel().awaitOrNull()
     if (privateChannel == null) missingUserManager.markUserDmsClosed(userId)
     return privateChannel

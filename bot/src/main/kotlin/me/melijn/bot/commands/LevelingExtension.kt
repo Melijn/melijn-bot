@@ -10,10 +10,7 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
 import com.sksamuel.scrimage.ImmutableImage
 import me.melijn.apkordex.command.KordExtension
-import me.melijn.bot.database.manager.BalanceManager
-import me.melijn.bot.database.manager.MissingUserManager
-import me.melijn.bot.database.manager.VoiceManager
-import me.melijn.bot.database.manager.XPManager
+import me.melijn.bot.database.manager.*
 import me.melijn.bot.utils.*
 import me.melijn.bot.utils.JDAUtil.awaitOrNull
 import me.melijn.bot.utils.KordExUtils.atLeast
@@ -435,8 +432,7 @@ class LevelingExtension : Extension() {
     }
 
     private suspend fun getUserNameFor(userId: Long, missing: Boolean): String {
-        val entryUser = shardManager.takeUnless { missing }?.retrieveUserById(userId)?.awaitOrNull()
-        if (entryUser == null) missingUserManager.markUserDeleted(userId)
+        val entryUser = shardManager.takeUnless { missing }?.retrieveUserOrMarkDeleted(userId)
         return entryUser?.effectiveName ?: "missing"
     }
 

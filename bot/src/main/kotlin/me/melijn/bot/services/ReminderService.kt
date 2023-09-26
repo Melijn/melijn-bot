@@ -38,6 +38,8 @@ class ReminderService {
         while (true) {
             val reminderEntry = reminderManager.getNextUpcomingReminder()
             if (reminderEntry == null) {
+                // The waitingJob will be cancelled interrupted by the remindersCommand so it can retry,
+                // otherwise this coroutine will delay infinitely and be idle
                 waitingJob = launch { delay(Duration.INFINITE) }
                 waitingJob.join()
                 continue
@@ -72,6 +74,7 @@ class ReminderService {
             privateChannel.sendMessage("Reminder:\n$reminderText").awaitOrNull()
         } catch (e: ErrorResponseException) {
             val retry: suspend (String) -> Message? = { cause: String ->
+                // TODO: Add user localization api and storage for outside of commands
                 val encoder = java.util.Base64.getEncoder()
                 privateChannel.sendMessage(
                     "Your reminder was blocked by ${cause}, here's the base64 text:\n${
@@ -89,8 +92,8 @@ class ReminderService {
                     missingUserManager.markUserDmsClosed(reminderEntry.userId)
                 }
 
-                ErrorResponse.MESSAGE_BLOCKED_BY_AUTOMOD -> retry("Automod")
-                ErrorResponse.MESSAGE_BLOCKED_BY_HARMFUL_LINK_FILTER -> retry("Harmful link filter")
+                ErrorResponse.MESSAGE_BLOCKED_BY_AUTOMOD -> retry("automod")
+                ErrorResponse.MESSAGE_BLOCKED_BY_HARMFUL_LINK_FILTER -> retry("harmful link filter")
 
                 else -> {
                     logger.error(e) { "Failed due to unhandled cause" }
