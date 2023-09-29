@@ -28,6 +28,8 @@ import me.melijn.kordkommons.database.DriverManager
 import me.melijn.kordkommons.logger.logger
 import me.melijn.kordkommons.redis.RedisConfig
 import me.melijn.kordkommons.utils.ReflectUtil
+import net.dv8tion.jda.api.OnlineStatus
+import net.dv8tion.jda.api.entities.Activity
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.MemberCachePolicy
 import net.dv8tion.jda.api.utils.cache.CacheFlag
@@ -70,10 +72,12 @@ object Melijn {
                 setShardsTotal(PodInfo.shardCount)
                 setShards(PodInfo.shardList)
                 enableCache(CacheFlag.VOICE_STATE, CacheFlag.ACTIVITY, CacheFlag.EMOJI)
-                setMemberCachePolicy(MemberCachePolicy.DEFAULT)
+                setMemberCachePolicy(MemberCachePolicy.lru(1000).unloadUnless(MemberCachePolicy.VOICE))
                 injectKTX()
                 applyLavakord(lShardManager)
             }
+
+            presence({OnlineStatus.ONLINE}, { shardId -> Activity.customStatus("This is shard $shardId")})
 
             hooks {
                 beforeKoinSetup {
