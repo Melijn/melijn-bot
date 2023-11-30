@@ -4,9 +4,9 @@ plugins {
     id("application")
     id("com.apollographql.apollo3") version "3.8.2"
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    kotlin("jvm") version "1.8.20"
-    id("com.google.devtools.ksp") version "1.8.20-1.0.10"
-    kotlin("plugin.serialization") version "1.8.20"
+    kotlin("jvm") version "1.9.20"
+    id("com.google.devtools.ksp") version "1.9.20-1.0.13"
+    kotlin("plugin.serialization") version "1.9.20"
 }
 
 application.mainClass.set("me.melijn.bot.MelijnKt")
@@ -14,8 +14,8 @@ group = "me.melijn.bot"
 version = "0.0.1-SNAPSHOT"
 
 configure<JavaPluginExtension> {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 apollo {
@@ -41,15 +41,15 @@ repositories {
 
 val jackson = "2.14.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
 
-val ktor = "2.3.3"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
+val ktor = "2.3.6"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 val apollo = "3.8.2" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
-val kotlinX = "1.7.2" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
-val kotlin = "1.8.20"
-val scrimage = "4.0.34"
+val kotlinX = "1.7.3" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
+val kotlin = "1.9.21"
+val scrimage = "4.1.0"
 
-val jda = "5.0.0-beta.14"
-val kordEx = "1.6.3-SNAPSHOT"
-val kordKommons = "0.0.9-SNAPSHOT"
+val jda = "5.0.0-beta.18"
+val kordEx = "1.6.4-SNAPSHOT"
+val kordKommons = "0.0.12-SNAPSHOT"
 
 dependencies {
     implementation("net.dv8tion:JDA:$jda")
@@ -80,7 +80,7 @@ dependencies {
     ksp(apRedgres)
 
     // error reporting
-    implementation("io.sentry:sentry:6.2.1")
+    implementation("io.sentry:sentry:6.16.0")
 
     // https://mvnrepository.com/artifact/club.minnced/discord-webhooks
     implementation("club.minnced:discord-webhooks:0.8.4")
@@ -115,10 +115,10 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.0.1")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.6.0")
+    implementation("org.postgresql:postgresql:42.7.0")
 
     // expiring map, https://search.maven.org/artifact/net.jodah/expiringmap
-    implementation("net.jodah:expiringmap:0.5.10")
+    implementation("net.jodah:expiringmap:0.5.11")
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinX")
@@ -126,7 +126,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:${kotlinX}")
 
     // https://search.maven.org/artifact/org.jetbrains.kotlinx/kotlinx-datetime
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-jdk8
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:$kotlinX")
@@ -135,10 +135,10 @@ dependencies {
     implementation("me.duncte123:weebJava:3.0.1_7")
 
     // https://mvnrepository.com/artifact/se.michaelthelin.spotify/spotify-web-api-java
-    implementation("se.michaelthelin.spotify:spotify-web-api-java:8.0.0")
+    implementation("se.michaelthelin.spotify:spotify-web-api-java:8.3.4")
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-    implementation("ch.qos.logback:logback-classic:1.4.8")
+    implementation("ch.qos.logback:logback-classic:1.4.13")
 
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
@@ -179,7 +179,7 @@ dependencies {
     implementation("com.apollographql.apollo3:apollo-runtime:$apollo")
 
     // https://mvnrepository.com/artifact/io.lettuce/lettuce-core
-    implementation("io.lettuce:lettuce-core:6.2.4.RELEASE")
+    implementation("io.lettuce:lettuce-core:6.2.7.RELEASE")
 
     // https://github.com/cdimascio/dotenv-kotlin
     implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
@@ -219,7 +219,7 @@ tasks {
     }
     withType(KotlinCompile::class) {
         kotlinOptions {
-            jvmTarget = "17"
+            jvmTarget = "21"
             freeCompilerArgs = listOf(
                 "-opt-in=kotlin.RequiresOptIn",
                 "-Xcontext-receivers",
