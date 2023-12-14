@@ -4,9 +4,9 @@ plugins {
     id("application")
     id("com.apollographql.apollo3") version "3.8.2"
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    kotlin("jvm") version "1.9.20"
-    id("com.google.devtools.ksp") version "1.9.20-1.0.13"
-    kotlin("plugin.serialization") version "1.9.20"
+    kotlin("jvm") version "1.9.21"
+    id("com.google.devtools.ksp") version "1.9.21-1.0.16"
+    kotlin("plugin.serialization") version "1.9.21"
 }
 
 application.mainClass.set("me.melijn.bot.MelijnKt")

@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.7.20"
+    kotlin("jvm") version "1.9.21"
 }
 
 version = "1.0.0"
@@ -19,14 +19,14 @@ repositories {
 }
 
 configure<JavaPluginExtension> {
-    sourceCompatibility = JavaVersion.VERSION_16
-    targetCompatibility = JavaVersion.VERSION_16
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
-val kordKommons = "0.0.5-SNAPSHOT"
+val kordKommons = "0.0.12-SNAPSHOT"
 
 dependencies {
     implementation(kotlin("stdlib"))
-    implementation("com.google.devtools.ksp:symbol-processing-api:1.7.20-1.0.6")
+    implementation("com.google.devtools.ksp:symbol-processing-api:1.9.21-1.0.16")
 
     implementation("me.melijn.kommons:redgres-kommons:$kordKommons")
     val apKord = "me.melijn.kommons:annotation-processor:$kordKommons"
@@ -43,7 +43,7 @@ tasks {
     }
     withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class) {
         kotlinOptions {
-            jvmTarget = "16"
+            jvmTarget = "21"
         }
     }
 }
