@@ -486,118 +486,122 @@ class OsuExtension : Extension() {
         }
     }
 
-    fun make_spline(data: Array<Array<Double>>): Array<Array<Double>> {
-        // Returns sets of coefficients to create a cubic spline through points
-        // contained in data. In each region x_i < x < x_i+1, the spline is
-        // given by a_i*(x-x_i)^3 + b_i*(x-x_i)^2 + c_i*(x-x_i) + d_i.
-        // The output is is a list of lists make_spline = [a,b,c,d].
-        // Solve for ssp in the matrix equation T*ssp = r.
-        // at, bt, and ct are the elements of the tridiagonal matrix T.
-        // r is the column vector on the right-hand side.
-        // ssd holds the values of the second derivative of the spline polynomial
-        // at each data point.
-        val bt = ArrayList<Double>(data.size).also { it.add(1.0) }
-        val at = ArrayList<Double>(data.size).also { it.add(0.0) }
-        val ct = ArrayList<Double>(data.size).also { it.add(data[1][0] - data[0][0]) }
-        val r = ArrayList<Double>(data.size).also { it.add(0.0) }
-        for (i in 1 until data.size - 1) {
-            bt.add(2 * (data[i + 1][0] - data[i - 1][0]))
-            ct.add(data[i + 1][0] - data[i][0])
-            at.add(data[i][0] - data[i - 1][0])
-            var r1 = (data[i + 1][1] - data[i][1]) / (data[i + 1][0] - data[i][0])
-            r1 -= (data[i][1] - data[i - 1][1]) / (data[i][0] - data[i - 1][0])
-            r.add(6 * r1)
+
+    companion object {
+
+        fun make_spline(data: Array<Array<Double>>): Array<Array<Double>> {
+            // Returns sets of coefficients to create a cubic spline through points
+            // contained in data. In each region x_i < x < x_i+1, the spline is
+            // given by a_i*(x-x_i)^3 + b_i*(x-x_i)^2 + c_i*(x-x_i) + d_i.
+            // The output is is a list of lists make_spline = [a,b,c,d].
+            // Solve for ssp in the matrix equation T*ssp = r.
+            // at, bt, and ct are the elements of the tridiagonal matrix T.
+            // r is the column vector on the right-hand side.
+            // ssd holds the values of the second derivative of the spline polynomial
+            // at each data point.
+            val bt = ArrayList<Double>(data.size).also { it.add(1.0) }
+            val at = ArrayList<Double>(data.size).also { it.add(0.0) }
+            val ct = ArrayList<Double>(data.size).also { it.add(data[1][0] - data[0][0]) }
+            val r = ArrayList<Double>(data.size).also { it.add(0.0) }
+            for (i in 1 until data.size - 1) {
+                bt.add(2 * (data[i + 1][0] - data[i - 1][0]))
+                ct.add(data[i + 1][0] - data[i][0])
+                at.add(data[i][0] - data[i - 1][0])
+                var r1 = (data[i + 1][1] - data[i][1]) / (data[i + 1][0] - data[i][0])
+                r1 -= (data[i][1] - data[i - 1][1]) / (data[i][0] - data[i - 1][0])
+                r.add(6 * r1)
+            }
+
+            at.add(data[data.size - 1][0] - data[data.size - 2][0])
+            bt.add(1.0)
+            ct.add(0.0)
+            r.add(0.0)
+
+            // Solve the matrix equation for ssd.beta = [bt[0]] # beta and rho are short-hand variables.
+            val beta = Array(data.size) { 0.0 }.also { it[0] = bt[0] }
+            val rho = Array(data.size) { 0.0 }.also { it[0] = r[0] }
+            val ssd = Array(data.size) { 0.0 }
+            for (j in 1 until data.size) {
+                beta[j] = (bt[j] - at[j] * ct[j - 1] / beta[j - 1])
+                rho[j] = (r[j] - at[j] * rho[j - 1] / beta[j - 1])
+            }
+
+            ssd[data.size - 1] = rho[data.size - 1] / beta[data.size - 1]
+            for (j in (2..data.size - 2))
+                ssd[data.size - j] =
+                    (rho[data.size - j] - ct[data.size - j] * ssd[data.size - j + 1]) / beta[data.size - j]
+
+
+            // Spline has been determined . Prepare output.a = []
+            val a = Array(data.size) { 0.0 }
+            val b = Array(data.size) { 0.0 }
+            val c = Array(data.size) { 0.0 }
+            val d = Array(data.size) { 0.0 }
+
+            for (i in 0 until data.size - 1) {
+                d[i] = data[i][1]
+                b[i] = ssd[i] / 2.0
+                a[i] = (ssd[i + 1] - ssd[i]) / (6 * (data[i + 1][0] - data[i][0]))
+                var c1 = (data[i + 1][1] - data[i][1]) / (data[i + 1][0] - data[i][0])
+                c1 -= ((data[i + 1][0] - data[i][0]) * (ssd[i + 1] + 2 * ssd[i]) / 6)
+                c[i] = c1
+            }
+
+            return arrayOf(a, b, c, d)
         }
 
-        at.add(data[data.size - 1][0] - data[data.size - 2][0])
-        bt.add(1.0)
-        ct.add(0.0)
-        r.add(0.0)
+        fun drawRankHistoryWithSplines(points: MutableList<Long>): ByteArray {
+            points.add(points.last())
+            val yMax = 300
+            val xOff = 20
+            val yOff = 20
+            val xMax = 800
+            val canvas = ImmutableImage.create(xMax, yMax, BufferedImage.TYPE_4BYTE_ABGR)
+            val g2d = canvas.awt().createGraphics()
+            g2d.background = Color.decode("#1C1719")
+            g2d.paint = Color.decode("#1C1719")
+            g2d.fillRect(0, 0, xMax, yMax)
+            g2d.paint = Color.DARK_GRAY
+            for (i in 0 until 8) {
+                g2d.drawLine(i * 100 + xOff, 0, i * 100 + xOff, yMax - yOff)
+                g2d.drawLine(xOff, i * 100 - yOff, xMax, i * 100 - yOff)
+            }
 
-        // Solve the matrix equation for ssd.beta = [bt[0]] # beta and rho are short-hand variables.
-        val beta = Array(data.size) { 0.0 }.also { it[0] = bt[0] }
-        val rho = Array(data.size) { 0.0 }.also { it[0] = r[0] }
-        val ssd = Array(data.size) { 0.0 }
-        for (j in 1 until data.size) {
-            beta[j] = (bt[j] - at[j] * ct[j - 1] / beta[j - 1])
-            rho[j] = (r[j] - at[j] * rho[j - 1] / beta[j - 1])
+            val maxPoint = points.max()
+            val minPoint = points.min()
+
+            g2d.paint = Color.RED
+            val dataSet = Array(points.size) { Array(2) { 0.0 } }
+            for ((i, point) in points.withIndex()) {
+                val scaledX = (i / (points.size - 1).toDouble()) * (xMax - xOff) + xOff
+                val scaledY = ((point - minPoint) / (maxPoint - minPoint).toDouble()) * (yMax - yOff)
+                dataSet[i][0] = scaledX
+                dataSet[i][1] = scaledY
+            }
+
+            val spline = make_spline(dataSet)
+            val a = spline[0]
+            val b = spline[1]
+            val c = spline[2]
+            val d = spline[3]
+
+            var i = 0
+            var prevY = -1
+            for (x in (xOff until xMax)) {
+                while (i < (dataSet.size - 1) && dataSet[i + 1][0] < x) i++
+                val xdiff = x - dataSet[i][0]
+                val value = a[i] * xdiff.pow(3) + b[i] * xdiff.pow(2) + c[i] * xdiff + d[i]
+                val splinedY = max(0, min(value.toInt(), yMax - 1))
+                val from = if (prevY != -1) prevY else splinedY
+                g2d.drawLine(x, from, x, splinedY)
+                prevY = splinedY
+            }
+
+            val baos = ByteArrayOutputStream()
+            ImageUtil.writeSafe(canvas.awt(), "png", baos)
+            return baos.toByteArray()
         }
-
-        ssd[data.size - 1] = rho[data.size - 1] / beta[data.size - 1]
-        for (j in (2..data.size - 2))
-            ssd[data.size - j] = (rho[data.size - j] - ct[data.size - j] * ssd[data.size - j + 1]) / beta[data.size - j]
-
-
-        // Spline has been determined . Prepare output.a = []
-        val a = Array(data.size) { 0.0 }
-        val b = Array(data.size) { 0.0 }
-        val c = Array(data.size) { 0.0 }
-        val d = Array(data.size) { 0.0 }
-
-        for (i in 0 until data.size - 1) {
-            d[i] = data[i][1]
-            b[i] = ssd[i] / 2.0
-            a[i] = (ssd[i + 1] - ssd[i]) / (6 * (data[i + 1][0] - data[i][0]))
-            var c1 = (data[i + 1][1] - data[i][1]) / (data[i + 1][0] - data[i][0])
-            c1 -= ((data[i + 1][0] - data[i][0]) * (ssd[i + 1] + 2 * ssd[i]) / 6)
-            c[i] = c1
-        }
-
-        return arrayOf(a, b, c, d)
     }
-
-    private fun drawRankHistoryWithSplines(points: MutableList<Long>): ByteArray {
-        points.add(points.last())
-        val yMax = 300
-        val xOff = 20
-        val yOff = 20
-        val xMax = 800
-        val canvas = ImmutableImage.create(xMax, yMax, BufferedImage.TYPE_4BYTE_ABGR)
-        val g2d = canvas.awt().createGraphics()
-        g2d.background = Color.decode("#1C1719")
-        g2d.paint = Color.decode("#1C1719")
-        g2d.fillRect(0, 0, xMax, yMax)
-        g2d.paint = Color.DARK_GRAY
-        for (i in 0 until 8) {
-            g2d.drawLine(i * 100 + xOff, 0, i * 100 + xOff, yMax - yOff)
-            g2d.drawLine(xOff, i * 100 - yOff, xMax, i * 100 - yOff)
-        }
-
-        val maxPoint = points.max()
-        val minPoint = points.min()
-
-        g2d.paint = Color.RED
-        val dataSet = Array(points.size) { Array(2) { 0.0 } }
-        for ((i, point) in points.withIndex()) {
-            val scaledX = (i / (points.size - 1).toDouble()) * (xMax - xOff) + xOff
-            val scaledY = ((point - minPoint) / (maxPoint - minPoint).toDouble()) * (yMax - yOff)
-            dataSet[i][0] = scaledX
-            dataSet[i][1] = scaledY
-        }
-
-        val spline = make_spline(dataSet)
-        val a = spline[0]
-        val b = spline[1]
-        val c = spline[2]
-        val d = spline[3]
-
-        var i = 0
-        var prevY = -1
-        for (x in (xOff until xMax)) {
-            while (i < (dataSet.size - 1) && dataSet[i + 1][0] < x) i++
-            val xdiff = x - dataSet[i][0]
-            val value = a[i] * xdiff.pow(3) + b[i] * xdiff.pow(2) + c[i] * xdiff + d[i]
-            val splinedY = max(0, min(value.toInt(), yMax - 1))
-            val from = if (prevY != -1) prevY else splinedY
-            g2d.drawLine(x, from, x, splinedY)
-            prevY = splinedY
-        }
-
-        val baos = ByteArrayOutputStream()
-        ImageUtil.writeSafe(canvas.awt(), "png", baos)
-        return baos.toByteArray()
-    }
-
 //    Old lagrange method, had very bad edge interpolation
 //    fun drawRankHistoryWithLagrange(points: List<Long>): ByteArray {
 //        val yMax = 300

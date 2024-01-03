@@ -50,12 +50,13 @@ val scrimage = "4.1.0"
 val jda = "5.0.0-beta.18"
 val kordEx = "1.6.4-SNAPSHOT"
 val kordKommons = "0.0.12-SNAPSHOT"
-
+val kandy_version = "0.5.0"
 dependencies {
     implementation("net.dv8tion:JDA:$jda")
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
     ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
-
+    implementation("org.jetbrains.kotlinx:kandy-lets-plot:$kandy_version")
+    implementation("org.jetbrains.lets-plot:lets-plot-kotlin-jvm:4.5.0")
     // https://mvnrepository.com/artifact/org.scilab.forge/jlatexmath
     implementation("org.scilab.forge:jlatexmath:1.0.7")
 

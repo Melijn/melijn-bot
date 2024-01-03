@@ -1,6 +1,8 @@
 package me.melijn.bot.model.enums
 
-enum class LogChannelType(val text: String = this.toString(), val parentNodes: Array<String> = emptyArray()) {
+import me.melijn.bot.utils.InferredChoiceEnum
+
+enum class LogChannelType(val text: String = this.toString(), val parentNodes: Array<String> = emptyArray()) : InferredChoiceEnum {
 
     // Punishments
     PERMANENT_BAN("PermanentBan", arrayOf("punishment", "punishments", "ban", "permban", "pblc")),
