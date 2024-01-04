@@ -67,7 +67,7 @@ class WeatherExtension : Extension() {
                     val currentTimeLine: Double = Duration.between(startTime, currentTime).toKotlinDuration() / 5.minutes
 
                     val points = json["precip"]?.jsonArray?.map {
-                        (it.jsonPrimitive.float * 10.0) + 10
+                        (it.jsonPrimitive.float * 10.0)
                     } ?: bail("Couldn't fetch rain data")
                     val xsLabels = List(points.size) { i ->
                         val time =
