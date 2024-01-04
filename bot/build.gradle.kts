@@ -50,7 +50,7 @@ val scrimage = "4.1.0"
 val jda = "5.0.0-beta.18"
 val kordEx = "1.6.4-SNAPSHOT"
 val kordKommons = "0.0.12-SNAPSHOT"
-val kandy_version = "0.5.0"
+val kandy_version = "0.4.4"
 dependencies {
     implementation("net.dv8tion:JDA:$jda")
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")

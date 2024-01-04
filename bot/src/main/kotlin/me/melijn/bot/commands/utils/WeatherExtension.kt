@@ -22,10 +22,17 @@ import org.jetbrains.kotlinx.kandy.dsl.continuous
 import org.jetbrains.kotlinx.kandy.dsl.plot
 import org.jetbrains.kotlinx.kandy.letsplot.export.toBufferedImage
 import org.jetbrains.kotlinx.kandy.letsplot.layers.area
+import org.jetbrains.kotlinx.kandy.letsplot.layers.vLine
+import org.jetbrains.kotlinx.kandy.letsplot.scales.continuousColorGradient2
+import org.jetbrains.kotlinx.kandy.letsplot.util.linetype.LineType
 import org.jetbrains.kotlinx.kandy.util.color.Color
 import org.jetbrains.letsPlot.stat.statSmooth
 import org.koin.core.component.inject
+import java.time.Duration
+import java.time.LocalTime
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.toKotlinDuration
 
 
 @KordExtension
@@ -46,13 +53,28 @@ class WeatherExtension : Extension() {
                 )
                 respond {
                     val json = forecast.body<JsonObject>()
-                    val points = json.get("precip")?.jsonArray?.map {
-                        (it.jsonPrimitive.float * 10).toLong()
+
+                    val start = json["start_human"]?.jsonPrimitive.toString().split(":")
+                    val startHour = start.first().toIntOrNull()
+                    val startMinute = start.last().toIntOrNull()
+
+                    val currentTime = LocalTime.now()
+                    val startTime = if (startHour != null && startMinute != null) {
+                        LocalTime.of(startHour, startMinute)
+                    } else {
+                        currentTime
+                    }
+                    val currentTimeLine: Double = Duration.between(startTime, currentTime).toKotlinDuration() / 5.minutes
+
+                    val points = json["precip"]?.jsonArray?.map {
+                        (it.jsonPrimitive.float * 10.0) + 10
                     } ?: bail("Couldn't fetch rain data")
-                    val xs = List(points.size) { i -> val time =
-                        java.time.LocalTime.now().plusMinutes(((i * 5).toLong()))
+                    val xsLabels = List(points.size) { i ->
+                        val time =
+                            startTime.plusMinutes(((i * 5).toLong()))
                         "${time.hour}:${if (time.minute < 10) "0${time.minute}" else time.minute}"
                     }
+                    val xs = List(points.size) { i -> i.toDouble() }
                     val dataFrame = dataFrameOf(
                         "xs" to xs,
                         "ys" to points
@@ -60,19 +82,28 @@ class WeatherExtension : Extension() {
                     val plotImg = plot(dataFrame) {
                         statSmooth(data = dataFrame.toMap()) {
                             area {
-                                x(xs, "time")
-                                y(points, "rain strength") {
-                                    scale = continuous(0..25L)
+                                x(xs, "time") {
+                                    axis.breaksLabeled(
+                                        xs.filterIndexed { index, _ -> index % 3 == 0 },
+                                        xsLabels.filterIndexed { index, _ -> index % 3 == 0 })
+                                }
+                                y(points, "strength") {
+                                    scale = continuous(0.0..25.0)
+
                                 }
                                 alpha = 0.5
                                 fillColor = Color.BLUE
                                 borderLine.color = Color.BLUE
                             }
                         }
+                        vLine {
+                            xIntercept.constant(currentTimeLine)
+                            color = Color.BLACK
+                            type = LineType.DASHED
+                        }
                     }.toBufferedImage(2)
 
                     val writer = PngWriter(3)
-
                     println(points)
                     val bais = ImmutableImage.fromAwt(plotImg).forWriter(writer).stream()
                     files.plusAssign(AttachedFile.fromData(bais, "image.png"))
