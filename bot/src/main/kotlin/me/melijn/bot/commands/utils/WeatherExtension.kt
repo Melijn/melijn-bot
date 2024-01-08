@@ -112,7 +112,7 @@ class WeatherExtension : Extension() {
             RenderingHints.VALUE_TEXT_ANTIALIAS_ON
         )
         graphics.setRenderingHints(rh)
-        graphics.paint = java.awt.Color.GREEN
+        graphics.paint = java.awt.Color.GREEN.darker().darker()
         graphics.font = graphics.font.deriveFont(14f * scale)
         graphics.drawString("${temp ?: "?"}°C", 8 * scale, plotImg.height - 16 * scale)
         graphics.dispose()
