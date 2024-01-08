@@ -60,7 +60,7 @@ class WeatherExtension : Extension() {
 
                 // over all predictions, for each all precipitations (until minEndTime) are 0.0
                 val noRain = rainAgains.all { it.timePoints.filter { it.key <= minEndTime }.all { it.value == 0.0 }}
-                if (noRain && false) {
+                if (noRain) {
                     respond {
                         content = "No rain until at least ${formatTime(minEndTime)}, it is currently ${buienAlarm?.second}°C outside."
                     }
