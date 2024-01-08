@@ -16,6 +16,7 @@ object JDAUtil {
 
     fun Color?.toHex(): String {
         if (this == null) return "null"
+        // TODO: Fix nevativ hex numbers
         return "#" + this.rgb.toString(16).uppercase()
     }
 
