@@ -25,16 +25,20 @@ import org.jetbrains.kotlinx.dataframe.api.toMap
 import org.jetbrains.kotlinx.kandy.dsl.continuous
 import org.jetbrains.kotlinx.kandy.dsl.internal.LayerPlotContext
 import org.jetbrains.kotlinx.kandy.dsl.plot
+import org.jetbrains.kotlinx.kandy.ir.scale.PositionalTransform
 import org.jetbrains.kotlinx.kandy.letsplot.export.toBufferedImage
 import org.jetbrains.kotlinx.kandy.letsplot.layers.area
 import org.jetbrains.kotlinx.kandy.letsplot.layers.vLine
+import org.jetbrains.kotlinx.kandy.letsplot.scales.Transformation
 import org.jetbrains.kotlinx.kandy.letsplot.settings.LineType
 import org.jetbrains.kotlinx.kandy.util.color.Color
+import org.jetbrains.letsPlot.letsPlot
 import org.jetbrains.letsPlot.stat.statSmooth
 import org.koin.core.component.inject
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import kotlin.random.Random
+import kotlin.random.nextUInt
 
 
 @KordExtension
@@ -150,7 +154,7 @@ class WeatherExtension : Extension() {
 
     private suspend fun fetchBuienAlarm(lat: Double, long: Double): Pair<RainAgain, Float>? {
         val httpResp: HttpResponse = httpClient.httpClient.get(
-            "https://cdn-secure.buienalarm.nl/api/3.4/forecast.php?lat=$lat&lon=$long&region=be&unit=mm%2Fu&c=${Random.nextInt()}"
+            "https://cdn-secure.buienalarm.nl/api/3.4/forecast.php?lat=$lat&lon=$long&region=be&unit=mm%2Fu&c=${Random.nextUInt()}"
         )
 
         val resp = try {
@@ -182,8 +186,8 @@ class WeatherExtension : Extension() {
             return null
         }
 
-        val timePoints = resp.forecasts.associate { (time, precipitation) ->
-            val scaledPrecip = precipitation * 0.25
+        val timePoints = resp.forecasts.associate { (time, value) ->
+            val scaledPrecip = value * 0.25
             time.time to scaledPrecip
         }
 
@@ -208,7 +212,7 @@ data class BuienRadarResp(
     @Serializable
     data class Forecast(
         val datetime: LocalDateTime,
-        val precipitation: Float
+        val value: Float
     )
 }
 
