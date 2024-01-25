@@ -2,16 +2,15 @@ package me.melijn.bot.utils
 
 import io.ktor.server.util.*
 import io.ktor.util.*
-import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.toJavaInstant
-import kotlinx.datetime.toKotlinLocalDateTime
+import kotlinx.datetime.*
 import net.dv8tion.jda.api.entities.ISnowflake
 import net.dv8tion.jda.api.utils.TimeFormat
 import java.text.SimpleDateFormat
 import java.time.ZoneId
 import java.util.*
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.toKotlinDuration
 
 /** Time sucks */
@@ -36,6 +35,31 @@ object TimeUtil {
             days == 0L -> String.format("%d:%02d:%02d", hours, minutes, seconds)
             else -> String.format("%d days %d:%02d:%02d", days, hours, minutes, seconds)
         }
+    }
+
+    /**
+     * **[duration] can have a wider representation of time then [LocalDateTime], in order to prevent overflow we coerce the duration into the usable LocalDateTime space.**
+     *
+     * @return A new [LocalDateTime] instance which is the sum of [this] and [duration]
+     **/
+    operator fun LocalDateTime.plus(duration: Duration): LocalDateTime {
+        val daysL = duration.inWholeDays.coerceIn(0L until Int.MAX_VALUE).toInt()
+        val rest = duration.minus(daysL.days)
+        require(rest < 1.days)
+
+        // 0h[+++++++++++++[++|24h ?
+        val overflowingTime = this.time.toNanosecondOfDay().nanoseconds + rest
+        val timeOverflowed = overflowingTime > 1.days
+
+        // 0h[++++++|------]24h
+        val newTimeDuration = if (timeOverflowed) overflowingTime - 1.days else overflowingTime
+
+        val extraDays = if (timeOverflowed) daysL + 1 else daysL
+
+        return LocalDateTime(
+            LocalDate.fromEpochDays(this.date.toEpochDays() + extraDays),
+            LocalTime.fromNanosecondOfDay(newTimeDuration.inWholeNanoseconds)
+        )
     }
 
     /**
