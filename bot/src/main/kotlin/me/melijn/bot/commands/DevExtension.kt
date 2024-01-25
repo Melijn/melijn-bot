@@ -10,10 +10,13 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.chatCommand
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.types.respond
+import com.sun.management.OperatingSystemMXBean
 import dev.minn.jda.ktx.coroutines.await
+import dev.minn.jda.ktx.generics.getChannel
 import dev.minn.jda.ktx.messages.InlineEmbed
 import me.melijn.apkordex.command.KordExtension
 import me.melijn.bot.utils.JDAUtil.createMessage
+import me.melijn.bot.utils.JvmUsage
 import me.melijn.bot.utils.KordExUtils.bail
 import me.melijn.bot.utils.KordExUtils.guildChatCommand
 import me.melijn.bot.utils.KordExUtils.respond
@@ -23,10 +26,16 @@ import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.utils.StringUtils
 import net.dv8tion.jda.api.entities.Activity
 import net.dv8tion.jda.api.entities.RichPresence
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel
+import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
+import net.dv8tion.jda.internal.entities.channel.mixin.middleman.MessageChannelMixin
 import org.koin.core.component.inject
 import org.springframework.boot.ansi.AnsiColor
+import java.lang.management.ManagementFactory
+import java.text.DecimalFormat
 
 @KordExtension
 class DevExtension : Extension() {
@@ -48,52 +57,36 @@ class DevExtension : Extension() {
                 }
             }
         }
+
+        chatCommand {
+            name = "stats"
+
+            action {
+                val bean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean::class.java)
+                val (totalMem, usedMem, totalJVMMem, usedJVMMem) = JvmUsage.current(bean)
+                val blue = StringsUtil.ansiFormat(AnsiColor.BLUE)
+                val reset = StringsUtil.ansiFormat(AnsiColor.DEFAULT)
+                respond {
+                    content = """```ANSI
+                    |${blue}Memory usage${reset}: ${usedMem}/${totalMem} MB
+                    |${blue}JVM Mem usage${reset}: $usedJVMMem/$totalJVMMem MB
+                    |${blue}Threads${reset}: ${Thread.activeCount()}/${Thread.getAllStackTraces().size}
+                    |${blue}CPU Load${reset}: ${DecimalFormat("###.###%").format(bean.processCpuLoad)}
+                    |${blue}Cores${reset}: ${bean.availableProcessors}
+                    |```""".trimMargin()
+                }
+            }
+        }
         publicSlashCommand {
             name = "test"
             description = "test"
 
             action {
-                val webManager by inject<WebManager>()
-
                 respond {
                     content = "blub"
                 }
             }
         }
-//        publicSlashCommand {
-//            name = "testsub"
-//            description = "test"
-//            publicSubCommand {
-//                name= "test"
-//                description = "testing"
-//                action {
-//                    respond {
-//                        val names = getNames()
-//
-//                        content = "called `${names.joinToString(" ")}`"
-//                    }
-//                }
-//            }
-//        }
-//        publicSlashCommand {
-//            name = "testsubsub"
-//            description = "test"
-//            group("sub1") {
-//                description = "sin1"
-//
-//                publicSubCommand {
-//                    name= "test"
-//                    description = "testing"
-//                    action {
-//                        respond {
-//                            val names = getNames()
-//
-//                            content = "called `${names.joinToString(" ")}`"
-//                        }
-//                    }
-//                }
-//            }
-//        }
 
         guildChatCommand(::PresenceArgs) {
             name = "presence"
@@ -132,9 +125,9 @@ class DevExtension : Extension() {
             action {
                 val linkArg = arguments.messageLink.parsed
                 val message = if (linkArg != null) {
-                    val parts = linkArg.split("/").takeLast(3).map { it }
+                    val parts = linkArg.split("/").takeLast(3)
                     val guild = shardManager.getGuildById(parts[0])
-                    val channel = guild?.getChannelById(MessageChannel::class.java, parts[1])
+                    val channel = guild?.getChannel<GuildMessageChannel>(parts[1])
                     if (channel == null) {
                         this.channel.createMessage("that link is veeery stinky")
                         return@action

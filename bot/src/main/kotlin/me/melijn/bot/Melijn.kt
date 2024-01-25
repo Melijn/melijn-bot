@@ -5,6 +5,7 @@ import com.kotlindiscord.kord.extensions.builders.ExtensibleBotBuilder
 import com.kotlindiscord.kord.extensions.koin.KordExContext
 import com.kotlindiscord.kord.extensions.usagelimits.ratelimits.DefaultRateLimiter
 import com.kotlindiscord.kord.extensions.utils.getKoin
+import com.kotlindiscord.kord.extensions.utils.scheduling.TaskConfig
 import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException
 import dev.minn.jda.ktx.jdabuilder.injectKTX
 import dev.schlaubi.lavakord.LavaKord
@@ -36,6 +37,7 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import java.net.InetAddress
+import java.util.concurrent.Executors
 import javax.imageio.ImageIO
 import kotlin.system.exitProcess
 
@@ -71,6 +73,8 @@ object Melijn {
             kord {
                 setShardsTotal(PodInfo.shardCount)
                 setShards(PodInfo.shardList)
+                setEventPool(Executors.newVirtualThreadPerTaskExecutor())
+                setCallbackPool(Executors.newVirtualThreadPerTaskExecutor())
                 enableCache(CacheFlag.VOICE_STATE, CacheFlag.ACTIVITY, CacheFlag.EMOJI)
                 setMemberCachePolicy(MemberCachePolicy.lru(1000).unloadUnless(MemberCachePolicy.VOICE))
                 injectKTX()
