@@ -58,7 +58,7 @@ object TimeUtil {
 
         return LocalDateTime(
             LocalDate.fromEpochDays(this.date.toEpochDays() + extraDays),
-            LocalTime.fromNanosecondOfDay(newTimeDuration.inWholeNanoseconds)
+            LocalTime.fromMillisecondOfDay(newTimeDuration.inWholeMilliseconds.toInt())
         )
     }
 
