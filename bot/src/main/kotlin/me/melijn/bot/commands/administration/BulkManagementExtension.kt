@@ -18,6 +18,7 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle
 import java.util.*
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
 @KordExtension
@@ -30,7 +31,7 @@ class BulkManagementExtension : Extension() {
             name = "clean-names"
             description = "Clean up member usernames by normalizing characters."
 
-            cooldown(PersistentUsageLimitType.GuildCommand) { 0.days }
+            cooldown(PersistentUsageLimitType.GuildCommand) { 1.minutes } // Avoid spam while finding members.
             requireBotPermissions(Permission.NICKNAME_CHANGE)
             requirePermission(Permission.ADMINISTRATOR)
 
@@ -44,26 +45,29 @@ class BulkManagementExtension : Extension() {
                         button(yesButtonId, "YES", null, ButtonStyle.SUCCESS),
                         button(noButtonId, "NO", null, ButtonStyle.DANGER)
                     )
-
                 }
                 val guild = this.guild!!
                 val buttonEvent = guild.jda.await<ButtonInteractionEvent> {
-                    (it.button.id == yesButtonId || it.button.id == noButtonId)  && it.user == this.user
+                    (it.button.id == yesButtonId || it.button.id == noButtonId) && it.user == this.user
                 }
 
                 val hook = buttonEvent.deferEdit().await()
-                if (buttonEvent.button.id == noButtonId){
+                // Handle the cancellation button of cleaning names
+                if (buttonEvent.button.id == noButtonId) {
                     hook.editOriginal(MessageEdit {
                         content = tr("nameNormalization.admin.cancel")
                     }).setReplace(true).await()
                     return@action
                 }
-                cooldowns[PersistentUsageLimitType.GuildCommand] = 1.days
+
                 val members = guild.findMembers {
                     !it.user.isBot
                             && StringsUtil.getNormalizedUsername(it) != it.effectiveName
                             && guild.selfMember.canInteract(it)
                 }.await()
+
+                val bonusCooldown = members.size / 10_000 // Per 10k users an extra day cooldown
+                cooldowns[PersistentUsageLimitType.GuildCommand] = 1.days + bonusCooldown.days
 
                 if (members.isEmpty()) {
                     hook.editOriginal(MessageEdit {
@@ -71,19 +75,15 @@ class BulkManagementExtension : Extension() {
                     }).setReplace(true).await()
                     return@action
                 }
-                val header = tr("nameNormalization.admin.header", members.size)
-                hook.editOriginal(
-                    MessageEdit {
-                        content = header
-                    }
-                ).setReplace(true).await()
 
+                val header = tr("nameNormalization.admin.header", members.size)
+                hook.editOriginal(header).setReplace(true).await()
 
                 var lastUpdate = Clock.System.now()
                 members.forEachIndexed { index, member ->
                     val count = index + 1
                     if (count % 100 == 0 || (Clock.System.now() - lastUpdate > 5.minutes)) {
-                        hook.editOriginal("$header\n\n${tr("nameNormalization.admin.progress", count)}")
+                        hook.editOriginal("$header\n\n${tr("nameNormalization.admin.progress", count, members.size)}")
                             .await()
                         lastUpdate = Clock.System.now()
                     }

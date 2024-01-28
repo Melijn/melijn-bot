@@ -167,7 +167,7 @@ class OsuExtension : Extension() {
                         for ((i, score) in scores.withIndex()) {
                             val beatmapSet = score.beatmapset ?: bail("This score isn't set on a beatmap set ???")
                             val stats = score.statistics
-                            val colunns = mutableListOf("300", "100", "50", "miss")
+                            val columns = mutableListOf("300", "100", "50", "miss")
                             val values = mutableListOf(
                                 Cell(
                                     stats.count_300.toString(), Alignment.RIGHT
@@ -179,13 +179,13 @@ class OsuExtension : Extension() {
 
                             // In mania the combo counters are just extra hit accuracy markers
                             if (mode == GameMode.MANIA) {
-                                colunns.add(1, "200喝")
-                                colunns.add(0, "300激")
+                                columns.add(1, "200喝")
+                                columns.add(0, "300激")
                                 values.add(1, Cell(score.statistics.count_katu.toString(), Alignment.RIGHT))
                                 values.add(0, Cell(score.statistics.count_geki.toString(), Alignment.RIGHT))
                             }
                             val table =
-                                TableBuilder().setColumns(*colunns.toTypedArray()).addRow(*values.toTypedArray())
+                                TableBuilder().setColumns(*columns.toTypedArray()).addRow(*values.toTypedArray())
                                     .build(false).first()
 
                             val osuScoreUser = score.user ?: bail("a score was set by no user")
@@ -413,9 +413,6 @@ class OsuExtension : Extension() {
         }
     }.catchErroneousResponse()
 
-    private suspend inline fun <reified B> post(endpoint: String, token: String? = null) =
-        post<Unit, B>(endpoint, Unit, token)
-
     private suspend inline fun <reified B, reified R> post(
         endpoint: String, body: B, token: String? = null
     ): Result<R> = webManager.httpClient.post(endpoint) {
@@ -602,52 +599,6 @@ class OsuExtension : Extension() {
             return baos.toByteArray()
         }
     }
-//    Old lagrange method, had very bad edge interpolation
-//    fun drawRankHistoryWithLagrange(points: List<Long>): ByteArray {
-//        val yMax = 300
-//        val xOff = 20
-//        val yOff = 20
-//        val xMax = 800
-//        val canvas = ImmutableImage.create(xMax, yMax, BufferedImage.TYPE_4BYTE_ABGR)
-//        val g2d = canvas.awt().createGraphics()
-//        g2d.background = Color.decode("#1C1719")
-//        g2d.paint = Color.decode("#1C1719")
-//        g2d.fillRect(0, 0, xMax, yMax)
-//        g2d.paint = Color.DARK_GRAY
-//        for (i in 0 until 8) {
-//            g2d.drawLine(i * 100 + xOff, 0, i * 100 + xOff, yMax - yOff)
-//            g2d.drawLine(xOff, i * 100 - yOff, xMax, i * 100 - yOff)
-//        }
-//
-//        val maxPoint = points.max()
-//        val minPoint = points.min()
-//
-//        g2d.paint = Color.RED
-//        var prevY = -1
-//        for (s in xOff until xMax) {
-//            val x = ((s - xOff).toDouble() / (xMax - xOff)) * points.size
-//            var y = 0.0
-//            val n = points.size
-//            for (i in 0 until n) {
-//                var t = points[i].toDouble()
-//                for (j in 0 until n) {
-//                    if (j != i) {
-//                        t *= (x - j) / (i - j).toDouble()
-//                    }
-//                }
-//                y += t
-//            }
-//            y = (y - minPoint) * 300 / (maxPoint - minPoint)
-//            val from = if (prevY != -1) prevY else y.toInt()
-//            g2d.drawLine(s, from, s, y.toInt())
-//            prevY = y.toInt()
-//        }
-//
-//        val baos = ByteArrayOutputStream()
-//        ImageUtil.writeSafe(canvas.awt(), "png", baos)
-//        return baos.toByteArray()
-//    }
-
 }
 
 private fun endpoint(suffix: String) = URI("https", "osu.ppy.sh", "/api/v2/$suffix", null).toURL().toString()
