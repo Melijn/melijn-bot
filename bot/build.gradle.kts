@@ -41,22 +41,24 @@ repositories {
 
 val jackson = "2.14.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
 
-val ktor = "2.3.6"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
+val ktor = "2.3.7"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 val apollo = "3.8.2" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
 val kotlinX = "1.7.3" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
 val kotlin = "1.9.21"
 val scrimage = "4.1.0"
 
 val jda = "5.0.0-beta.20"
-val kordEx = "1.6.6-SNAPSHOT"
+val kordEx = "1.6.7-SNAPSHOT"
 val kordKommons = "0.0.13-SNAPSHOT"
-val kandy_version = "0.5.0"
+val kandyVersion = "0.5.0"
+
 dependencies {
     implementation("net.dv8tion:JDA:$jda")
     implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
     ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
-    implementation("org.jetbrains.kotlinx:kandy-lets-plot:$kandy_version")
+    implementation("org.jetbrains.kotlinx:kandy-lets-plot:$kandyVersion")
     implementation("org.jetbrains.lets-plot:lets-plot-kotlin-jvm:4.5.0")
+
     // https://mvnrepository.com/artifact/org.scilab.forge/jlatexmath
     implementation("org.scilab.forge:jlatexmath:1.0.7")
 
@@ -113,10 +115,10 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter:$exposed")
 
     // https://search.maven.org/artifact/com.zaxxer/HikariCP
-    implementation("com.zaxxer:HikariCP:5.0.1")
+    implementation("com.zaxxer:HikariCP:5.1.0")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.7.0")
+    implementation("org.postgresql:postgresql:42.7.1")
 
     // expiring map, https://search.maven.org/artifact/net.jodah/expiringmap
     implementation("net.jodah:expiringmap:0.5.11")
@@ -127,7 +129,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-debug:${kotlinX}")
 
     // https://search.maven.org/artifact/org.jetbrains.kotlinx/kotlinx-datetime
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-jdk8
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:$kotlinX")
@@ -136,10 +138,10 @@ dependencies {
     implementation("me.duncte123:weebJava:3.0.1_7")
 
     // https://mvnrepository.com/artifact/se.michaelthelin.spotify/spotify-web-api-java
-    implementation("se.michaelthelin.spotify:spotify-web-api-java:8.3.4")
+    implementation("se.michaelthelin.spotify:spotify-web-api-java:8.3.5")
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-    implementation("ch.qos.logback:logback-classic:1.4.13")
+    implementation("ch.qos.logback:logback-classic:1.4.14")
 
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
