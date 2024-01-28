@@ -26,17 +26,6 @@ object SystemUtil {
         UNIX, OTHER
     }
 
-    fun getSystemUptime(): Long {
-        return try {
-            when (os) {
-                OS.UNIX -> getUnixUptime()
-                OS.OTHER -> -1
-            }
-        } catch (e: Exception) {
-            -1
-        }
-    }
-
     fun getUnixUptime(): Long {
         val uptimeStr = File("/proc/uptime").readText()
         val matcher = linuxUptimePattern.matcher(uptimeStr)

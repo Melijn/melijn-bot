@@ -22,6 +22,9 @@ import me.melijn.bot.utils.KordExUtils.guildChatCommand
 import me.melijn.bot.utils.KordExUtils.respond
 import me.melijn.bot.utils.KordExUtils.userIsOwner
 import me.melijn.bot.utils.StringsUtil
+import me.melijn.bot.utils.SystemUtil
+import me.melijn.bot.utils.TimeUtil
+import me.melijn.bot.utils.TimeUtil.formatElapsed
 import me.melijn.bot.web.api.WebManager
 import me.melijn.kordkommons.utils.StringUtils
 import net.dv8tion.jda.api.entities.Activity
@@ -36,6 +39,7 @@ import org.koin.core.component.inject
 import org.springframework.boot.ansi.AnsiColor
 import java.lang.management.ManagementFactory
 import java.text.DecimalFormat
+import kotlin.time.Duration.Companion.milliseconds
 
 @KordExtension
 class DevExtension : Extension() {
@@ -73,6 +77,7 @@ class DevExtension : Extension() {
                     |${blue}Threads${reset}: ${Thread.activeCount()}/${Thread.getAllStackTraces().size}
                     |${blue}CPU Load${reset}: ${DecimalFormat("###.###%").format(bean.processCpuLoad)}
                     |${blue}Cores${reset}: ${bean.availableProcessors}
+                    |${blue}Uptime${SystemUtil.getUnixUptime().milliseconds.formatElapsed()}
                     |```""".trimMargin()
                 }
             }
