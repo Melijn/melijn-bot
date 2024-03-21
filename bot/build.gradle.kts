@@ -48,14 +48,14 @@ val kotlin = "1.9.21"
 val scrimage = "4.1.0"
 
 val jda = "5.0.0-beta.20"
-val kordEx = "1.6.7-SNAPSHOT"
+val kordEx = "1.6.8-SNAPSHOT"
 val kordKommons = "0.0.13-SNAPSHOT"
 val kandyVersion = "0.5.0"
 
 dependencies {
     implementation("net.dv8tion:JDA:$jda")
-    implementation("com.kotlindiscord.kord.extensions:kord-extensions:$kordEx")
-    ksp("com.kotlindiscord.kord.extensions:annotation-processor:$kordEx")
+    implementation("me.melijn.kord.extensions:kord-extensions:$kordEx")
+    ksp("me.melijn.kord.extensions:annotation-processor:$kordEx")
     implementation("org.jetbrains.kotlinx:kandy-lets-plot:$kandyVersion")
     implementation("org.jetbrains.lets-plot:lets-plot-kotlin-jvm:4.5.0")
 
