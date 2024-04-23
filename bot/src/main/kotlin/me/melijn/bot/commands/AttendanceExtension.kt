@@ -80,14 +80,13 @@ class AttendanceExtension : Extension() {
             name = "attendance"
             description = "Manage attendance events"
 
-            requirePermission(Permission.ADMINISTRATOR)
-
+            requirePermission(Permission.MANAGE_EVENTS)
 
             publicGuildSubCommand(::AttendanceCreateArgs) {
                 name = "create"
                 description = "Create a new attendance event"
 
-                requirePermission(Permission.ADMINISTRATOR)
+                requirePermission(Permission.CREATE_SCHEDULED_EVENTS)
                 noDefer()
 
                 action {
@@ -201,7 +200,7 @@ class AttendanceExtension : Extension() {
                 name = "edit"
                 description = "Edits an existing attendance event"
 
-                requirePermission(Permission.ADMINISTRATOR)
+                requirePermission(Permission.MANAGE_EVENTS)
                 noDefer()
 
                 action {
@@ -260,7 +259,7 @@ class AttendanceExtension : Extension() {
             publicGuildSubCommand(::AttendanceRemoveArgs) {
                 name = "remove"
                 description = "Remove an attendance event"
-                requirePermission(Permission.ADMINISTRATOR)
+                requirePermission(Permission.MANAGE_EVENTS)
 
                 action {
                     val attendanceId = arguments.attendanceId
@@ -279,7 +278,6 @@ class AttendanceExtension : Extension() {
             publicGuildSubCommand {
                 name = "list"
                 description = "List the attendance events"
-                requirePermission(Permission.ADMINISTRATOR)
 
                 action {
                     val attendanceEvents = attendanceManager.getByGuildKey(guild!!.idLong)
@@ -307,9 +305,6 @@ class AttendanceExtension : Extension() {
             publicGuildSubCommand(::AttendanceRefArgs) {
                 name = "info"
                 description = "Display all information of an attendance event"
-
-                requirePermission(Permission.ADMINISTRATOR)
-
 
                 action {
                     val data = this.arguments.attendanceData.await()
