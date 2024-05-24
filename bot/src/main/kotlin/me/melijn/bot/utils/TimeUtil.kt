@@ -49,7 +49,7 @@ object TimeUtil {
 
         // 0h[+++++++++++++[++|24h ?
         val overflowingTime = this.time.toNanosecondOfDay().nanoseconds + rest
-        val timeOverflowed = overflowingTime > 1.days
+        val timeOverflowed = overflowingTime >= 1.days
 
         // 0h[++++++|------]24h
         val newTimeDuration = if (timeOverflowed) overflowingTime - 1.days else overflowingTime
