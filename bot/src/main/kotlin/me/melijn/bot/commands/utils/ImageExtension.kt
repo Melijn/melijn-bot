@@ -27,6 +27,7 @@ import me.melijn.bot.utils.StringsUtil.prependZeros
 import me.melijn.bot.utils.image.GifSequenceWriter
 import me.melijn.bot.utils.image.ImageUtil.download
 import me.melijn.kordkommons.utils.StringUtils
+import net.dv8tion.jda.api.entities.User
 import net.dv8tion.jda.api.entities.emoji.CustomEmoji
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.entities.emoji.UnicodeEmoji
@@ -372,7 +373,7 @@ class ImageExtension : Extension() {
         }
     }
 
-    open inner class DeconstructArgs : ImageArgs() {
+    open inner class DeconstructArgs : ConvertArgs() {
 
         val imageType by defaultingEnumChoice<ImageType> {
             name = "image-type"
@@ -382,8 +383,7 @@ class ImageExtension : Extension() {
         }
 
         suspend fun getGif(): GifDecoder.GifImage {
-            val img = image?.url ?: user?.avatar?.url ?: emoji?.url ?: url ?: error("No image provided")
-            val barr = download(img)
+            val barr = download(imageUrl)
 
             try {
                 return GifDecoder.read(barr)
@@ -397,14 +397,18 @@ class ImageExtension : Extension() {
 
         val imageUrl: String
             get() {
-                return image?.url ?: user?.avatar?.url ?: emoji?.url ?: url ?: error("No image provided")
+                return image?.url ?: user?.avatar?.url ?: emoji?.url ?: url ?: caller.avatarUrl ?: bail("No image provided")
             }
     }
 
     open inner class ImageArgs : Arguments() {
+        lateinit var caller: User
         val image by optionalAttachment {
             name = "image"
             description = "image to convert"
+            validate {
+                caller = this.context.user
+            }
         }
         val user by optionalUser {
             name = "user"
