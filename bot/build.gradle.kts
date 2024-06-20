@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("application")
-    id("com.apollographql.apollo3") version "3.8.2"
+    id("com.apollographql.apollo3") version "3.8.4"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     kotlin("jvm") version "1.9.21"
     id("com.google.devtools.ksp") version "1.9.21-1.0.16"
@@ -39,15 +39,15 @@ repositories {
     maven("https://nexus.melijn.com/repository/jitpack/")
 }
 
-val jackson = "2.14.2" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+val jackson = "2.17.0" // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
 
-val ktor = "2.3.7"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
-val apollo = "3.8.2" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
-val kotlinX = "1.7.3" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
+val ktor = "2.3.10"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
+val apollo = "3.8.4" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
+val kotlinX = "1.8.1" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
 val kotlin = "1.9.21"
-val scrimage = "4.1.0"
+val scrimage = "4.1.3"
 
-val jda = "5.0.0-beta.23"
+val jda = "5.0.0-beta.24"
 val kordEx = "1.6.8-SNAPSHOT"
 val kordKommons = "0.0.13-SNAPSHOT"
 val kandyVersion = "0.5.0"
@@ -57,7 +57,7 @@ dependencies {
     implementation("me.melijn.kord.extensions:kord-extensions:$kordEx")
     ksp("me.melijn.kord.extensions:annotation-processor:$kordEx")
     implementation("org.jetbrains.kotlinx:kandy-lets-plot:$kandyVersion")
-    implementation("org.jetbrains.lets-plot:lets-plot-kotlin-jvm:4.5.0")
+    implementation("org.jetbrains.lets-plot:lets-plot-kotlin-jvm:4.7.3")
 
     // https://mvnrepository.com/artifact/org.scilab.forge/jlatexmath
     implementation("org.scilab.forge:jlatexmath:1.0.7")
@@ -118,7 +118,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.1.0")
 
     // https://mvnrepository.com/artifact/org.postgresql/postgresql
-    implementation("org.postgresql:postgresql:42.7.1")
+    implementation("org.postgresql:postgresql:42.7.2")
 
     // expiring map, https://search.maven.org/artifact/net.jodah/expiringmap
     implementation("net.jodah:expiringmap:0.5.11")
@@ -141,7 +141,7 @@ dependencies {
     implementation("se.michaelthelin.spotify:spotify-web-api-java:8.3.5")
 
     // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-    implementation("ch.qos.logback:logback-classic:1.4.14")
+    implementation("ch.qos.logback:logback-classic:1.5.6")
 
 
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
@@ -176,13 +176,13 @@ dependencies {
     // implementation("me.melijn.jikankt:JikanKt:1.3.2")
 
     // https://mvnrepository.com/artifact/org.mariuszgromada.math/MathParser.org-mXparser
-    implementation("org.mariuszgromada.math:MathParser.org-mXparser:5.2.1")
+    implementation("org.mariuszgromada.math:MathParser.org-mXparser:6.0.0")
 
     // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
     implementation("com.apollographql.apollo3:apollo-runtime:$apollo")
 
     // https://mvnrepository.com/artifact/io.lettuce/lettuce-core
-    implementation("io.lettuce:lettuce-core:6.2.7.RELEASE")
+    implementation("io.lettuce:lettuce-core:6.3.2.RELEASE")
 
     // https://github.com/cdimascio/dotenv-kotlin
     implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
