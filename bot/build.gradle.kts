@@ -4,9 +4,9 @@ plugins {
     id("application")
     id("com.apollographql.apollo3") version "3.8.4"
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    kotlin("jvm") version "1.9.21"
-    id("com.google.devtools.ksp") version "1.9.21-1.0.16"
-    kotlin("plugin.serialization") version "1.9.21"
+    kotlin("jvm") version "2.0.0"
+    id("com.google.devtools.ksp") version "2.0.0-1.0.22"
+    kotlin("plugin.serialization") version "2.0.0"
 }
 
 application.mainClass.set("me.melijn.bot.MelijnKt")
@@ -34,6 +34,7 @@ repositories {
     maven("https://reposilite.melijn.com/shitpack")
 
     maven("https://m2.duncte123.dev/releases")
+    maven("https://maven.arbjerg.dev/snapshots")
 
     // pooppack mirror
     maven("https://nexus.melijn.com/repository/jitpack/")
@@ -44,13 +45,13 @@ val jackson = "2.17.0" // https://mvnrepository.com/artifact/com.fasterxml.jacks
 val ktor = "2.3.10"   // https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 val apollo = "3.8.4" // https://mvnrepository.com/artifact/com.apollographql.apollo3/apollo-runtime
 val kotlinX = "1.8.1" // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
-val kotlin = "1.9.21"
+val kotlin = "2.0.0"
 val scrimage = "4.1.3"
 
 val jda = "5.0.0-beta.24"
 val kordEx = "1.6.8-SNAPSHOT"
 val kordKommons = "0.0.13-SNAPSHOT"
-val kandyVersion = "0.5.0"
+val kandyVersion = "0.6.0"
 
 dependencies {
     implementation("net.dv8tion:JDA:$jda")
@@ -62,7 +63,7 @@ dependencies {
     // https://mvnrepository.com/artifact/org.scilab.forge/jlatexmath
     implementation("org.scilab.forge:jlatexmath:1.0.7")
 
-    implementation("dev.schlaubi.lavakord", "jda", "5.1.7")
+    implementation("dev.schlaubi.lavakord", "jda", "7.0.3")
 
     implementation("me.melijn.kommons:kommons:$kordKommons")
     implementation("me.melijn.kommons:kord-kommons:$kordKommons")
@@ -104,8 +105,6 @@ dependencies {
     // https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib-jdk8
     implementation(kotlin("stdlib-jdk8"))
 
-    // https://nexus.melijn.com/#browse/browse:maven-public:me%2Fmelijn%2Fjagtag
-    // implementation("me.melijn.jagtag:JagTag-Kotlin:2.2.1")
 
     // Database
     // https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-core
